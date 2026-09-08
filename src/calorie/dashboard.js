@@ -6,6 +6,52 @@ const MACRO_SERIES = [
   { key: "fat", name: "Fat", color: "#a855f7" },
 ];
 
+// isi salah satu field (weight ATAU calories), yang lain ikut ke-scale proporsional di server -
+// makanya placeholder nampilin nilai sekarang, bukan value= (biar field kosong = "nggak diubah")
+function itemEditFormHtml(logId, idx, item) {
+  const uid = `${logId}-${idx}`;
+  return `<form class="item-edit-form" method="POST" action="/dashboard/calorie/item-edit">
+    <input type="hidden" name="id" value="${logId}">
+    <input type="hidden" name="item_index" value="${idx}">
+    <div class="item-edit-row">
+      <div>
+        <label for="weight-${uid}">New weight (g)</label>
+        <input type="number" step="1" id="weight-${uid}" name="weight" placeholder="current: ${item.weight_g ?? "?"}">
+      </div>
+      <div>
+        <label for="calories-${uid}">New calories (kcal)</label>
+        <input type="number" step="1" id="calories-${uid}" name="calories" placeholder="current: ${item.calories ?? "?"}">
+      </div>
+      <button type="submit">Save</button>
+    </div>
+  </form>`;
+}
+
+function itemRowHtml(logId, idx, item) {
+  return `<div class="log-item-row">
+    <div class="log-item-info">
+      <strong>${escapeHtml(item.name)}</strong>
+      <span class="card-sub">${item.weight_g ?? "?"}g · ${item.calories} kcal</span>
+    </div>
+    ${itemEditFormHtml(logId, idx, item)}
+  </div>`;
+}
+
+function logEntryHtml(entry, expandedId) {
+  const itemsHtml = entry.items.length
+    ? entry.items.map((item, idx) => itemRowHtml(entry.id, idx, item)).join("")
+    : `<div class="empty-state">No item breakdown available for this log.</div>`;
+
+  return `<details class="log-item" ${entry.id === expandedId ? "open" : ""}>
+    <summary>
+      <span class="log-time">${entry.time}</span>
+      <a class="nav-link" href="/dashboard/calorie?edit=${entry.id}">${escapeHtml(entry.foodName)}</a>
+      <span class="log-calories">${entry.calories} kcal</span>
+    </summary>
+    <div class="log-detail-body">${itemsHtml}</div>
+  </details>`;
+}
+
 function editFormHtml(entry) {
   return `<div class="form-card" style="margin-top:8px;">
     <h3>🔄 Re-analyze with AI</h3>
@@ -49,7 +95,8 @@ export function renderCalorieDashboard({
   total,
   macroTargets,
   todayMacros,
-  todayLogRows,
+  todayLogEntries,
+  expandedId,
   weekRows,
   weekChartData,
   weightRows,
@@ -158,10 +205,15 @@ ${faviconLink("/icons/calorie.png")}
     </div>
 
     <h2>📋 Today's Log</h2>
-    <table>
-      <thead><tr><th>🕐 Time</th><th>🍽️ Food</th><th>🔥 Calories</th></tr></thead>
-      <tbody>${todayLogRows || `<tr><td colspan="3">No logs yet.</td></tr>`}</tbody>
-    </table>
+    <p class="card-sub" style="margin:-4px 0 8px;">Click a log to see its item breakdown and correct
+    weight/calories per item.</p>
+    <div>
+      ${
+        todayLogEntries.length
+          ? todayLogEntries.map((entry) => logEntryHtml(entry, expandedId)).join("")
+          : `<div class="empty-state">No logs yet.</div>`
+      }
+    </div>
     ${editEntry ? editFormHtml(editEntry) : ""}
 
     <h2>📅 7-Day Recap (calories from Protein/Carbs/Fat)</h2>

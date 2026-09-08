@@ -129,6 +129,28 @@ export const DASHBOARD_CSS = `
     0% { left: -40%; }
     100% { left: 100%; }
   }
+
+  label { display: block; font-size: 11px; color: #94a3b8; margin-bottom: 3px; }
+
+  .log-item { background: #1e293b; border-radius: 12px; margin-bottom: 8px; overflow: hidden; }
+  .log-item summary { display: flex; align-items: center; gap: 10px; padding: 10px 14px; cursor: pointer; list-style: none; }
+  .log-item summary::-webkit-details-marker { display: none; }
+  .log-item summary::before { content: "▸"; color: #64748b; font-size: 12px; flex-shrink: 0; transition: transform 0.15s ease; }
+  .log-item[open] summary::before { transform: rotate(90deg); }
+  .log-time { font-size: 12px; color: #64748b; white-space: nowrap; }
+  .log-item summary a.nav-link { flex: 1; min-width: 0; overflow-wrap: break-word; }
+  .log-calories { font-size: 13px; color: #94a3b8; white-space: nowrap; }
+  .log-detail-body { padding: 4px 14px 14px; border-top: 1px solid #334155; }
+  .log-item-row { padding: 10px 0; border-bottom: 1px solid #334155; }
+  .log-item-row:last-child { border-bottom: none; }
+  .log-item-info { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 8px; font-size: 13px; }
+  .item-edit-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 8px; align-items: end; }
+  .item-edit-row input[type="number"] {
+    width: 100%; padding: 9px 10px; border-radius: 8px; border: 1px solid #334155;
+    background: #0f172a; color: #e2e8f0; box-sizing: border-box; font-size: 14px;
+  }
+  .item-edit-row button { padding: 9px 10px; border-radius: 8px; border: none; background: #6366f1; color: white; font-size: 13px; cursor: pointer; }
+  .item-edit-row button:hover { background: #4f46e5; }
 `;
 
 export function escapeHtml(str) {

@@ -259,13 +259,15 @@ router.get("/dashboard/calorie", requireAuth, async (req, res) => {
       ]);
 
     const editEntry = req.query.edit ? await getFoodLogById(chatId, req.query.edit) : null;
+    const expandedId = req.query.expanded || null;
 
-    const todayLogRows = todayLogs
-      .map(
-        (r) =>
-          `<tr><td>${toWibTime(r.created_at)}</td><td><a class="nav-link" href="/dashboard/calorie?edit=${r.id}">${escapeHtml(r.food_name)}</a></td><td>${r.calories} kcal</td></tr>`
-      )
-      .join("");
+    const todayLogEntries = todayLogs.map((r) => ({
+      id: r.id,
+      time: toWibTime(r.created_at),
+      foodName: r.food_name,
+      calories: r.calories,
+      items: r.items || [],
+    }));
 
     const byDay = {};
     const byDayMacroKcal = {};
@@ -311,7 +313,8 @@ router.get("/dashboard/calorie", requireAuth, async (req, res) => {
         total,
         macroTargets,
         todayMacros,
-        todayLogRows,
+        todayLogEntries,
+        expandedId,
         weekRows,
         weekChartData,
         weightRows,
@@ -388,6 +391,71 @@ router.post("/dashboard/calorie/food-edit", requireAuth, async (req, res) => {
   } catch (err) {
     console.error(err);
     redirectWithError(res, "/dashboard/calorie", `Gagal update log: ${err.message}`);
+  }
+});
+
+// edit satu item di dalam log (bukan total log-nya) - isi salah satu: weight ATAU calories,
+// yang lain ikut ke-scale proporsional (logic-nya sama persis kayak "edit <item> <angka>gr/kcal"
+// di bot Telegram)
+router.post("/dashboard/calorie/item-edit", requireAuth, async (req, res) => {
+  const id = req.body.id;
+  const itemIndex = parseInt(req.body.item_index, 10);
+  const weightRaw = (req.body.weight || "").trim();
+  const caloriesRaw = (req.body.calories || "").trim();
+
+  if (!weightRaw && !caloriesRaw) {
+    return res.redirect(
+      `/dashboard/calorie?expanded=${id}&err=${encodeURIComponent("Fill in either weight or calories.")}`
+    );
+  }
+
+  try {
+    const existing = await getFoodLogById(req.user.phone, id);
+    if (!existing) return redirectWithError(res, "/dashboard/calorie", "Log not found.");
+
+    const items = existing.items || [];
+    const item = items[itemIndex];
+    if (!item) return redirectWithError(res, "/dashboard/calorie", "Item not found.");
+
+    if (weightRaw) {
+      const newWeight = parseFloat(weightRaw);
+      if (isNaN(newWeight) || newWeight <= 0) {
+        return res.redirect(`/dashboard/calorie?expanded=${id}&err=${encodeURIComponent("Invalid weight.")}`);
+      }
+      const ratio = item.weight_g ? newWeight / item.weight_g : 1;
+      items[itemIndex] = {
+        ...item,
+        weight_g: newWeight,
+        calories: Math.round(item.calories * ratio),
+        protein_g: Math.round(item.protein_g * ratio * 10) / 10,
+        carbs_g: Math.round(item.carbs_g * ratio * 10) / 10,
+        fat_g: Math.round(item.fat_g * ratio * 10) / 10,
+        sugar_g: Math.round((item.sugar_g || 0) * ratio * 10) / 10,
+      };
+    } else {
+      const newCalories = parseInt(caloriesRaw, 10);
+      if (isNaN(newCalories) || newCalories < 0) {
+        return res.redirect(`/dashboard/calorie?expanded=${id}&err=${encodeURIComponent("Invalid calories.")}`);
+      }
+      const ratio = item.calories ? newCalories / item.calories : 1;
+      items[itemIndex] = {
+        ...item,
+        calories: newCalories,
+        protein_g: Math.round(item.protein_g * ratio * 10) / 10,
+        carbs_g: Math.round(item.carbs_g * ratio * 10) / 10,
+        fat_g: Math.round(item.fat_g * ratio * 10) / 10,
+        sugar_g: Math.round((item.sugar_g || 0) * ratio * 10) / 10,
+      };
+    }
+
+    const totals = sumItems(items);
+    await updateFoodLog(id, { items, ...totals });
+    res.redirect(`/dashboard/calorie?expanded=${id}&ok=1`);
+  } catch (err) {
+    console.error(err);
+    res.redirect(
+      `/dashboard/calorie?expanded=${id}&err=${encodeURIComponent(`Gagal update item: ${err.message}`)}`
+    );
   }
 });
 

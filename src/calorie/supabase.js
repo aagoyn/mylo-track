@@ -52,7 +52,7 @@ export async function getTodayCalories(phone) {
 export async function getTodayFoodLogs(phone) {
   const { data, error } = await supabase
     .from("food_logs")
-    .select("id, food_name, calories, created_at")
+    .select("id, food_name, calories, items, created_at")
     .eq("phone", phone)
     .gte("created_at", todayStartUtcISO())
     .order("created_at", { ascending: true });

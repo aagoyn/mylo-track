@@ -1,4 +1,4 @@
-import { DASHBOARD_CSS, escapeHtml, navHeader, stackedBarChartSvg, faviconLink } from "../shared/dashboard-layout.js";
+import { DASHBOARD_CSS, escapeHtml, navHeader, stackedBarChartSvg, faviconLink, iconLabel } from "../shared/dashboard-layout.js";
 
 const MACRO_SERIES = [
   { key: "protein", name: "Protein", color: "#f97316" },
@@ -92,15 +92,15 @@ export function renderCalorieDashboard({
   const remaining = target != null ? target - total : null;
 
   const macroCards = [
-    ["🥩 Protein", todayMacros.protein_g, macroTargets.protein_target_g, "g"],
-    ["🍚 Carbs", todayMacros.carbs_g, macroTargets.carbs_target_g, "g"],
-    ["🧈 Fat", todayMacros.fat_g, macroTargets.fat_target_g, "g"],
-    ["🍬 Sugar", todayMacros.sugar_g, macroTargets.sugar_target_g, "g"],
+    ["/icons/protein.png", "Protein", todayMacros.protein_g, macroTargets.protein_target_g, "g"],
+    ["/icons/carbs.png", "Carbs", todayMacros.carbs_g, macroTargets.carbs_target_g, "g"],
+    ["/icons/fat.png", "Fat", todayMacros.fat_g, macroTargets.fat_target_g, "g"],
+    ["/icons/sugar.png", "Sugar", todayMacros.sugar_g, macroTargets.sugar_target_g, "g"],
   ]
     .map(
-      ([label, current, targetVal, unit]) => `
+      ([icon, text, current, targetVal, unit]) => `
       <div class="card">
-        <div class="card-label">${label}</div>
+        <div class="card-label">${iconLabel(icon, text)}</div>
         <div class="card-value">${current}${targetVal ? ` / ${targetVal}` : ""}${unit}</div>
       </div>`
     )
@@ -161,7 +161,7 @@ ${faviconLink("/icons/calorie.png")}
         </form>
       </div>
       <div class="form-card">
-        <h3>⚖️ Weight</h3>
+        <h3>${iconLabel("/icons/scales.png", "Weight")}</h3>
         <form method="POST" action="/dashboard/calorie/weight">
           <input type="number" step="0.1" name="weight" placeholder="e.g. 65.5" required>
           <button type="submit">Save</button>
@@ -169,7 +169,7 @@ ${faviconLink("/icons/calorie.png")}
       </div>
     </div>
 
-    <h2>🎯 Set Targets</h2>
+    <h2>${iconLabel("/icons/target.png", "Set Targets")}</h2>
     <div class="forms">
       <div class="form-card">
         <h3>🔥 Daily Calorie Target</h3>
@@ -190,7 +190,7 @@ ${faviconLink("/icons/calorie.png")}
       </div>
     </div>
 
-    <h2>📋 Today's Log</h2>
+    <h2>${iconLabel("/icons/log.png", "Today's Log")}</h2>
     <p class="card-sub" style="margin:-4px 0 8px;">Click a log to see its item breakdown, re-analyze
     with AI, or delete it.</p>
     <div>
@@ -201,7 +201,7 @@ ${faviconLink("/icons/calorie.png")}
       }
     </div>
 
-    <h2>📅 7-Day Recap (calories from Protein/Carbs/Fat)</h2>
+    <h2>${iconLabel("/icons/week.png", "7-Day Recap (calories from Protein/Carbs/Fat)")}</h2>
     ${
       weekChartData?.length
         ? `<div class="chart-card">${stackedBarChartSvg(weekChartData, MACRO_SERIES, { itemsPerRow: 6 })}</div>`
@@ -212,7 +212,7 @@ ${faviconLink("/icons/calorie.png")}
       <tbody>${weekRows || `<tr><td colspan="2">No data yet.</td></tr>`}</tbody>
     </table>
 
-    <h2>⚖️ Weight</h2>
+    <h2>${iconLabel("/icons/scales.png", "Weight")}</h2>
     <table>
       <thead><tr><th>🗓️ Date</th><th>⚖️ Weight</th></tr></thead>
       <tbody>${weightRows || `<tr><td colspan="2">No data yet.</td></tr>`}</tbody>

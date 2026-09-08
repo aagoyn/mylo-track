@@ -149,10 +149,18 @@ export const DASHBOARD_CSS = `
   }
   .item-edit-row button { padding: 9px 10px; border-radius: 8px; border: none; background: #6366f1; color: white; font-size: 13px; cursor: pointer; }
   .item-edit-row button:hover { background: #4f46e5; }
+
+  .inline-icon { width: 16px; height: 16px; object-fit: contain; vertical-align: middle; margin-right: 4px; margin-top: -2px; border-radius: 3px; }
 `;
 
 export function escapeHtml(str) {
   return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+// icon kecil inline sebelum teks label (section header, card-label, dst), pakai file PNG
+// yang sama konvensinya kayak faviconLink - path ke public/icons
+export function iconLabel(iconPath, text) {
+  return `<img class="inline-icon" src="${iconPath}" alt="">${text}`;
 }
 
 // path ke file PNG di public/icons (di-serve static lewat express.static di server.js)

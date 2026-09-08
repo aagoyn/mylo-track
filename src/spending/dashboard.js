@@ -1,4 +1,4 @@
-import { DASHBOARD_CSS, escapeHtml, navHeader, stackedBarChartSvg, faviconLink } from "../shared/dashboard-layout.js";
+import { DASHBOARD_CSS, escapeHtml, navHeader, stackedBarChartSvg, faviconLink, iconLabel } from "../shared/dashboard-layout.js";
 
 const CATEGORY_COLOR_PALETTE = [
   "#6366f1", "#22c55e", "#f59e0b", "#ef4444", "#06b6d4",
@@ -22,7 +22,7 @@ function buildCategorySeries(days) {
     }));
 }
 
-function periodCard(label, { total, categories }) {
+function periodCard(icon, text, { total, categories }) {
   const rows = Object.entries(categories)
     .sort((a, b) => b[1] - a[1])
     .map(([cat, amt]) => `<tr><td>${cat}</td><td>Rp${Math.round(amt).toLocaleString("id-ID")}</td></tr>`)
@@ -30,13 +30,13 @@ function periodCard(label, { total, categories }) {
 
   return `
     <div>
-      <h2>${label}</h2>
+      <h2>${iconLabel(icon, text)}</h2>
       <table>
         <thead><tr><th>🏷️ Category</th><th>💰 Total</th></tr></thead>
         <tbody>${rows || `<tr><td colspan="2">No data yet.</td></tr>`}</tbody>
       </table>
       <div class="card" style="margin-top: 8px;">
-        <div class="card-label">Total ${label}</div>
+        <div class="card-label">Total ${text}</div>
         <div class="card-value">Rp${Math.round(total).toLocaleString("id-ID")}</div>
       </div>
     </div>`;
@@ -93,7 +93,7 @@ ${faviconLink("/icons/spending.png")}
         }
       </div>
       <div class="card">
-        <div class="card-label">🎯 Weekly Budget</div>
+        <div class="card-label">${iconLabel("/icons/target.png", "Weekly Budget")}</div>
         <div class="card-value">${weeklyBudget ? `Rp${Math.round(weeklyBudget).toLocaleString("id-ID")}` : "Not set"}</div>
         ${
           remaining != null
@@ -111,14 +111,14 @@ ${faviconLink("/icons/spending.png")}
     <h2>💸 Log Expense</h2>
     <div class="forms">
       <div class="form-card">
-        <h3>✍️ Via Text</h3>
+        <h3>${iconLabel("/icons/via-text.png", "Via Text")}</h3>
         <form method="POST" action="/dashboard/spending/expense-text">
           <input type="text" name="text" placeholder="e.g. coffee 25k" required>
           <button type="submit">Save</button>
         </form>
       </div>
       <div class="form-card">
-        <h3>🧾 Via Receipt Photo</h3>
+        <h3>${iconLabel("/icons/receipt.png", "Via Receipt Photo")}</h3>
         <form method="POST" action="/dashboard/spending/expense-photo" enctype="multipart/form-data">
           <input type="file" name="photo" accept="image/*" required>
           <button type="submit">Save</button>
@@ -126,10 +126,10 @@ ${faviconLink("/icons/spending.png")}
       </div>
     </div>
 
-    <h2>🎯 Set Weekly Budget</h2>
+    <h2>${iconLabel("/icons/weekly-budget.png", "Set Weekly Budget")}</h2>
     <div class="forms">
       <div class="form-card">
-        <h3>💰 Top Up / Update Budget</h3>
+        <h3>${iconLabel("/icons/top-up.png", "Top Up / Update Budget")}</h3>
         <form method="POST" action="/dashboard/spending/topup">
           <input type="number" name="amount" placeholder="e.g. 500000" required>
           <button type="submit">Save</button>
@@ -137,7 +137,7 @@ ${faviconLink("/icons/spending.png")}
       </div>
     </div>
 
-    <h2>📈 7-Day Spending Trend (by Category)</h2>
+    <h2>${iconLabel("/icons/trend.png", "7-Day Spending Trend (by Category)")}</h2>
     ${
       weekChartData?.length
         ? `<div class="chart-card">${stackedBarChartSvg(weekChartData, buildCategorySeries(weekChartData), {
@@ -148,12 +148,12 @@ ${faviconLink("/icons/spending.png")}
     }
 
     <div class="grid-2">
-      ${periodCard("📆 Today", today)}
-      ${periodCard("🗓️ This Week", week)}
+      ${periodCard("/icons/today.png", "Today", today)}
+      ${periodCard("/icons/week.png", "This Week", week)}
     </div>
-    ${periodCard("📅 This Month", month)}
+    ${periodCard("/icons/month.png", "This Month", month)}
 
-    <h2>🧾 Recent Transactions</h2>
+    <h2>${iconLabel("/icons/recent-transactions.png", "Recent Transactions")}</h2>
     <table>
       <thead><tr><th>🗓️ Date</th><th>📝 Description</th><th>🏷️ Category</th><th>💰 Amount</th></tr></thead>
       <tbody>${transactionRows || `<tr><td colspan="4">No transactions yet.</td></tr>`}</tbody>

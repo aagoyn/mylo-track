@@ -8,7 +8,22 @@ const MACRO_SERIES = [
 
 function editFormHtml(entry) {
   return `<div class="form-card" style="margin-top:8px;">
-    <h3>✏️ Edit Log</h3>
+    <h3>🔄 Re-analyze with AI</h3>
+    <p class="card-sub" style="margin:-4px 0 8px;">Don't know the calories? Describe the food (and correct
+    portion/weight) and let Gemini re-estimate everything below.</p>
+    <form method="POST" action="/dashboard/calorie/food-reanalyze" id="food-reanalyze-form">
+      <input type="hidden" name="id" value="${entry.id}">
+      <input type="text" name="description" placeholder="e.g. 150g rice, 2 fried eggs" value="${escapeHtml(entry.food_name)}" required>
+      <button type="submit" id="food-reanalyze-submit">Re-analyze</button>
+      <div class="upload-progress" id="food-reanalyze-progress" hidden>
+        <div class="upload-progress-bar"></div>
+      </div>
+    </form>
+  </div>
+
+  <div class="form-card" style="margin-top:8px;">
+    <h3>✏️ Manual Edit</h3>
+    <p class="card-sub" style="margin:-4px 0 8px;">Already know the numbers? Type them in directly.</p>
     <form method="POST" action="/dashboard/calorie/food-edit">
       <input type="hidden" name="id" value="${entry.id}">
       <input type="text" name="food_name" placeholder="Food name" value="${escapeHtml(entry.food_name)}" required>
@@ -167,13 +182,20 @@ ${faviconLink("/icons/calorie.png")}
     </table>
   </div>
   <script>
-    // JS minimal, cuma buat kasih feedback visual pas foto lagi dianalisis Gemini (bisa
-    // beberapa detik) - sisa halaman ini tetap murni server-rendered, no-JS.
-    document.getElementById("food-photo-form").addEventListener("submit", function () {
-      document.getElementById("food-photo-submit").disabled = true;
-      document.getElementById("food-photo-submit").textContent = "Analyzing...";
-      document.getElementById("food-photo-progress").hidden = false;
-    });
+    // JS minimal, cuma buat kasih feedback visual pas foto/deskripsi lagi dianalisis Gemini
+    // (bisa beberapa detik) - sisa halaman ini tetap murni server-rendered, no-JS.
+    function wireProgress(formId, submitId, progressId, loadingLabel) {
+      const form = document.getElementById(formId);
+      if (!form) return;
+      form.addEventListener("submit", function () {
+        const submit = document.getElementById(submitId);
+        submit.disabled = true;
+        submit.textContent = loadingLabel;
+        document.getElementById(progressId).hidden = false;
+      });
+    }
+    wireProgress("food-photo-form", "food-photo-submit", "food-photo-progress", "Analyzing...");
+    wireProgress("food-reanalyze-form", "food-reanalyze-submit", "food-reanalyze-progress", "Re-analyzing...");
   </script>
 </body>
 </html>`;

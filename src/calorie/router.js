@@ -391,6 +391,37 @@ router.post("/dashboard/calorie/food-edit", requireAuth, async (req, res) => {
   }
 });
 
+router.post("/dashboard/calorie/food-reanalyze", requireAuth, async (req, res) => {
+  const id = req.body.id;
+  const description = (req.body.description || "").trim();
+  if (!description) {
+    return res.redirect(`/dashboard/calorie?edit=${id}&err=${encodeURIComponent("Description can't be empty.")}`);
+  }
+
+  try {
+    const existing = await getFoodLogById(req.user.phone, id);
+    if (!existing) return redirectWithError(res, "/dashboard/calorie", "Log not found.");
+
+    const analysis = await analyzeFoodText(description);
+    await updateFoodLog(id, {
+      food_name: analysis.food_name,
+      calories: analysis.calories,
+      protein_g: analysis.protein_g,
+      carbs_g: analysis.carbs_g,
+      fat_g: analysis.fat_g,
+      sugar_g: analysis.sugar_g,
+      items: analysis.items,
+      notes: analysis.notes,
+    });
+    res.redirect(`/dashboard/calorie?edit=${id}&ok=1`);
+  } catch (err) {
+    console.error(err);
+    res.redirect(
+      `/dashboard/calorie?edit=${id}&err=${encodeURIComponent(`Gagal re-analyze: ${err.message}`)}`
+    );
+  }
+});
+
 router.post("/dashboard/calorie/food-delete", requireAuth, async (req, res) => {
   const id = req.body.id;
 

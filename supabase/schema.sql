@@ -1,0 +1,83 @@
+-- Semua tabel di bawah pakai "create table if not exists" — aman dijalankan berkali-kali,
+-- dan aman dijalankan di project Supabase yang sudah punya sebagian tabel ini dari
+-- spd-track/cal-track versi sebelum digabung (tidak ada drop table).
+
+create table if not exists expense_logs (
+  id uuid primary key default gen_random_uuid(),
+  phone text not null,
+  description text,
+  category text,
+  amount numeric not null,
+  type text not null default 'Expense',
+  balance_after numeric,
+  image_url text,
+  created_at timestamptz not null default now()
+);
+
+create table if not exists expense_settings (
+  phone text primary key,
+  weekly_budget numeric,
+  updated_at timestamptz not null default now()
+);
+
+alter table expense_logs enable row level security;
+alter table expense_settings enable row level security;
+alter table expense_logs add column if not exists image_url text;
+
+-- bucket buat simpan foto struk (jalankan lewat Supabase dashboard > Storage, bukan SQL Editor)
+-- nama bucket: receipt-photos (set public read kalau mau image_url langsung diakses browser)
+
+create table if not exists food_logs (
+  id uuid primary key default gen_random_uuid(),
+  phone text not null,
+  food_name text,
+  calories int,
+  protein_g numeric,
+  carbs_g numeric,
+  fat_g numeric,
+  notes text,
+  items jsonb,
+  image_url text,
+  raw_response jsonb,
+  created_at timestamptz not null default now()
+);
+
+create table if not exists user_settings (
+  phone text primary key,
+  daily_target int,
+  protein_target_g numeric,
+  carbs_target_g numeric,
+  fat_target_g numeric,
+  updated_at timestamptz not null default now()
+);
+
+create table if not exists weight_logs (
+  id uuid primary key default gen_random_uuid(),
+  phone text not null,
+  weight_kg numeric not null,
+  created_at timestamptz not null default now()
+);
+
+alter table food_logs enable row level security;
+alter table user_settings enable row level security;
+alter table weight_logs enable row level security;
+alter table user_settings alter column daily_target drop not null;
+alter table user_settings add column if not exists protein_target_g numeric;
+alter table user_settings add column if not exists carbs_target_g numeric;
+alter table user_settings add column if not exists fat_target_g numeric;
+alter table food_logs add column if not exists items jsonb;
+
+-- bucket buat simpan foto makanan (jalankan lewat Supabase dashboard > Storage, bukan SQL Editor)
+-- nama bucket: food-photos (set public read kalau mau image_url langsung diakses browser)
+
+-- Tabel akun web, dipakai bareng oleh dashboard spending & kalori (satu login untuk keduanya).
+-- "phone" di sini merujuk ke chat id Telegram-nya (dipakai buat filter data & jadi
+-- allow-list Telegram sekaligus, untuk kedua bot).
+create table if not exists app_users (
+  username text primary key,
+  password_hash text not null,
+  password_salt text not null,
+  phone text not null,
+  created_at timestamptz not null default now()
+);
+alter table app_users enable row level security;

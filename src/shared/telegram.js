@@ -47,11 +47,12 @@ export class TelegramClient {
 
   downloadPhoto = async (fileId) => {
     const fileRes = await fetch(`${this.#api}/getFile?file_id=${fileId}`);
-    if (!fileRes.ok) throw new Error(`getFile failed: ${fileRes.status}`);
+    if (!fileRes.ok) throw new Error(`getFile failed: ${fileRes.status} ${await fileRes.text()}`);
     const { result } = await fileRes.json();
 
     const fileDownload = await fetch(`${this.#fileApi}/${result.file_path}`);
-    if (!fileDownload.ok) throw new Error(`file download failed: ${fileDownload.status}`);
+    if (!fileDownload.ok)
+      throw new Error(`file download failed: ${fileDownload.status} ${await fileDownload.text()}`);
 
     const buffer = Buffer.from(await fileDownload.arrayBuffer());
     const mimeType = result.file_path.endsWith(".png") ? "image/png" : "image/jpeg";

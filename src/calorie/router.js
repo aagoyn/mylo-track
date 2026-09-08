@@ -224,6 +224,12 @@ async function weeklySummaryText(chatId) {
 
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
 
+// pakai encodeURIComponent biar pesan error yang dinamis (isinya bisa ada ":", tanda kutip, dll)
+// nggak bikin query string-nya rusak
+function redirectWithError(res, path, message) {
+  res.redirect(`${path}?err=${encodeURIComponent(message)}`);
+}
+
 export const router = express.Router();
 
 router.get("/dashboard/calorie", requireAuth, async (req, res) => {
@@ -300,7 +306,7 @@ router.get("/dashboard/calorie", requireAuth, async (req, res) => {
     );
   } catch (err) {
     console.error(err);
-    res.status(500).send("Gagal load dashboard.");
+    res.status(500).send(`Gagal load dashboard: ${escapeHtml(err.message)}`);
   }
 });
 
@@ -314,7 +320,7 @@ router.post("/dashboard/calorie/food-text", requireAuth, async (req, res) => {
     res.redirect("/dashboard/calorie?ok=1");
   } catch (err) {
     console.error(err);
-    res.redirect("/dashboard/calorie?err=Gagal menganalisis makanan.");
+    redirectWithError(res, "/dashboard/calorie", `Gagal menganalisis makanan: ${err.message}`);
   }
 });
 
@@ -332,7 +338,7 @@ router.post(
       res.redirect("/dashboard/calorie?ok=1");
     } catch (err) {
       console.error(err);
-      res.redirect("/dashboard/calorie?err=Gagal menganalisis foto.");
+      redirectWithError(res, "/dashboard/calorie", `Gagal menganalisis foto: ${err.message}`);
     }
   }
 );
@@ -346,7 +352,7 @@ router.post("/dashboard/calorie/weight", requireAuth, async (req, res) => {
     res.redirect("/dashboard/calorie?ok=1");
   } catch (err) {
     console.error(err);
-    res.redirect("/dashboard/calorie?err=Gagal menyimpan berat badan.");
+    redirectWithError(res, "/dashboard/calorie", `Gagal menyimpan berat badan: ${err.message}`);
   }
 });
 
@@ -359,7 +365,7 @@ router.post("/dashboard/calorie/target", requireAuth, async (req, res) => {
     res.redirect("/dashboard/calorie?ok=1");
   } catch (err) {
     console.error(err);
-    res.redirect("/dashboard/calorie?err=Gagal set target kalori.");
+    redirectWithError(res, "/dashboard/calorie", `Gagal set target kalori: ${err.message}`);
   }
 });
 
@@ -380,7 +386,7 @@ router.post("/dashboard/calorie/target-macro", requireAuth, async (req, res) => 
     res.redirect("/dashboard/calorie?ok=1");
   } catch (err) {
     console.error(err);
-    res.redirect("/dashboard/calorie?err=Gagal set target makro.");
+    redirectWithError(res, "/dashboard/calorie", `Gagal set target makro: ${err.message}`);
   }
 });
 
@@ -699,7 +705,7 @@ router.post("/webhook/calorie", async (req, res) => {
     }
   } catch (err) {
     console.error(err);
-    await sendText(chatId, "Gagal proses pesan, coba lagi ya.");
+    await sendText(chatId, `❌ Gagal proses pesan: ${err.message}`).catch(() => {});
   }
 });
 

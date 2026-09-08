@@ -1,4 +1,5 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
+import { generateJson } from "../shared/gemini-json.js";
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 const model = genAI.getGenerativeModel({ model: "gemini-3.6-flash" });
@@ -12,14 +13,14 @@ Balas HANYA dalam format JSON tanpa markdown, dengan struktur persis:
 Kalau nggak yakin, tetap kasih estimasi angka terbaik, jangan kosong.`;
 
 export async function analyzeReceiptImage(imageBuffer, mimeType) {
-  const result = await model.generateContent([
+  const parsed = await generateJson(model, [
     { inlineData: { data: imageBuffer.toString("base64"), mimeType } },
     PROMPT,
   ]);
 
-  const text = result.response.text().trim();
-  const jsonText = text.replace(/^```json\s*|^```\s*|```$/g, "").trim();
-  const parsed = JSON.parse(jsonText);
+  if (parsed.amount == null) {
+    throw new Error(`Gemini nggak ngasih field "amount" di hasil baca struk.`);
+  }
 
   return {
     amount: Math.round(Number(parsed.amount)) || 0,

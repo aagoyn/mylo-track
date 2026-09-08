@@ -1,4 +1,5 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
+import { generateJson } from "../shared/gemini-json.js";
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 const model = genAI.getGenerativeModel({ model: "gemini-3.6-flash" });
@@ -34,14 +35,14 @@ function sumItems(items) {
 }
 
 export async function analyzeFoodImage(imageBuffer, mimeType) {
-  const result = await model.generateContent([
+  const parsed = await generateJson(model, [
     { inlineData: { data: imageBuffer.toString("base64"), mimeType } },
     PROMPT,
   ]);
 
-  const text = result.response.text().trim();
-  const jsonText = text.replace(/^```json\s*|^```\s*|```$/g, "").trim();
-  const parsed = JSON.parse(jsonText);
+  if (!Array.isArray(parsed.items) || parsed.items.length === 0) {
+    throw new Error(`Gemini nggak ngasih rincian item makanan yang valid dari foto ini.`);
+  }
 
   return {
     food_name: parsed.food_name,
@@ -72,11 +73,11 @@ Pisahkan jadi beberapa item kalau memang ada beberapa jenis makanan berbeda. Kal
 Deskripsi makanan: `;
 
 export async function analyzeFoodText(description) {
-  const result = await model.generateContent(TEXT_PROMPT + description);
+  const parsed = await generateJson(model, TEXT_PROMPT + description);
 
-  const text = result.response.text().trim();
-  const jsonText = text.replace(/^```json\s*|^```\s*|```$/g, "").trim();
-  const parsed = JSON.parse(jsonText);
+  if (!Array.isArray(parsed.items) || parsed.items.length === 0) {
+    throw new Error(`Gemini nggak ngasih rincian item makanan yang valid dari deskripsi ini.`);
+  }
 
   return {
     food_name: parsed.food_name,

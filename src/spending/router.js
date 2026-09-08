@@ -368,6 +368,12 @@ async function processMessage(chatId, rawText) {
 
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
 
+// pakai encodeURIComponent biar pesan error yang dinamis (isinya bisa ada ":", tanda kutip, dll)
+// nggak bikin query string-nya rusak
+function redirectWithError(res, path, message) {
+  res.redirect(`${path}?err=${encodeURIComponent(message)}`);
+}
+
 export const router = express.Router();
 
 router.get("/dashboard/spending", requireAuth, async (req, res) => {
@@ -426,7 +432,7 @@ router.get("/dashboard/spending", requireAuth, async (req, res) => {
     );
   } catch (err) {
     console.error(err);
-    res.status(500).send("Gagal load dashboard.");
+    res.status(500).send(`Gagal load dashboard: ${escapeHtml(err.message)}`);
   }
 });
 
@@ -442,7 +448,7 @@ router.post("/dashboard/spending/expense-text", requireAuth, async (req, res) =>
     res.redirect("/dashboard/spending?ok=1");
   } catch (err) {
     console.error(err);
-    res.redirect("/dashboard/spending?err=Gagal menyimpan pengeluaran.");
+    redirectWithError(res, "/dashboard/spending", `Gagal menyimpan pengeluaran: ${err.message}`);
   }
 });
 
@@ -471,7 +477,7 @@ router.post(
       res.redirect("/dashboard/spending?ok=1");
     } catch (err) {
       console.error(err);
-      res.redirect("/dashboard/spending?err=Gagal menganalisis struk.");
+      redirectWithError(res, "/dashboard/spending", `Gagal menganalisis struk: ${err.message}`);
     }
   }
 );
@@ -488,7 +494,7 @@ router.post("/dashboard/spending/topup", requireAuth, async (req, res) => {
     res.redirect("/dashboard/spending?ok=1");
   } catch (err) {
     console.error(err);
-    res.redirect("/dashboard/spending?err=Gagal update budget.");
+    redirectWithError(res, "/dashboard/spending", `Gagal update budget: ${err.message}`);
   }
 });
 
@@ -542,7 +548,7 @@ router.post("/webhook/spending", async (req, res) => {
     }
   } catch (err) {
     console.error(err);
-    await sendText(chatId, "Gagal proses pesan, coba lagi ya.").catch(() => {});
+    await sendText(chatId, `❌ Gagal proses pesan: ${err.message}`).catch(() => {});
   }
 });
 

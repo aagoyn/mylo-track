@@ -40,7 +40,7 @@ export function renderCalorieDashboard({
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Calorie Tracker</title>
-${faviconLink("🍽️")}
+${faviconLink("/icons/calorie.png")}
 <style>${DASHBOARD_CSS}</style>
 </head>
 <body>

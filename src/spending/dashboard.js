@@ -61,7 +61,7 @@ export function renderSpendingDashboard({
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Spending Tracker</title>
-${faviconLink("💸")}
+${faviconLink("/icons/spending.png")}
 <style>${DASHBOARD_CSS}</style>
 </head>
 <body>

@@ -65,7 +65,7 @@ export function renderWishlistPage({ items, flash }) {
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Wishlist</title>
-${faviconLink("🛍️")}
+${faviconLink("/icons/wishlist.png")}
 <style>${DASHBOARD_CSS}</style>
 </head>
 <body>

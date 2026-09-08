@@ -80,7 +80,7 @@ export function renderHubDashboard({
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Mylo Hub</title>
-${faviconLink("🐙")}
+${faviconLink("/icons/hub.png")}
 <style>${DASHBOARD_CSS}</style>
 </head>
 <body>

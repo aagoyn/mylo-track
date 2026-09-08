@@ -77,7 +77,7 @@ export function loginPageHtml(error) {
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Login</title>
-${faviconLink("🔒")}
+${faviconLink("/icons/login.png")}
 <style>
   body { font-family: system-ui, sans-serif; background: #0f172a; color: #e2e8f0; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; }
   form { background: #1e293b; padding: 32px; border-radius: 12px; width: 280px; box-shadow: 0 10px 30px rgba(0,0,0,.3); }

@@ -112,7 +112,7 @@ export function renderMoodPage({
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Mood Tracker</title>
-${faviconLink("😊")}
+${faviconLink("/icons/mood.png")}
 <style>${DASHBOARD_CSS}</style>
 </head>
 <body>

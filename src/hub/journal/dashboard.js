@@ -42,7 +42,7 @@ export function renderJournalPage({ viewDate, todayKey, entry, recent, editMode,
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Journal</title>
-${faviconLink("📝")}
+${faviconLink("/icons/journal.png")}
 <style>${DASHBOARD_CSS}</style>
 </head>
 <body>

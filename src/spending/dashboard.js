@@ -1,4 +1,14 @@
-import { DASHBOARD_CSS, escapeHtml, navHeader, stackedBarChartSvg, faviconLink, iconLabel } from "../shared/dashboard-layout.js";
+import { DASHBOARD_CSS, escapeHtml, navHeader, stackedBarChartSvg, faviconLink, iconLabel, statBarHtml } from "../shared/dashboard-layout.js";
+
+// flavor text buat "Budget Boss HP bar" - gamify budget mingguan biar lebih iseng dilihat
+function budgetFlavorText(pct, remaining, weeklyBudget) {
+  if (!weeklyBudget) return "Set a weekly budget to start the fight.";
+  if (remaining <= 0)
+    return `💀 Budget Boss defeated you — over by Rp${Math.round(Math.abs(remaining)).toLocaleString("id-ID")}.`;
+  if (pct < 20) return "🔥 Critical HP! Spend carefully.";
+  if (pct < 50) return "⚔️ Halfway through the week's dungeon.";
+  return "💪 Budget's looking strong.";
+}
 
 const CATEGORY_COLOR_PALETTE = [
   "#6366f1", "#22c55e", "#f59e0b", "#ef4444", "#06b6d4",
@@ -59,6 +69,7 @@ export function renderSpendingDashboard({
   const avgDaily = daysElapsedInWeek > 0 ? weekSpent / daysElapsedInWeek : 0;
   const maxPerDay =
     remaining != null && remaining > 0 && daysLeftInWeek > 0 ? remaining / daysLeftInWeek : null;
+  const budgetPct = weeklyBudget ? ((remaining ?? 0) / weeklyBudget) * 100 : 0;
 
   return `<!doctype html>
 <html lang="en">
@@ -93,13 +104,15 @@ ${faviconLink("/icons/spending.png")}
         }
       </div>
       <div class="card">
-        <div class="card-label">${iconLabel("/icons/target.png", "Weekly Budget")}</div>
+        <div class="card-label">⚔️ Weekly Budget HP</div>
         <div class="card-value">${weeklyBudget ? `Rp${Math.round(weeklyBudget).toLocaleString("id-ID")}` : "Not set"}</div>
+        ${weeklyBudget ? statBarHtml(budgetPct) : ""}
         ${
           remaining != null
             ? `<div class="card-sub">${remaining >= 0 ? `Rp${Math.round(remaining).toLocaleString("id-ID")} left` : `Rp${Math.round(Math.abs(remaining)).toLocaleString("id-ID")} over`}</div>`
             : ""
         }
+        <div class="card-sub">${budgetFlavorText(budgetPct, remaining ?? 0, weeklyBudget)}</div>
       </div>
       <div class="card">
         <div class="card-label">📊 Avg Daily</div>

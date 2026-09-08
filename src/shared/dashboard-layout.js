@@ -151,6 +151,17 @@ export const DASHBOARD_CSS = `
   .item-edit-row button:hover { background: #4f46e5; }
 
   .inline-icon { width: 16px; height: 16px; object-fit: contain; vertical-align: middle; margin-right: 4px; margin-top: -2px; border-radius: 3px; }
+
+  .stat-bar { height: 14px; border-radius: 999px; background: #334155; overflow: hidden; margin: 6px 0 4px; }
+  .stat-bar-fill { height: 100%; border-radius: 999px; transition: width 0.3s ease; }
+  .stat-bar-fill.tier-high { background: #22c55e; }
+  .stat-bar-fill.tier-mid { background: #eab308; }
+  .stat-bar-fill.tier-low { background: #ef4444; }
+  .stat-bar-fill.tier-empty { background: #7f1d1d; }
+
+  .mylo-card { display: flex; align-items: center; gap: 12px; }
+  .mylo-avatar { width: 48px; height: 48px; object-fit: contain; border-radius: 10px; flex-shrink: 0; background: #0f172a; }
+  .mylo-main { flex: 1; min-width: 0; }
 `;
 
 export function escapeHtml(str) {
@@ -161,6 +172,14 @@ export function escapeHtml(str) {
 // yang sama konvensinya kayak faviconLink - path ke public/icons
 export function iconLabel(iconPath, text) {
   return `<img class="inline-icon" src="${iconPath}" alt="">${text}`;
+}
+
+// bar generik (HP budget, "affection" Mylo, dst) - warnanya otomatis ijo/kuning/merah/gelap
+// berdasarkan persentase, dipakai bareng buat beberapa fitur biar konsisten
+export function statBarHtml(pct) {
+  const clamped = Math.max(0, Math.min(100, pct));
+  const tier = clamped <= 0 ? "tier-empty" : clamped < 20 ? "tier-low" : clamped < 50 ? "tier-mid" : "tier-high";
+  return `<div class="stat-bar"><div class="stat-bar-fill ${tier}" style="width:${clamped}%"></div></div>`;
 }
 
 // path ke file PNG di public/icons (di-serve static lewat express.static di server.js)

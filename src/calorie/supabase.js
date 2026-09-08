@@ -21,6 +21,7 @@ export async function saveFoodLog({ phone, analysis, imageUrl }) {
     protein_g: analysis.protein_g,
     carbs_g: analysis.carbs_g,
     fat_g: analysis.fat_g,
+    sugar_g: analysis.sugar_g,
     notes: analysis.notes,
     items: analysis.items,
     image_url: imageUrl,
@@ -120,7 +121,7 @@ export async function setDailyTarget(phone, target) {
 export async function getTodayMacros(phone) {
   const { data, error } = await supabase
     .from("food_logs")
-    .select("protein_g, carbs_g, fat_g")
+    .select("protein_g, carbs_g, fat_g, sugar_g")
     .eq("phone", phone)
     .gte("created_at", todayStartUtcISO());
   if (error) throw error;
@@ -129,25 +130,29 @@ export async function getTodayMacros(phone) {
       protein_g: acc.protein_g + (row.protein_g || 0),
       carbs_g: acc.carbs_g + (row.carbs_g || 0),
       fat_g: acc.fat_g + (row.fat_g || 0),
+      sugar_g: acc.sugar_g + (row.sugar_g || 0),
     }),
-    { protein_g: 0, carbs_g: 0, fat_g: 0 }
+    { protein_g: 0, carbs_g: 0, fat_g: 0, sugar_g: 0 }
   );
   // bulatin ke 1 desimal, jaga-jaga dari floating point error (mis. 50.40000000000006)
   return {
     protein_g: Math.round(totals.protein_g * 10) / 10,
     carbs_g: Math.round(totals.carbs_g * 10) / 10,
     fat_g: Math.round(totals.fat_g * 10) / 10,
+    sugar_g: Math.round(totals.sugar_g * 10) / 10,
   };
 }
 
 export async function getMacroTargets(phone) {
   const { data, error } = await supabase
     .from("user_settings")
-    .select("protein_target_g, carbs_target_g, fat_target_g")
+    .select("protein_target_g, carbs_target_g, fat_target_g, sugar_target_g")
     .eq("phone", phone)
     .maybeSingle();
   if (error) throw error;
-  return data || { protein_target_g: null, carbs_target_g: null, fat_target_g: null };
+  return (
+    data || { protein_target_g: null, carbs_target_g: null, fat_target_g: null, sugar_target_g: null }
+  );
 }
 
 export async function setMacroTargets(phone, macros) {

@@ -99,8 +99,9 @@ function sumItems(items) {
       protein_g: acc.protein_g + (it.protein_g || 0),
       carbs_g: acc.carbs_g + (it.carbs_g || 0),
       fat_g: acc.fat_g + (it.fat_g || 0),
+      sugar_g: acc.sugar_g + (it.sugar_g || 0),
     }),
-    { calories: 0, protein_g: 0, carbs_g: 0, fat_g: 0 }
+    { calories: 0, protein_g: 0, carbs_g: 0, fat_g: 0, sugar_g: 0 }
   );
 }
 
@@ -110,6 +111,7 @@ function formatFoodText(analysis) {
   text += `🥩 Protein: ${analysis.protein_g}g\n`;
   text += `🍚 Karbo: ${analysis.carbs_g}g\n`;
   text += `🧈 Lemak: ${analysis.fat_g}g\n`;
+  text += `🍬 Gula: ${analysis.sugar_g}g\n`;
 
   if (analysis.items?.length > 1) {
     const lines = analysis.items.map(
@@ -146,12 +148,16 @@ async function dailySummaryText(chatId) {
   }
 
   const hasMacroTarget =
-    macroTargets.protein_target_g || macroTargets.carbs_target_g || macroTargets.fat_target_g;
+    macroTargets.protein_target_g ||
+    macroTargets.carbs_target_g ||
+    macroTargets.fat_target_g ||
+    macroTargets.sugar_target_g;
   if (hasMacroTarget) {
     const p = `${todayMacros.protein_g}${macroTargets.protein_target_g ? ` / ${macroTargets.protein_target_g}` : ""}g`;
     const c = `${todayMacros.carbs_g}${macroTargets.carbs_target_g ? ` / ${macroTargets.carbs_target_g}` : ""}g`;
     const f = `${todayMacros.fat_g}${macroTargets.fat_target_g ? ` / ${macroTargets.fat_target_g}` : ""}g`;
-    text += `\n\n🥩 Protein: ${p}\n🍚 Karbo: ${c}\n🧈 Lemak: ${f}`;
+    const s = `${todayMacros.sugar_g}${macroTargets.sugar_target_g ? ` / ${macroTargets.sugar_target_g}` : ""}g`;
+    text += `\n\n🥩 Protein: ${p}\n🍚 Karbo: ${c}\n🧈 Lemak: ${f}\n🍬 Gula: ${s}`;
   }
 
   return text;
@@ -172,15 +178,19 @@ async function macroSummaryText(chatId) {
   ]);
 
   const hasMacroTarget =
-    macroTargets.protein_target_g || macroTargets.carbs_target_g || macroTargets.fat_target_g;
+    macroTargets.protein_target_g ||
+    macroTargets.carbs_target_g ||
+    macroTargets.fat_target_g ||
+    macroTargets.sugar_target_g;
 
   if (!hasMacroTarget) {
     return (
       `🥗 <b>Makro hari ini</b>\n` +
       `🥩 Protein: ${todayMacros.protein_g}g\n` +
       `🍚 Karbo: ${todayMacros.carbs_g}g\n` +
-      `🧈 Lemak: ${todayMacros.fat_g}g\n\n` +
-      `(Belum ada target makro, set dengan kirim "target makro 150 200 60")`
+      `🧈 Lemak: ${todayMacros.fat_g}g\n` +
+      `🍬 Gula: ${todayMacros.sugar_g}g\n\n` +
+      `(Belum ada target makro, set dengan kirim "target makro 150 200 60 30", gula opsional)`
     );
   }
 
@@ -188,6 +198,7 @@ async function macroSummaryText(chatId) {
     macroLine("Protein", "🥩", todayMacros.protein_g, macroTargets.protein_target_g),
     macroLine("Karbo", "🍚", todayMacros.carbs_g, macroTargets.carbs_target_g),
     macroLine("Lemak", "🧈", todayMacros.fat_g, macroTargets.fat_target_g),
+    macroLine("Gula", "🍬", todayMacros.sugar_g, macroTargets.sugar_target_g),
   ];
 
   return `🥗 <b>Makro hari ini</b>\n${lines.join("\n")}`;
@@ -377,12 +388,17 @@ router.post("/dashboard/calorie/target-macro", requireAuth, async (req, res) => 
     return res.redirect("/dashboard/calorie?err=Target makro tidak valid.");
   }
 
+  // gula opsional - form-nya nggak wajib diisi
+  const sugarRaw = (req.body.sugar || "").trim();
+  const sugar = sugarRaw ? parseFloat(sugarRaw) : null;
+  if (sugar != null && (isNaN(sugar) || sugar < 0)) {
+    return res.redirect("/dashboard/calorie?err=Target gula tidak valid.");
+  }
+
   try {
-    await setMacroTargets(req.user.phone, {
-      protein_target_g: protein,
-      carbs_target_g: carbs,
-      fat_target_g: fat,
-    });
+    const macros = { protein_target_g: protein, carbs_target_g: carbs, fat_target_g: fat };
+    if (sugar != null) macros.sugar_target_g = sugar;
+    await setMacroTargets(req.user.phone, macros);
     res.redirect("/dashboard/calorie?ok=1");
   } catch (err) {
     console.error(err);
@@ -419,7 +435,7 @@ router.post("/webhook/calorie", async (req, res) => {
             "/makro — cek makro (protein/karbo/lemak) hari ini\n" +
             '<code>makan nasi goreng 1 porsi</code> — catat makanan via teks (tanpa foto)\n' +
             '<code>target 2000</code> — set/update target kalori harian\n' +
-            '<code>target makro 150 200 60</code> — set target protein/karbo/lemak (g)\n' +
+            '<code>target makro 150 200 60 30</code> — set target protein/karbo/lemak/gula (g), gula opsional\n' +
             '<code>bb 65.5</code> — catat berat badan\n' +
             '<code>riwayat bb</code> — riwayat berat badan\n' +
             '<code>cari nasi goreng</code> — cari log berdasarkan nama makanan\n' +
@@ -464,18 +480,20 @@ router.post("/webhook/calorie", async (req, res) => {
       }
 
       const macroTargetMatch = text.match(
-        /^target\s+makro\s+(\d+(?:\.\d+)?)\s+(\d+(?:\.\d+)?)\s+(\d+(?:\.\d+)?)$/i
+        /^target\s+makro\s+(\d+(?:\.\d+)?)\s+(\d+(?:\.\d+)?)\s+(\d+(?:\.\d+)?)(?:\s+(\d+(?:\.\d+)?))?$/i
       );
       if (macroTargetMatch) {
-        const [, p, c, f] = macroTargetMatch;
-        await setMacroTargets(chatId, {
+        const [, p, c, f, s] = macroTargetMatch;
+        const macros = {
           protein_target_g: parseFloat(p),
           carbs_target_g: parseFloat(c),
           fat_target_g: parseFloat(f),
-        });
+        };
+        if (s != null) macros.sugar_target_g = parseFloat(s);
+        await setMacroTargets(chatId, macros);
         await sendText(
           chatId,
-          `✅ Target makro di-set: Protein ${p}g, Karbo ${c}g, Lemak ${f}g`
+          `✅ Target makro di-set: Protein ${p}g, Karbo ${c}g, Lemak ${f}g${s != null ? `, Gula ${s}g` : ""}`
         );
         return;
       }
@@ -587,12 +605,13 @@ router.post("/webhook/calorie", async (req, res) => {
           protein_g: Math.round(last.protein_g * ratio * 10) / 10,
           carbs_g: Math.round(last.carbs_g * ratio * 10) / 10,
           fat_g: Math.round(last.fat_g * ratio * 10) / 10,
+          sugar_g: Math.round((last.sugar_g || 0) * ratio * 10) / 10,
         };
         await updateFoodLog(last.id, macros);
         await sendText(
           chatId,
           `✏️ Oke, "${escapeHtml(last.food_name)}" diupdate: <b>${macros.calories} kcal</b> ` +
-            `(protein ${macros.protein_g}g, karbo ${macros.carbs_g}g, lemak ${macros.fat_g}g)`
+            `(protein ${macros.protein_g}g, karbo ${macros.carbs_g}g, lemak ${macros.fat_g}g, gula ${macros.sugar_g}g)`
         );
         return;
       }
@@ -651,6 +670,7 @@ router.post("/webhook/calorie", async (req, res) => {
               protein_g: Math.round(item.protein_g * ratio * 10) / 10,
               carbs_g: Math.round(item.carbs_g * ratio * 10) / 10,
               fat_g: Math.round(item.fat_g * ratio * 10) / 10,
+              sugar_g: Math.round((item.sugar_g || 0) * ratio * 10) / 10,
             };
             confirmLines.push(
               `"${escapeHtml(items[idx].name)}" → ${edit.value} kcal (berat tetap ${item.weight_g}g)`
@@ -664,6 +684,7 @@ router.post("/webhook/calorie", async (req, res) => {
               protein_g: Math.round(item.protein_g * ratio * 10) / 10,
               carbs_g: Math.round(item.carbs_g * ratio * 10) / 10,
               fat_g: Math.round(item.fat_g * ratio * 10) / 10,
+              sugar_g: Math.round((item.sugar_g || 0) * ratio * 10) / 10,
             };
             confirmLines.push(
               `"${escapeHtml(items[idx].name)}" → ${edit.value}g (${items[idx].calories} kcal)`

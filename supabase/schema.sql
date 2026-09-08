@@ -35,6 +35,7 @@ create table if not exists food_logs (
   protein_g numeric,
   carbs_g numeric,
   fat_g numeric,
+  sugar_g numeric,
   notes text,
   items jsonb,
   image_url text,
@@ -48,6 +49,7 @@ create table if not exists user_settings (
   protein_target_g numeric,
   carbs_target_g numeric,
   fat_target_g numeric,
+  sugar_target_g numeric,
   updated_at timestamptz not null default now()
 );
 
@@ -65,7 +67,9 @@ alter table user_settings alter column daily_target drop not null;
 alter table user_settings add column if not exists protein_target_g numeric;
 alter table user_settings add column if not exists carbs_target_g numeric;
 alter table user_settings add column if not exists fat_target_g numeric;
+alter table user_settings add column if not exists sugar_target_g numeric;
 alter table food_logs add column if not exists items jsonb;
+alter table food_logs add column if not exists sugar_g numeric;
 
 -- bucket buat simpan foto makanan (jalankan lewat Supabase dashboard > Storage, bukan SQL Editor)
 -- nama bucket: food-photos (set public read kalau mau image_url langsung diakses browser)

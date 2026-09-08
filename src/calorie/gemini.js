@@ -15,7 +15,8 @@ Balas HANYA dalam format JSON tanpa markdown, dengan struktur persis:
       "calories": number,
       "protein_g": number,
       "carbs_g": number,
-      "fat_g": number
+      "fat_g": number,
+      "sugar_g": number (gula, subset dari carbs_g)
     }
   ],
   "notes": string
@@ -29,8 +30,9 @@ function sumItems(items) {
       protein_g: acc.protein_g + (it.protein_g || 0),
       carbs_g: acc.carbs_g + (it.carbs_g || 0),
       fat_g: acc.fat_g + (it.fat_g || 0),
+      sugar_g: acc.sugar_g + (it.sugar_g || 0),
     }),
-    { calories: 0, protein_g: 0, carbs_g: 0, fat_g: 0 }
+    { calories: 0, protein_g: 0, carbs_g: 0, fat_g: 0, sugar_g: 0 }
   );
 }
 
@@ -63,7 +65,8 @@ Balas HANYA dalam format JSON tanpa markdown, dengan struktur persis:
       "calories": number,
       "protein_g": number,
       "carbs_g": number,
-      "fat_g": number
+      "fat_g": number,
+      "sugar_g": number (gula, subset dari carbs_g)
     }
   ],
   "notes": string

@@ -23,6 +23,7 @@ export function renderCalorieDashboard({
     ["🥩 Protein", todayMacros.protein_g, macroTargets.protein_target_g, "g"],
     ["🍚 Karbo", todayMacros.carbs_g, macroTargets.carbs_target_g, "g"],
     ["🧈 Lemak", todayMacros.fat_g, macroTargets.fat_target_g, "g"],
+    ["🍬 Gula", todayMacros.sugar_g, macroTargets.sugar_target_g, "g"],
   ]
     .map(
       ([label, current, targetVal, unit]) => `
@@ -99,11 +100,12 @@ export function renderCalorieDashboard({
         </form>
       </div>
       <div class="form-card">
-        <h3>🥩🍚🧈 Target Makro (g)</h3>
+        <h3>🥩🍚🧈🍬 Target Makro (g)</h3>
         <form method="POST" action="/dashboard/calorie/target-macro">
           <input type="number" step="0.1" name="protein" placeholder="Protein" required>
           <input type="number" step="0.1" name="carbs" placeholder="Karbo" required>
           <input type="number" step="0.1" name="fat" placeholder="Lemak" required>
+          <input type="number" step="0.1" name="sugar" placeholder="Gula (opsional)">
           <button type="submit">Simpan</button>
         </form>
       </div>

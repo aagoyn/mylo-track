@@ -9,8 +9,8 @@ export const DASHBOARD_CSS = `
   a.nav-link, a.logout { color: #94a3b8; font-size: 13px; text-decoration: none; }
   a.nav-link:hover, a.logout:hover { color: #e2e8f0; }
   .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 12px; }
-  .macro-cards { grid-template-columns: repeat(3, 1fr); margin-top: 12px; }
-  @media (max-width: 420px) { .macro-cards { grid-template-columns: 1fr; } }
+  .macro-cards { grid-template-columns: repeat(4, 1fr); margin-top: 12px; }
+  @media (max-width: 520px) { .macro-cards { grid-template-columns: repeat(2, 1fr); } }
   .card { background: #1e293b; border-radius: 12px; padding: 14px 16px; }
   .card-label { font-size: 12px; color: #94a3b8; margin-bottom: 4px; }
   .card-value { font-size: 18px; font-weight: 600; overflow-wrap: break-word; }

@@ -27,7 +27,7 @@ export const DASHBOARD_CSS = `
   .flash { padding: 12px 16px; border-radius: 8px; font-size: 13px; margin-bottom: 16px; overflow-wrap: break-word; word-break: break-word; }
   .flash-success { background: #14532d; color: #bbf7d0; }
   .flash-error { background: #450a0a; color: #fecaca; }
-  .forms { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
+  .forms { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; align-items: start; }
   .form-card { background: #1e293b; border-radius: 12px; padding: 16px; }
   .form-card h3 { font-size: 13px; color: #94a3b8; margin: 0 0 10px; font-weight: 500; }
   .form-card > summary { cursor: pointer; font-size: 13px; color: #94a3b8; font-weight: 500; list-style: none; margin-bottom: 10px; }

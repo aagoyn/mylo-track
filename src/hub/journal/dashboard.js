@@ -1,4 +1,4 @@
-import { DASHBOARD_CSS, escapeHtml, navHeader, faviconLink } from "../../shared/dashboard-layout.js";
+import { DASHBOARD_CSS, escapeHtml, navHeader, faviconLink, iconLabel } from "../../shared/dashboard-layout.js";
 
 const MONTHS_EN = [
   "Jan", "Feb", "Mar", "Apr", "May", "Jun",
@@ -12,7 +12,7 @@ function formatDateLabel(dateKey) {
 
 export function renderJournalPage({ viewDate, todayKey, entry, recent, editMode, flash }) {
   const isToday = viewDate === todayKey;
-  const heading = isToday ? "📝 Today" : `📝 ${formatDateLabel(viewDate)}`;
+  const heading = iconLabel("/icons/journal.png", isToday ? "Today" : formatDateLabel(viewDate));
 
   const body =
     !editMode && entry

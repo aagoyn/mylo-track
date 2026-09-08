@@ -1,4 +1,4 @@
-import { DASHBOARD_CSS, escapeHtml, navHeader, faviconLink } from "../../shared/dashboard-layout.js";
+import { DASHBOARD_CSS, escapeHtml, navHeader, faviconLink, iconLabel } from "../../shared/dashboard-layout.js";
 
 const MOOD_META = {
   terrible: { emoji: "😫", label: "Terrible" },
@@ -171,7 +171,7 @@ ${faviconLink("/icons/mood.png")}
         <div class="card-value">${streak} day${streak === 1 ? "" : "s"}</div>
       </div>
       <div class="card">
-        <div class="card-label">📅 Logged this month</div>
+        <div class="card-label">${iconLabel("/icons/month.png", "Logged this month")}</div>
         <div class="card-value">${loggedThisMonth} / ${daysInMonth}</div>
       </div>
     </div>

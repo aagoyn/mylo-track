@@ -1,5 +1,5 @@
 import crypto from "node:crypto";
-import { faviconLink } from "./dashboard-layout.js";
+import { faviconLink, iconLabel } from "./dashboard-layout.js";
 
 const SESSION_SECRET = process.env.SESSION_SECRET || "";
 const SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000; // 30 hari
@@ -82,6 +82,7 @@ ${faviconLink("/icons/login.png")}
   body { font-family: system-ui, sans-serif; background: #0f172a; color: #e2e8f0; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; }
   form { background: #1e293b; padding: 32px; border-radius: 12px; width: 280px; box-shadow: 0 10px 30px rgba(0,0,0,.3); }
   h1 { font-size: 18px; margin: 0 0 16px; }
+  .inline-icon { width: 18px; height: 18px; object-fit: contain; vertical-align: middle; margin-right: 6px; margin-top: -2px; border-radius: 4px; }
   input { width: 100%; padding: 10px 12px; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: #e2e8f0; box-sizing: border-box; margin-bottom: 12px; font-size: 14px; }
   button { width: 100%; padding: 10px 12px; border-radius: 8px; border: none; background: #6366f1; color: white; font-size: 14px; cursor: pointer; }
   button:hover { background: #4f46e5; }
@@ -90,7 +91,7 @@ ${faviconLink("/icons/login.png")}
 </head>
 <body>
   <form method="POST" action="/login">
-    <h1>🔒 Log In</h1>
+    <h1>${iconLabel("/icons/login.png", "Log In")}</h1>
     ${error ? `<div class="error">${error}</div>` : ""}
     <input type="text" name="username" placeholder="Username" autofocus required>
     <input type="password" name="password" placeholder="Password" required>

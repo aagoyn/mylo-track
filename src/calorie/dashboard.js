@@ -129,7 +129,7 @@ ${faviconLink("/icons/calorie.png")}
     ${flash ? `<div class="flash flash-${flash.type}">${escapeHtml(flash.text)}</div>` : ""}
 
     <div class="card">
-      <div class="card-label">🔥 Calories Today</div>
+      <div class="card-label">${iconLabel("/icons/calorie.png", "Calories Today")}</div>
       <div class="card-value">${total}${target != null ? ` / ${target}` : ""} kcal</div>
       ${
         remaining != null
@@ -141,7 +141,7 @@ ${faviconLink("/icons/calorie.png")}
       ${macroCards}
     </section>
 
-    <h2>📝 Log Food</h2>
+    <h2>${iconLabel("/icons/log.png", "Log Food")}</h2>
     <div class="forms">
       <div class="form-card">
         <h3>${iconLabel("/icons/via-text.png", "Via Text")}</h3>
@@ -172,7 +172,7 @@ ${faviconLink("/icons/calorie.png")}
     <h2>${iconLabel("/icons/target.png", "Set Targets")}</h2>
     <div class="forms">
       <details class="form-card">
-        <summary>🔥 Daily Calorie Target</summary>
+        <summary>${iconLabel("/icons/target.png", "Daily Calorie Target")}</summary>
         <form method="POST" action="/dashboard/calorie/target">
           <input type="number" name="target" placeholder="e.g. 2000" required>
           <button type="submit">Save</button>

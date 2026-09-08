@@ -1,4 +1,4 @@
-import { DASHBOARD_CSS, escapeHtml, navHeader, faviconLink } from "../shared/dashboard-layout.js";
+import { DASHBOARD_CSS, escapeHtml, navHeader, faviconLink, iconLabel } from "../shared/dashboard-layout.js";
 
 const MOOD_META = {
   terrible: { emoji: "😫", label: "Terrible" },
@@ -105,26 +105,26 @@ ${faviconLink("/icons/hub.png")}
 
     <section class="cards">
       <a class="card" href="/dashboard/calorie">
-        <div class="card-label">🔥 Calories</div>
+        <div class="card-label">${iconLabel("/icons/calorie.png", "Calories")}</div>
         ${calorieCard}
       </a>
       <a class="card" href="/dashboard/spending">
-        <div class="card-label">💰 Spending</div>
+        <div class="card-label">${iconLabel("/icons/spending.png", "Spending")}</div>
         ${spendingCard}
       </a>
       <div class="card mood-today">
-        <div class="card-label">😊 Mood</div>
+        <div class="card-label">${iconLabel("/icons/mood.png", "Mood")}</div>
         ${moodCard}
       </div>
     </section>
 
-    <h2>📝 Today</h2>
+    <h2>${iconLabel("/icons/journal.png", "Today")}</h2>
     <div class="card">${journalSection}</div>
 
-    <h2>🛍️ Things I Want</h2>
+    <h2>${iconLabel("/icons/wishlist.png", "Things I Want")}</h2>
     <div class="card">${wishlistSection}</div>
 
-    <h2>🏦 Vault</h2>
+    <h2>${iconLabel("/icons/vault.png", "Vault")}</h2>
     <div class="card">${vaultSection}</div>
 
     <h2>Recent</h2>
@@ -133,17 +133,17 @@ ${faviconLink("/icons/hub.png")}
     <div class="hub-nav-group">
       <h2>Trackers</h2>
       <div class="hub-nav-links">
-        <a class="hub-nav-item" href="/dashboard/calorie">🔥 Calories</a>
-        <a class="hub-nav-item" href="/dashboard/spending">💰 Spending</a>
+        <a class="hub-nav-item" href="/dashboard/calorie">${iconLabel("/icons/calorie.png", "Calories")}</a>
+        <a class="hub-nav-item" href="/dashboard/spending">${iconLabel("/icons/spending.png", "Spending")}</a>
       </div>
     </div>
     <div class="hub-nav-group">
       <h2>Mini Apps</h2>
       <div class="hub-nav-links">
-        <a class="hub-nav-item" href="/hub/mood">😊 Mood</a>
-        <a class="hub-nav-item" href="/hub/journal">📝 Journal</a>
-        <a class="hub-nav-item" href="/hub/wishlist">🛍️ Wishlist</a>
-        <a class="hub-nav-item" href="/hub/vault">🏦 Vault</a>
+        <a class="hub-nav-item" href="/hub/mood">${iconLabel("/icons/mood.png", "Mood")}</a>
+        <a class="hub-nav-item" href="/hub/journal">${iconLabel("/icons/journal.png", "Journal")}</a>
+        <a class="hub-nav-item" href="/hub/wishlist">${iconLabel("/icons/wishlist.png", "Wishlist")}</a>
+        <a class="hub-nav-item" href="/hub/vault">${iconLabel("/icons/vault.png", "Vault")}</a>
       </div>
     </div>
   </div>

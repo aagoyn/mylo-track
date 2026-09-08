@@ -4,6 +4,7 @@ import { requireAuth, createSessionCookie, clearSessionCookie, loginPageHtml } f
 import { verifyLogin } from "./shared/users.js";
 import { router as spendingRouter, registerCommands as registerSpendingCommands } from "./spending/router.js";
 import { router as calorieRouter, registerCommands as registerCalorieCommands } from "./calorie/router.js";
+import { router as hubRouter } from "./hub/router.js";
 
 const PORT = process.env.PORT || 3000;
 
@@ -23,7 +24,7 @@ app.post("/login", async (req, res) => {
     if (!user) return res.send(loginPageHtml("Username atau password salah."));
 
     res.setHeader("Set-Cookie", createSessionCookie(user));
-    res.redirect("/dashboard");
+    res.redirect("/hub");
   } catch (err) {
     console.error(err);
     res.send(loginPageHtml("Gagal login, coba lagi."));
@@ -54,15 +55,16 @@ app.get("/dashboard", requireAuth, (req, res) => {
 </style>
 </head>
 <body>
-  <a class="logout" href="/logout">Keluar</a>
+  <a class="logout" href="/logout">Log out</a>
   <div class="picker">
     <a class="tile" href="/dashboard/spending">💸<br>Spending</a>
-    <a class="tile" href="/dashboard/calorie">🍽️<br>Kalori</a>
+    <a class="tile" href="/dashboard/calorie">🍽️<br>Calories</a>
   </div>
 </body>
 </html>`);
 });
 
+app.use(hubRouter);
 app.use(spendingRouter);
 app.use(calorieRouter);
 

@@ -74,6 +74,15 @@ alter table food_logs add column if not exists sugar_g numeric;
 -- bucket buat simpan foto makanan (jalankan lewat Supabase dashboard > Storage, bukan SQL Editor)
 -- nama bucket: food-photos (set public read kalau mau image_url langsung diakses browser)
 
+create table if not exists mood_logs (
+  id uuid primary key default gen_random_uuid(),
+  phone text not null,
+  mood text not null,
+  note text,
+  created_at timestamptz not null default now()
+);
+alter table mood_logs enable row level security;
+
 -- Tabel akun web, dipakai bareng oleh dashboard spending & kalori (satu login untuk keduanya).
 -- "phone" di sini merujuk ke chat id Telegram-nya (dipakai buat filter data & jadi
 -- allow-list Telegram sekaligus, untuk kedua bot).

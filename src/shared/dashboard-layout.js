@@ -38,6 +38,53 @@ export const DASHBOARD_CSS = `
   }
   .form-card button:hover { background: #4f46e5; }
   .chart-card { background: #1e293b; border-radius: 12px; padding: 16px; margin-bottom: 12px; }
+
+  .hub-greeting { font-size: 22px; font-weight: 600; margin: 0 0 2px; }
+  .hub-date { font-size: 13px; color: #94a3b8; margin: 0 0 4px; }
+  .hub-sub { font-size: 13px; color: #64748b; margin: 0 0 20px; }
+  .empty-state { font-size: 13px; color: #64748b; }
+  .empty-state a { color: #818cf8; text-decoration: none; }
+  .empty-state a:hover { text-decoration: underline; }
+  .activity-list { display: flex; flex-direction: column; gap: 8px; }
+  .activity-row { display: flex; align-items: center; gap: 12px; background: #1e293b; border-radius: 12px; padding: 10px 14px; }
+  .activity-icon { font-size: 18px; }
+  .activity-main { flex: 1; min-width: 0; }
+  .activity-title { font-size: 13px; font-weight: 500; }
+  .activity-subtitle { font-size: 12px; color: #94a3b8; }
+  .activity-time { font-size: 12px; color: #64748b; white-space: nowrap; }
+  .hub-nav-group { margin-bottom: 20px; }
+  .hub-nav-group h2 { margin-top: 0; }
+  .hub-nav-links { display: flex; flex-direction: column; gap: 6px; }
+  a.hub-nav-item { display: block; background: #1e293b; border-radius: 10px; padding: 10px 14px; color: #e2e8f0; text-decoration: none; font-size: 14px; }
+  a.hub-nav-item:hover { background: #334155; }
+
+  .mood-picker { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
+  .mood-picker input[type="radio"] { position: absolute; opacity: 0; width: 1px; height: 1px; }
+  .mood-picker label { display: flex; align-items: center; justify-content: center; width: 52px; height: 52px; border-radius: 12px; background: #0f172a; border: 2px solid #334155; font-size: 24px; cursor: pointer; }
+  .mood-picker input[type="radio"]:checked + label { border-color: #6366f1; background: #312e81; }
+  .mood-today .card-value { font-size: 22px; }
+  .mood-today .card-note { font-size: 13px; color: #94a3b8; font-style: italic; margin-top: 4px; }
+
+  .calendar-nav { display: flex; align-items: center; justify-content: space-between; margin: 8px 0 12px; }
+  .calendar-nav a { color: #94a3b8; text-decoration: none; font-size: 13px; }
+  .calendar-nav a:hover { color: #e2e8f0; }
+  .calendar-nav .calendar-label { font-size: 14px; font-weight: 600; }
+  .mood-calendar { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; max-width: 100%; }
+  .mood-calendar .dow { font-size: 11px; color: #64748b; text-align: center; padding-bottom: 4px; }
+  a.mood-cell { display: flex; align-items: center; justify-content: center; aspect-ratio: 1 / 1; border-radius: 6px; background: #1e293b; font-size: 14px; text-decoration: none; border: 2px solid transparent; }
+  a.mood-cell.mood-empty { background: #1e293b; opacity: 0.5; }
+  a.mood-cell.mood-selected { border-color: #e2e8f0; }
+  a.mood-cell.mood-terrible { background: #ef444455; }
+  a.mood-cell.mood-bad { background: #f9731655; }
+  a.mood-cell.mood-okay { background: #eab30855; }
+  a.mood-cell.mood-good { background: #22c55e55; }
+  a.mood-cell.mood-great { background: #06b6d455; }
+  .mood-legend { display: flex; flex-wrap: wrap; gap: 12px; font-size: 12px; color: #94a3b8; margin-top: 10px; }
+  .mood-legend span { display: inline-flex; align-items: center; gap: 4px; }
+  .streak-row { display: flex; gap: 12px; margin-top: 12px; }
+  .day-detail { background: #1e293b; border-radius: 12px; padding: 14px 16px; margin-top: 12px; font-size: 13px; }
+  .mood-history-item { display: flex; justify-content: space-between; gap: 12px; padding: 8px 0; border-bottom: 1px solid #334155; font-size: 13px; }
+  .mood-history-item:last-child { border-bottom: none; }
 `;
 
 export function escapeHtml(str) {
@@ -53,7 +100,7 @@ export function navHeader({ icon, title, links = [] }) {
       <h1>${icon} ${title}</h1>
       <div class="nav-links">
         ${linksHtml}
-        <a class="logout" href="/logout">Keluar</a>
+        <a class="logout" href="/logout">Log out</a>
       </div>
     </header>`;
 }

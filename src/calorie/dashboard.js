@@ -2,8 +2,8 @@ import { DASHBOARD_CSS, escapeHtml, navHeader, stackedBarChartSvg } from "../sha
 
 const MACRO_SERIES = [
   { key: "protein", name: "Protein", color: "#f97316" },
-  { key: "carbs", name: "Karbo", color: "#eab308" },
-  { key: "fat", name: "Lemak", color: "#a855f7" },
+  { key: "carbs", name: "Carbs", color: "#eab308" },
+  { key: "fat", name: "Fat", color: "#a855f7" },
 ];
 
 export function renderCalorieDashboard({
@@ -21,9 +21,9 @@ export function renderCalorieDashboard({
 
   const macroCards = [
     ["🥩 Protein", todayMacros.protein_g, macroTargets.protein_target_g, "g"],
-    ["🍚 Karbo", todayMacros.carbs_g, macroTargets.carbs_target_g, "g"],
-    ["🧈 Lemak", todayMacros.fat_g, macroTargets.fat_target_g, "g"],
-    ["🍬 Gula", todayMacros.sugar_g, macroTargets.sugar_target_g, "g"],
+    ["🍚 Carbs", todayMacros.carbs_g, macroTargets.carbs_target_g, "g"],
+    ["🧈 Fat", todayMacros.fat_g, macroTargets.fat_target_g, "g"],
+    ["🍬 Sugar", todayMacros.sugar_g, macroTargets.sugar_target_g, "g"],
   ]
     .map(
       ([label, current, targetVal, unit]) => `
@@ -35,7 +35,7 @@ export function renderCalorieDashboard({
     .join("");
 
   return `<!doctype html>
-<html lang="id">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -47,17 +47,20 @@ export function renderCalorieDashboard({
     ${navHeader({
       icon: "🍽️",
       title: "Calorie Tracker",
-      links: [{ href: "/dashboard/spending", label: "💸 Pengeluaran" }],
+      links: [
+        { href: "/hub", label: "🏠 Hub" },
+        { href: "/dashboard/spending", label: "💸 Spending" },
+      ],
     })}
 
     ${flash ? `<div class="flash flash-${flash.type}">${escapeHtml(flash.text)}</div>` : ""}
 
     <div class="card">
-      <div class="card-label">🔥 Kalori Hari Ini</div>
+      <div class="card-label">🔥 Calories Today</div>
       <div class="card-value">${total}${target != null ? ` / ${target}` : ""} kcal</div>
       ${
         remaining != null
-          ? `<div class="card-sub">${remaining >= 0 ? `Sisa ${remaining}` : `Lebih ${Math.abs(remaining)}`} kcal</div>`
+          ? `<div class="card-sub">${remaining >= 0 ? `${remaining} left` : `${Math.abs(remaining)} over`} kcal</div>`
           : ""
       }
     </div>
@@ -65,73 +68,73 @@ export function renderCalorieDashboard({
       ${macroCards}
     </section>
 
-    <h2>📝 Catat Makanan</h2>
+    <h2>📝 Log Food</h2>
     <div class="forms">
       <div class="form-card">
-        <h3>✍️ Via Teks</h3>
+        <h3>✍️ Via Text</h3>
         <form method="POST" action="/dashboard/calorie/food-text">
-          <input type="text" name="description" placeholder="mis. nasi goreng 1 porsi" required>
-          <button type="submit">Catat</button>
+          <input type="text" name="description" placeholder="e.g. fried rice 1 serving" required>
+          <button type="submit">Save</button>
         </form>
       </div>
       <div class="form-card">
-        <h3>📸 Via Foto</h3>
+        <h3>📸 Via Photo</h3>
         <form method="POST" action="/dashboard/calorie/food-photo" enctype="multipart/form-data">
           <input type="file" name="photo" accept="image/*" required>
-          <button type="submit">Catat</button>
+          <button type="submit">Save</button>
         </form>
       </div>
       <div class="form-card">
-        <h3>⚖️ Berat Badan</h3>
+        <h3>⚖️ Weight</h3>
         <form method="POST" action="/dashboard/calorie/weight">
-          <input type="number" step="0.1" name="weight" placeholder="mis. 65.5" required>
-          <button type="submit">Catat</button>
+          <input type="number" step="0.1" name="weight" placeholder="e.g. 65.5" required>
+          <button type="submit">Save</button>
         </form>
       </div>
     </div>
 
-    <h2>🎯 Set Target</h2>
+    <h2>🎯 Set Targets</h2>
     <div class="forms">
       <div class="form-card">
-        <h3>🔥 Target Kalori Harian</h3>
+        <h3>🔥 Daily Calorie Target</h3>
         <form method="POST" action="/dashboard/calorie/target">
-          <input type="number" name="target" placeholder="mis. 2000" required>
-          <button type="submit">Simpan</button>
+          <input type="number" name="target" placeholder="e.g. 2000" required>
+          <button type="submit">Save</button>
         </form>
       </div>
       <div class="form-card">
-        <h3>🥩🍚🧈🍬 Target Makro (g)</h3>
+        <h3>🥩🍚🧈🍬 Macro Targets (g)</h3>
         <form method="POST" action="/dashboard/calorie/target-macro">
           <input type="number" step="0.1" name="protein" placeholder="Protein" required>
-          <input type="number" step="0.1" name="carbs" placeholder="Karbo" required>
-          <input type="number" step="0.1" name="fat" placeholder="Lemak" required>
-          <input type="number" step="0.1" name="sugar" placeholder="Gula (opsional)">
-          <button type="submit">Simpan</button>
+          <input type="number" step="0.1" name="carbs" placeholder="Carbs" required>
+          <input type="number" step="0.1" name="fat" placeholder="Fat" required>
+          <input type="number" step="0.1" name="sugar" placeholder="Sugar (optional)">
+          <button type="submit">Save</button>
         </form>
       </div>
     </div>
 
-    <h2>📋 Log Hari Ini</h2>
+    <h2>📋 Today's Log</h2>
     <table>
-      <thead><tr><th>🕐 Jam</th><th>🍽️ Makanan</th><th>🔥 Kalori</th></tr></thead>
-      <tbody>${todayLogRows || `<tr><td colspan="3">Belum ada log.</td></tr>`}</tbody>
+      <thead><tr><th>🕐 Time</th><th>🍽️ Food</th><th>🔥 Calories</th></tr></thead>
+      <tbody>${todayLogRows || `<tr><td colspan="3">No logs yet.</td></tr>`}</tbody>
     </table>
 
-    <h2>📅 Rekap 7 Hari (kalori dari Protein/Karbo/Lemak)</h2>
+    <h2>📅 7-Day Recap (calories from Protein/Carbs/Fat)</h2>
     ${
       weekChartData?.length
         ? `<div class="chart-card">${stackedBarChartSvg(weekChartData, MACRO_SERIES, { itemsPerRow: 6 })}</div>`
         : ""
     }
     <table>
-      <thead><tr><th>📆 Hari</th><th>🔥 Kalori</th></tr></thead>
-      <tbody>${weekRows || `<tr><td colspan="2">Belum ada data.</td></tr>`}</tbody>
+      <thead><tr><th>📆 Day</th><th>🔥 Calories</th></tr></thead>
+      <tbody>${weekRows || `<tr><td colspan="2">No data yet.</td></tr>`}</tbody>
     </table>
 
-    <h2>⚖️ Berat Badan</h2>
+    <h2>⚖️ Weight</h2>
     <table>
-      <thead><tr><th>🗓️ Tanggal</th><th>⚖️ Berat</th></tr></thead>
-      <tbody>${weightRows || `<tr><td colspan="2">Belum ada data.</td></tr>`}</tbody>
+      <thead><tr><th>🗓️ Date</th><th>⚖️ Weight</th></tr></thead>
+      <tbody>${weightRows || `<tr><td colspan="2">No data yet.</td></tr>`}</tbody>
     </table>
   </div>
 </body>

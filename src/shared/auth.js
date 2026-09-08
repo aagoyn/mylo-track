@@ -88,11 +88,11 @@ export function loginPageHtml(error) {
 </head>
 <body>
   <form method="POST" action="/login">
-    <h1>🔒 Masuk</h1>
+    <h1>🔒 Log In</h1>
     ${error ? `<div class="error">${error}</div>` : ""}
     <input type="text" name="username" placeholder="Username" autofocus required>
     <input type="password" name="password" placeholder="Password" required>
-    <button type="submit">Masuk</button>
+    <button type="submit">Log In</button>
   </form>
 </body>
 </html>`;

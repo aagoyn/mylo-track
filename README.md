@@ -2,7 +2,8 @@
 
 Node/Express + Supabase app yang gabungin dua Telegram bot (Spending & Calorie tracker) plus
 satu **Personal Hub** web dashboard: home overview, Mood Tracker (kalender ala GitHub
-contribution graph), Journal harian, dan Wishlist. Satu process, satu deployment, satu login.
+contribution graph), Journal harian, Wishlist, dan Vault (income/tabungan/tagihan bulanan).
+Satu process, satu deployment, satu login.
 
 Bot Telegram-nya (teks/reply) tetap berbahasa Indonesia. Web dashboard (termasuk Hub, Mood,
 Journal, Wishlist, Spending, Calorie) pakai bahasa Inggris untuk UI-nya, dan tiap halaman punya
@@ -20,8 +21,9 @@ favicon sendiri (file PNG di `public/icons/`, di-serve lewat `express.static`).
 **Dashboard web** — login sekali di `/login`, lanjut ke `/hub`:
 
 - `/hub` — Personal Hub: greeting, ringkasan hari ini (Calories/Spending/Mood — tiap card bisa
-  diklik ke dashboard terkait), jurnal hari ini, ringkasan wishlist, recent activity gabungan
-  dari semua fitur, dan navigasi ke semua tracker/mini-app
+  diklik ke dashboard terkait), jurnal hari ini, ringkasan wishlist, ringkasan Vault (sisa
+  monthly pool), recent activity gabungan dari semua fitur, dan navigasi ke semua
+  tracker/mini-app
 - `/hub/mood` — Mood Tracker: input mood cepat (bisa berkali-kali sehari, tiap check-in
   kesimpen terpisah), kalender bulanan ala GitHub contribution graph (klik tanggal buat lihat
   detail check-in hari itu), ringkasan bulanan, current streak, riwayat mood
@@ -29,6 +31,10 @@ favicon sendiri (file PNG di `public/icons/`, di-serve lewat `express.static`).
   di hari yang sama), riwayat entry lama bisa dibuka & diedit juga
 - `/hub/wishlist` — daftar barang/hal yang pengen dibeli/dicoba: kategori, prioritas, status,
   estimasi harga, catatan — tambah/edit/hapus langsung dari list
+- `/hub/vault` — tracking keuangan bulanan (terpisah dari Spending yang mingguan): catat
+  income (gaji), catat setor/tarik tabungan, catat tagihan rutin (kos, listrik, dll) tiap
+  template bisa "Mark Paid" per bulan, semua digabung jadi satu angka **Monthly Remaining**
+  (income − tabungan − topup mingguan ke Spending − tagihan yang udah dibayar)
 - `/dashboard/spending` — running balance, budget mingguan, breakdown kategori, tren 7 hari,
   transaksi terakhir, form catat pengeluaran (teks/foto) & topup budget
 - `/dashboard/calorie` — kalori & makro (protein/karbo/lemak/gula) hari ini, log hari ini,
@@ -74,6 +80,10 @@ src/
       router.js          route /hub/wishlist + /hub/wishlist/:id/update + /hub/wishlist/:id/delete
       supabase.js          query wishlist_items
       dashboard.js         render HTML Wishlist
+    vault/
+      router.js          route /hub/vault + income/savings/bills (create/update/delete/pay)
+      supabase.js          query income_logs, savings_logs, bill_templates, bill_payments
+      dashboard.js         render HTML Vault
 scripts/
   add-user.js         CLI buat nambah akun baru (shared, satu untuk kedua bot)
 supabase/
@@ -104,7 +114,8 @@ npm install
 2. Buka **SQL Editor**, jalanin isi `supabase/schema.sql` (aman dijalanin berkali-kali — semua
    `create table if not exists`, nggak ada drop table). Tabel-tabelnya: `expense_logs`,
    `expense_settings` (spending), `food_logs`, `user_settings`, `weight_logs` (calorie),
-   `mood_logs`, `journal_logs`, `wishlist_items` (Personal Hub), `app_users` (akun).
+   `mood_logs`, `journal_logs`, `wishlist_items`, `income_logs`, `savings_logs`,
+   `bill_templates`, `bill_payments` (Personal Hub), `app_users` (akun).
 3. Buka **Storage**, bikin dua bucket: **`receipt-photos`** (foto struk) dan **`food-photos`**
    (foto makanan) — centang public read kalau mau URL foto langsung diakses browser.
 4. Buka **Settings → API**, catat `Project URL` dan `service_role` key (bukan `anon` key).
@@ -180,6 +191,7 @@ bisa dipakai di production begitu di-run, tidak perlu redeploy.
   Supabase Storage.
 - **Dashboard nggak nunjukin data** — pastiin `phone` di tabel `app_users` buat akun kamu
   sama persis dengan chat ID Telegram yang dipakai buat chat ke bot terkait.
-- **`/hub/mood`, `/hub/journal`, atau `/hub/wishlist` error pas load** — pastiin udah jalanin
-  ulang `supabase/schema.sql` versi terbaru (nambah tabel `mood_logs`, `journal_logs`,
-  `wishlist_items`) di project Supabase kamu.
+- **`/hub/mood`, `/hub/journal`, `/hub/wishlist`, atau `/hub/vault` error pas load** — pastiin
+  udah jalanin ulang `supabase/schema.sql` versi terbaru (nambah tabel `mood_logs`,
+  `journal_logs`, `wishlist_items`, `income_logs`, `savings_logs`, `bill_templates`,
+  `bill_payments`) di project Supabase kamu.

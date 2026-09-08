@@ -109,6 +109,46 @@ create table if not exists wishlist_items (
 );
 alter table wishlist_items enable row level security;
 
+create table if not exists income_logs (
+  id uuid primary key default gen_random_uuid(),
+  phone text not null,
+  amount numeric not null,
+  note text,
+  created_at timestamptz not null default now()
+);
+alter table income_logs enable row level security;
+
+-- type: 'deposit' | 'withdrawal'
+create table if not exists savings_logs (
+  id uuid primary key default gen_random_uuid(),
+  phone text not null,
+  amount numeric not null,
+  type text not null,
+  note text,
+  created_at timestamptz not null default now()
+);
+alter table savings_logs enable row level security;
+
+create table if not exists bill_templates (
+  id uuid primary key default gen_random_uuid(),
+  phone text not null,
+  name text not null,
+  default_amount numeric,
+  created_at timestamptz not null default now()
+);
+alter table bill_templates enable row level security;
+
+-- "name" disalin dari bill_templates pas dibayar (bukan FK) - kalau template-nya diedit atau
+-- dihapus belakangan, histori pembayaran lama tetap utuh
+create table if not exists bill_payments (
+  id uuid primary key default gen_random_uuid(),
+  phone text not null,
+  name text not null,
+  amount numeric not null,
+  created_at timestamptz not null default now()
+);
+alter table bill_payments enable row level security;
+
 -- Tabel akun web, dipakai bareng oleh dashboard spending & kalori (satu login untuk keduanya).
 -- "phone" di sini merujuk ke chat id Telegram-nya (dipakai buat filter data & jadi
 -- allow-list Telegram sekaligus, untuk kedua bot).

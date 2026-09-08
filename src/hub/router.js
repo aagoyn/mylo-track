@@ -9,6 +9,8 @@ import { getTodayCalories, getTodayMacros, getTodayFoodLogs } from "../calorie/s
 import { getTodayMoodLogs, getRecentMoodLogs } from "./mood/supabase.js";
 import { getJournalEntry, todayDateKeyWib } from "./journal/supabase.js";
 import { getWishlistItems } from "./wishlist/supabase.js";
+import { getTopupTotal } from "../spending/supabase.js";
+import { getMonthlyIncomeTotal, getMonthlySavingsNet, getBillPaymentsThisMonth } from "./vault/supabase.js";
 import { renderHubDashboard } from "./dashboard.js";
 
 const WIB_OFFSET_MS = 7 * 60 * 60 * 1000;
@@ -22,6 +24,20 @@ const MOOD_META = {
 
 function wibNow() {
   return new Date(Date.now() + WIB_OFFSET_MS);
+}
+
+function wibPartsToIso(year, month, day, hour = 0, minute = 0, second = 0) {
+  return new Date(Date.UTC(year, month, day, hour, minute, second) - WIB_OFFSET_MS).toISOString();
+}
+
+function currentMonthBoundsWib() {
+  const now = wibNow();
+  const y = now.getUTCFullYear();
+  const m = now.getUTCMonth();
+  return {
+    startISO: wibPartsToIso(y, m, 1, 0, 0, 0),
+    endISO: wibPartsToIso(y, m + 1, 0, 23, 59, 59),
+  };
 }
 
 function toWibDateKey(isoString) {
@@ -105,6 +121,7 @@ router.get("/hub", requireAuth, async (req, res) => {
     recentMoodResult,
     journalResult,
     wishlistResult,
+    vaultResult,
   ] = await Promise.allSettled([
     (async () => {
       const { startISO, endISO } = getSpendingDayBoundsWib();
@@ -117,6 +134,17 @@ router.get("/hub", requireAuth, async (req, res) => {
     getRecentMoodLogs(phone, 10),
     getJournalEntry(phone, todayDateKeyWib()),
     getWishlistItems(phone),
+    (async () => {
+      const { startISO, endISO } = currentMonthBoundsWib();
+      const [monthlyIncome, monthlySavingsNet, monthlyTopupTotal, billPayments] = await Promise.all([
+        getMonthlyIncomeTotal(phone),
+        getMonthlySavingsNet(phone),
+        getTopupTotal(phone, startISO, endISO),
+        getBillPaymentsThisMonth(phone),
+      ]);
+      const monthlyBillsPaidTotal = billPayments.reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
+      return monthlyIncome - monthlySavingsNet - monthlyTopupTotal - monthlyBillsPaidTotal;
+    })(),
   ]);
 
   const spendingTotalToday = spendingResult.status === "fulfilled" ? spendingResult.value.total : null;
@@ -146,6 +174,8 @@ router.get("/hub", requireAuth, async (req, res) => {
         previewTitles: wishlistItems.slice(0, 3).map((i) => i.title),
       }
     : null;
+
+  const vaultSummary = vaultResult.status === "fulfilled" ? { monthlyRemaining: vaultResult.value } : null;
 
   const recentActivity = [];
   if (recentSpendingResult.status === "fulfilled") {
@@ -202,6 +232,7 @@ router.get("/hub", requireAuth, async (req, res) => {
       moodCheckinsToday,
       journalToday,
       wishlistSummary,
+      vaultSummary,
       recentActivity: recentActivity.slice(0, 4).map((a) => ({ ...a, time: toWibTime(a.timestamp) })),
     })
   );

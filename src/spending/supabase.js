@@ -194,3 +194,18 @@ export async function setWeeklyBudget(phone, amount) {
     .upsert({ phone, weekly_budget: amount, updated_at: new Date().toISOString() });
   if (error) throw error;
 }
+
+// total topup (transfer ke GoPay) dalam rentang tanggal - dipakai Vault buat ngitung berapa
+// dari monthly pool yang udah dialokasikan ke spending mingguan bulan ini
+export async function getTopupTotal(phone, startISO, endISO) {
+  const { data, error } = await supabase
+    .from("expense_logs")
+    .select("amount")
+    .eq("phone", phone)
+    .eq("type", "Income")
+    .eq("category", "Topup")
+    .gte("created_at", startISO)
+    .lte("created_at", endISO);
+  if (error) throw error;
+  return data.reduce((sum, row) => sum + (Number(row.amount) || 0), 0);
+}

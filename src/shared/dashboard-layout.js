@@ -162,6 +162,9 @@ export const DASHBOARD_CSS = `
   .stat-bar-fill.tier-mid { background: #eab308; }
   .stat-bar-fill.tier-low { background: #ef4444; }
   .stat-bar-fill.tier-empty { background: #7f1d1d; }
+
+  .button-row { display: flex; gap: 8px; }
+  .button-row button { width: 100%; }
 `;
 
 export function escapeHtml(str) {

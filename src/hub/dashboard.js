@@ -34,6 +34,7 @@ export function renderHubDashboard({
   moodCheckinsToday,
   journalToday,
   wishlistSummary,
+  vaultSummary,
   recentActivity,
 }) {
   const hasSpending = spendingToday && spendingToday.total > 0;
@@ -73,6 +74,12 @@ export function renderHubDashboard({
       : `<div class="empty-state">Nothing on your wishlist yet.</div>
          <a class="nav-link" href="/hub/wishlist">Add something</a>`
     : `<div class="empty-state">Couldn't load wishlist.</div>`;
+
+  const vaultSection = vaultSummary
+    ? `<div class="card-value">${formatRupiah(vaultSummary.monthlyRemaining)} left</div>
+       <div class="card-sub">Monthly pool</div>
+       <a class="nav-link" href="/hub/vault">View vault</a>`
+    : `<div class="empty-state">Couldn't load vault.</div>`;
 
   return `<!doctype html>
 <html lang="en">
@@ -117,6 +124,9 @@ ${faviconLink("/icons/hub.png")}
     <h2>🛍️ Things I Want</h2>
     <div class="card">${wishlistSection}</div>
 
+    <h2>🏦 Vault</h2>
+    <div class="card">${vaultSection}</div>
+
     <h2>Recent</h2>
     <div class="activity-list">${recentRows}</div>
 
@@ -133,6 +143,7 @@ ${faviconLink("/icons/hub.png")}
         <a class="hub-nav-item" href="/hub/mood">😊 Mood</a>
         <a class="hub-nav-item" href="/hub/journal">📝 Journal</a>
         <a class="hub-nav-item" href="/hub/wishlist">🛍️ Wishlist</a>
+        <a class="hub-nav-item" href="/hub/vault">🏦 Vault</a>
       </div>
     </div>
   </div>

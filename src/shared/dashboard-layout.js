@@ -12,6 +12,8 @@ export const DASHBOARD_CSS = `
   .macro-cards { grid-template-columns: repeat(4, 1fr); margin-top: 12px; }
   @media (max-width: 520px) { .macro-cards { grid-template-columns: repeat(2, 1fr); } }
   .card { background: #1e293b; border-radius: 12px; padding: 14px 16px; }
+  a.card { display: block; color: inherit; text-decoration: none; }
+  a.card:hover { background: #253347; }
   .card-label { font-size: 12px; color: #94a3b8; margin-bottom: 4px; }
   .card-value { font-size: 18px; font-weight: 600; overflow-wrap: break-word; }
   .card-sub { font-size: 12px; color: #64748b; margin-top: 2px; }
@@ -53,7 +55,6 @@ export const DASHBOARD_CSS = `
   .activity-subtitle { font-size: 12px; color: #94a3b8; }
   .activity-time { font-size: 12px; color: #64748b; white-space: nowrap; }
   .hub-nav-group { margin-bottom: 20px; }
-  .hub-nav-group h2 { margin-top: 0; }
   .hub-nav-links { display: flex; flex-direction: column; gap: 6px; }
   a.hub-nav-item { display: block; background: #1e293b; border-radius: 10px; padding: 10px 14px; color: #e2e8f0; text-decoration: none; font-size: 14px; }
   a.hub-nav-item:hover { background: #334155; }

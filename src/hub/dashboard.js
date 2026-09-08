@@ -40,39 +40,18 @@ export function renderHubDashboard({
   const calorieCard = hasCalorie
     ? `<div class="card-value">${Math.round(calorieToday.calories).toLocaleString("en-US")} kcal</div>
        <div class="card-sub">Protein ${calorieToday.protein_g}g</div>`
-    : `<div class="empty-state">No food logged yet<br><a href="/dashboard/calorie">+ Log food</a></div>`;
+    : `<div class="empty-state">No food logged yet<br>+ Log food</div>`;
 
   const spendingCard = hasSpending
     ? `<div class="card-value">${formatRupiah(spendingToday.total)}</div>
        <div class="card-sub">${spendingToday.count} transaction${spendingToday.count === 1 ? "" : "s"} today</div>`
-    : `<div class="empty-state">No spending yet<br><a href="/dashboard/spending">+ Log spending</a></div>`;
+    : `<div class="empty-state">No spending yet<br>+ Log spending</div>`;
 
   const moodCard = moodToday
     ? `<div class="card-value">${MOOD_META[moodToday.mood]?.emoji || "😐"} ${MOOD_META[moodToday.mood]?.label || moodToday.mood}</div>
        ${moodToday.note ? `<div class="card-note">"${escapeHtml(moodToday.note)}"</div>` : ""}
        ${moodCheckinsToday > 1 ? `<div class="card-sub">${moodCheckinsToday} check-ins today</div>` : ""}`
     : `<div class="empty-state">Not logged<br><a href="/hub/mood">+ Log mood</a></div>`;
-
-  const todayRows =
-    activityRow({
-      icon: "🔥",
-      title: "Calories",
-      subtitle: hasCalorie ? `${Math.round(calorieToday.calories).toLocaleString("en-US")} kcal · ${calorieToday.protein_g}g protein` : "No food logged yet",
-    }) +
-    activityRow({
-      icon: "💰",
-      title: "Spending",
-      subtitle: hasSpending
-        ? `${formatRupiah(spendingToday.total)} · ${spendingToday.count} transaction${spendingToday.count === 1 ? "" : "s"}`
-        : "No spending yet",
-    }) +
-    activityRow({
-      icon: "😊",
-      title: "Mood",
-      subtitle: moodToday
-        ? `${MOOD_META[moodToday.mood]?.label || moodToday.mood}${moodCheckinsToday > 1 ? ` · ${moodCheckinsToday} check-ins` : ""}`
-        : "Not logged",
-    });
 
   const recentRows = recentActivity.length
     ? recentActivity.map((a) => activityRow(a)).join("")
@@ -100,22 +79,19 @@ export function renderHubDashboard({
     </header>
 
     <section class="cards">
-      <div class="card">
+      <a class="card" href="/dashboard/calorie">
         <div class="card-label">🔥 Calories</div>
         ${calorieCard}
-      </div>
-      <div class="card">
+      </a>
+      <a class="card" href="/dashboard/spending">
         <div class="card-label">💰 Spending</div>
         ${spendingCard}
-      </div>
+      </a>
       <div class="card mood-today">
         <div class="card-label">😊 Mood</div>
         ${moodCard}
       </div>
     </section>
-
-    <h2>Today</h2>
-    <div class="activity-list">${todayRows}</div>
 
     <h2>Recent</h2>
     <div class="activity-list">${recentRows}</div>
@@ -246,7 +222,7 @@ export function renderMoodPage({
 </head>
 <body>
   <div class="container">
-    ${navHeader({ icon: "😊", title: "Mood Tracker", links: [{ href: "/hub", label: "🏠 Hub" }] })}
+    ${navHeader({ icon: "😊", title: "Mood Tracker", links: [{ href: "/hub", label: "🏠 Home" }] })}
 
     ${flash ? `<div class="flash flash-${flash.type}">${escapeHtml(flash.text)}</div>` : ""}
 

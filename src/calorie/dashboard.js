@@ -48,7 +48,7 @@ export function renderCalorieDashboard({
       icon: "🍽️",
       title: "Calorie Tracker",
       links: [
-        { href: "/hub", label: "🏠 Hub" },
+        { href: "/hub", label: "🏠 Home" },
         { href: "/dashboard/spending", label: "💸 Spending" },
       ],
     })}

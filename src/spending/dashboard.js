@@ -69,7 +69,7 @@ export function renderSpendingDashboard({
       icon: "💸",
       title: "Spending Tracker",
       links: [
-        { href: "/hub", label: "🏠 Hub" },
+        { href: "/hub", label: "🏠 Home" },
         { href: "/dashboard/calorie", label: "🍽️ Calories" },
       ],
     })}

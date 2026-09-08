@@ -41,9 +41,36 @@ function formatRupiah(amount) {
 // beberapa variasi per waktu, dipilih random tiap load - biar nggak monoton doang, bukan
 // nge-track apa-apa jadi nggak ada tekanan buat "harus konsisten"
 const GREETINGS = {
-  morning: ["Good morning", "Rise and shine", "Morning", "Top of the morning to you"],
-  afternoon: ["Good afternoon", "Hey there", "Afternoon", "Hope your day's going well"],
-  evening: ["Good evening", "Evening", "Winding down?", "Hey you"],
+  morning: [
+    "Good morning",
+    "Rise and shine",
+    "Morning",
+    "Top of the morning to you",
+    "Hey, early bird",
+    "Fresh start, fresh day",
+    "Coffee first?",
+    "Ready for today?",
+  ],
+  afternoon: [
+    "Good afternoon",
+    "Hey there",
+    "Afternoon",
+    "Hope your day's going well",
+    "Halfway through the day",
+    "Keeping busy?",
+    "Hey, how's it going",
+    "Afternoon check-in",
+  ],
+  evening: [
+    "Good evening",
+    "Evening",
+    "Winding down?",
+    "Hey you",
+    "How was today?",
+    "Almost bedtime",
+    "Evening wrap-up time",
+    "Hey, welcome back",
+  ],
 };
 
 function greetingForHour(hour) {

@@ -1,4 +1,4 @@
-import { supabase } from "../shared/supabase-client.js";
+import { supabase } from "../../shared/supabase-client.js";
 
 const WIB_OFFSET_MS = 7 * 60 * 60 * 1000;
 const MOOD_VALUES = ["terrible", "bad", "okay", "good", "great"];

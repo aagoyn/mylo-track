@@ -5,6 +5,9 @@ import { verifyLogin } from "./shared/users.js";
 import { router as spendingRouter, registerCommands as registerSpendingCommands } from "./spending/router.js";
 import { router as calorieRouter, registerCommands as registerCalorieCommands } from "./calorie/router.js";
 import { router as hubRouter } from "./hub/router.js";
+import { router as moodRouter } from "./hub/mood/router.js";
+import { router as journalRouter } from "./hub/journal/router.js";
+import { router as wishlistRouter } from "./hub/wishlist/router.js";
 
 const PORT = process.env.PORT || 3000;
 
@@ -37,6 +40,9 @@ app.get("/logout", (req, res) => {
 });
 
 app.use(hubRouter);
+app.use(moodRouter);
+app.use(journalRouter);
+app.use(wishlistRouter);
 app.use(spendingRouter);
 app.use(calorieRouter);
 

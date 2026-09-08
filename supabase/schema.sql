@@ -83,6 +83,32 @@ create table if not exists mood_logs (
 );
 alter table mood_logs enable row level security;
 
+-- satu entry per hari per user (di-upsert lewat onConflict "phone,journal_date")
+create table if not exists journal_logs (
+  id uuid primary key default gen_random_uuid(),
+  phone text not null,
+  journal_date date not null,
+  content text not null,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  unique (phone, journal_date)
+);
+alter table journal_logs enable row level security;
+
+create table if not exists wishlist_items (
+  id uuid primary key default gen_random_uuid(),
+  phone text not null,
+  title text not null,
+  category text not null default 'Other',
+  estimated_price numeric,
+  priority text not null default 'Medium',
+  status text not null default 'Thinking',
+  note text,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+alter table wishlist_items enable row level security;
+
 -- Tabel akun web, dipakai bareng oleh dashboard spending & kalori (satu login untuk keduanya).
 -- "phone" di sini merujuk ke chat id Telegram-nya (dipakai buat filter data & jadi
 -- allow-list Telegram sekaligus, untuk kedua bot).

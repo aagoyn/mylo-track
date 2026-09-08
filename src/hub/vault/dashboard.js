@@ -1,4 +1,4 @@
-import { DASHBOARD_CSS, escapeHtml, navHeader } from "../../shared/dashboard-layout.js";
+import { DASHBOARD_CSS, escapeHtml, navHeader, faviconLink, iconLabel } from "../../shared/dashboard-layout.js";
 
 function formatRupiah(amount) {
   return `Rp${Math.round(amount).toLocaleString("id-ID")}`;
@@ -124,16 +124,17 @@ export function renderVaultPage({
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Vault</title>
+${faviconLink("/icons/vault.png")}
 <style>${DASHBOARD_CSS}</style>
 </head>
 <body>
   <div class="container">
-    ${navHeader({ icon: "🏦", title: "Vault", links: [{ href: "/hub", label: "🏠 Home" }] })}
+    ${navHeader({ icon: "/icons/vault.png", title: "Vault", links: [{ href: "/hub", label: "🏠 Home" }] })}
 
     ${flash ? `<div class="flash flash-${flash.type}">${escapeHtml(flash.text)}</div>` : ""}
 
     <div class="card">
-      <div class="card-label">🏦 Monthly Overview</div>
+      <div class="card-label">${iconLabel("/icons/vault.png", "Monthly Overview")}</div>
       <div class="card-value">${formatRupiah(monthlyRemaining)} left</div>
       <table style="margin-top:10px;">
         <tbody>
@@ -146,7 +147,7 @@ export function renderVaultPage({
       </table>
     </div>
 
-    <h2>💵 Income</h2>
+    <h2>${iconLabel("/icons/income.png", "Income")}</h2>
     <details class="form-card">
       <summary>Log Income</summary>
       <form method="POST" action="/hub/vault/income">
@@ -157,7 +158,7 @@ export function renderVaultPage({
     </details>
     <div class="activity-list" style="margin-top:8px;">${incomeRows}</div>
 
-    <h2>💰 Savings</h2>
+    <h2>${iconLabel("/icons/saving.png", "Savings")}</h2>
     <div class="card">
       <div class="card-label">Total Savings</div>
       <div class="card-value">${formatRupiah(savingsTotal)}</div>
@@ -186,7 +187,7 @@ export function renderVaultPage({
     </details>
     <div class="activity-list" style="margin-top:8px;">${savingsRows}</div>
 
-    <h2>🧾 Bills</h2>
+    <h2>${iconLabel("/icons/bills.png", "Bills")}</h2>
     <div class="wishlist-list">${billRows}</div>
     <details class="form-card" style="margin-top:8px;">
       <summary>Add Bill</summary>
@@ -197,7 +198,7 @@ export function renderVaultPage({
       </form>
     </details>
 
-    <h2>💸 Other Expenses</h2>
+    <h2>${iconLabel("/icons/other-expenses.png", "Other Expenses")}</h2>
     <details class="form-card">
       <summary>Log Expense</summary>
       <form method="POST" action="/hub/vault/expenses">

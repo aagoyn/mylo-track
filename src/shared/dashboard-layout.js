@@ -119,8 +119,8 @@ export const DASHBOARD_CSS = `
   .delete-form button { background: transparent; border: 1px solid #ef444455; color: #ef4444; padding: 6px 10px; border-radius: 8px; font-size: 12px; cursor: pointer; }
   .delete-form button:hover { background: #ef444422; }
 
-  a.cancel-link { display: inline-block; margin-top: 8px; padding: 8px 12px; border-radius: 8px; color: #94a3b8; text-decoration: none; font-size: 13px; }
-  a.cancel-link:hover { background: #0f172a; color: #e2e8f0; }
+  a.cancel-link { display: block; box-sizing: border-box; width: 100%; margin-top: 8px; padding: 9px 10px; border-radius: 8px; background: #334155; color: #e2e8f0; text-decoration: none; font-size: 13px; text-align: center; }
+  a.cancel-link:hover { background: #475569; }
   .danger-zone { margin-top: 20px; padding-top: 16px; border-top: 1px solid #334155; }
 `;
 

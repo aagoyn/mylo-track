@@ -258,7 +258,6 @@ router.get("/dashboard/calorie", requireAuth, async (req, res) => {
         getWeightHistory(chatId, 10),
       ]);
 
-    const editEntry = req.query.edit ? await getFoodLogById(chatId, req.query.edit) : null;
     const expandedId = req.query.expanded || null;
 
     const todayLogEntries = todayLogs.map((r) => ({
@@ -318,7 +317,6 @@ router.get("/dashboard/calorie", requireAuth, async (req, res) => {
         weekRows,
         weekChartData,
         weightRows,
-        editEntry,
         flash,
       })
     );
@@ -360,39 +358,6 @@ router.post(
     }
   }
 );
-
-router.post("/dashboard/calorie/food-edit", requireAuth, async (req, res) => {
-  const id = req.body.id;
-  const foodName = (req.body.food_name || "").trim();
-  const calories = parseInt(req.body.calories, 10);
-  const protein = parseFloat(req.body.protein);
-  const carbs = parseFloat(req.body.carbs);
-  const fat = parseFloat(req.body.fat);
-  const sugarRaw = (req.body.sugar || "").trim();
-  const sugar = sugarRaw ? parseFloat(sugarRaw) : 0;
-
-  if (!foodName || [calories, protein, carbs, fat].some((v) => isNaN(v) || v < 0) || isNaN(sugar) || sugar < 0) {
-    return res.redirect(`/dashboard/calorie?edit=${id}&err=Invalid values.`);
-  }
-
-  try {
-    const existing = await getFoodLogById(req.user.phone, id);
-    if (!existing) return redirectWithError(res, "/dashboard/calorie", "Log not found.");
-
-    await updateFoodLog(id, {
-      food_name: foodName,
-      calories,
-      protein_g: protein,
-      carbs_g: carbs,
-      fat_g: fat,
-      sugar_g: sugar,
-    });
-    res.redirect("/dashboard/calorie?ok=1");
-  } catch (err) {
-    console.error(err);
-    redirectWithError(res, "/dashboard/calorie", `Gagal update log: ${err.message}`);
-  }
-});
 
 // edit satu item di dalam log (bukan total log-nya) - isi salah satu: weight ATAU calories,
 // yang lain ikut ke-scale proporsional (logic-nya sama persis kayak "edit <item> <angka>gr/kcal"
@@ -463,7 +428,9 @@ router.post("/dashboard/calorie/food-reanalyze", requireAuth, async (req, res) =
   const id = req.body.id;
   const description = (req.body.description || "").trim();
   if (!description) {
-    return res.redirect(`/dashboard/calorie?edit=${id}&err=${encodeURIComponent("Description can't be empty.")}`);
+    return res.redirect(
+      `/dashboard/calorie?expanded=${id}&err=${encodeURIComponent("Description can't be empty.")}`
+    );
   }
 
   try {
@@ -481,11 +448,11 @@ router.post("/dashboard/calorie/food-reanalyze", requireAuth, async (req, res) =
       items: analysis.items,
       notes: analysis.notes,
     });
-    res.redirect(`/dashboard/calorie?edit=${id}&ok=1`);
+    res.redirect(`/dashboard/calorie?expanded=${id}&ok=1`);
   } catch (err) {
     console.error(err);
     res.redirect(
-      `/dashboard/calorie?edit=${id}&err=${encodeURIComponent(`Gagal re-analyze: ${err.message}`)}`
+      `/dashboard/calorie?expanded=${id}&err=${encodeURIComponent(`Gagal re-analyze: ${err.message}`)}`
     );
   }
 });

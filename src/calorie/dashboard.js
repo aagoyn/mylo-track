@@ -37,6 +37,28 @@ function itemRowHtml(logId, idx, item) {
   </div>`;
 }
 
+function logActionsHtml(entry) {
+  return `<div class="form-card" style="margin-top:8px;">
+    <h3>🔄 Re-analyze with AI</h3>
+    <p class="card-sub" style="margin:-4px 0 8px;">Don't know the calories? Describe the food (correct
+    portion/weight included) and let Gemini re-estimate everything.</p>
+    <form method="POST" action="/dashboard/calorie/food-reanalyze" id="food-reanalyze-form-${entry.id}">
+      <input type="hidden" name="id" value="${entry.id}">
+      <input type="text" name="description" placeholder="e.g. 150g rice, 2 fried eggs" value="${escapeHtml(entry.foodName)}" required>
+      <button type="submit" id="food-reanalyze-submit-${entry.id}">Re-analyze</button>
+      <div class="upload-progress" id="food-reanalyze-progress-${entry.id}" hidden>
+        <div class="upload-progress-bar"></div>
+      </div>
+    </form>
+  </div>
+  <div class="danger-zone">
+    <form class="delete-form" method="POST" action="/dashboard/calorie/food-delete">
+      <input type="hidden" name="id" value="${entry.id}">
+      <button type="submit">Delete this log</button>
+    </form>
+  </div>`;
+}
+
 function logEntryHtml(entry, expandedId) {
   const itemsHtml = entry.items.length
     ? entry.items.map((item, idx) => itemRowHtml(entry.id, idx, item)).join("")
@@ -45,49 +67,14 @@ function logEntryHtml(entry, expandedId) {
   return `<details class="log-item" ${entry.id === expandedId ? "open" : ""}>
     <summary>
       <span class="log-time">${entry.time}</span>
-      <a class="nav-link" href="/dashboard/calorie?edit=${entry.id}">${escapeHtml(entry.foodName)}</a>
+      <span class="log-name">${escapeHtml(entry.foodName)}</span>
       <span class="log-calories">${entry.calories} kcal</span>
     </summary>
-    <div class="log-detail-body">${itemsHtml}</div>
-  </details>`;
-}
-
-function editFormHtml(entry) {
-  return `<div class="form-card" style="margin-top:8px;">
-    <h3>🔄 Re-analyze with AI</h3>
-    <p class="card-sub" style="margin:-4px 0 8px;">Don't know the calories? Describe the food (and correct
-    portion/weight) and let Gemini re-estimate everything below.</p>
-    <form method="POST" action="/dashboard/calorie/food-reanalyze" id="food-reanalyze-form">
-      <input type="hidden" name="id" value="${entry.id}">
-      <input type="text" name="description" placeholder="e.g. 150g rice, 2 fried eggs" value="${escapeHtml(entry.food_name)}" required>
-      <button type="submit" id="food-reanalyze-submit">Re-analyze</button>
-      <div class="upload-progress" id="food-reanalyze-progress" hidden>
-        <div class="upload-progress-bar"></div>
-      </div>
-    </form>
-  </div>
-
-  <div class="form-card" style="margin-top:8px;">
-    <h3>✏️ Manual Edit</h3>
-    <p class="card-sub" style="margin:-4px 0 8px;">Already know the numbers? Type them in directly.</p>
-    <form method="POST" action="/dashboard/calorie/food-edit">
-      <input type="hidden" name="id" value="${entry.id}">
-      <input type="text" name="food_name" placeholder="Food name" value="${escapeHtml(entry.food_name)}" required>
-      <input type="number" name="calories" placeholder="Calories" value="${entry.calories}" required>
-      <input type="number" step="0.1" name="protein" placeholder="Protein (g)" value="${entry.protein_g}" required>
-      <input type="number" step="0.1" name="carbs" placeholder="Carbs (g)" value="${entry.carbs_g}" required>
-      <input type="number" step="0.1" name="fat" placeholder="Fat (g)" value="${entry.fat_g}" required>
-      <input type="number" step="0.1" name="sugar" placeholder="Sugar (g, optional)" value="${entry.sugar_g ?? ""}">
-      <button type="submit">Save</button>
-    </form>
-    <a class="cancel-link" href="/dashboard/calorie">Cancel</a>
-    <div class="danger-zone">
-      <form class="delete-form" method="POST" action="/dashboard/calorie/food-delete">
-        <input type="hidden" name="id" value="${entry.id}">
-        <button type="submit">Delete this log</button>
-      </form>
+    <div class="log-detail-body">
+      ${itemsHtml}
+      ${logActionsHtml(entry)}
     </div>
-  </div>`;
+  </details>`;
 }
 
 export function renderCalorieDashboard({
@@ -100,7 +87,6 @@ export function renderCalorieDashboard({
   weekRows,
   weekChartData,
   weightRows,
-  editEntry,
   flash,
 }) {
   const remaining = target != null ? target - total : null;
@@ -205,8 +191,8 @@ ${faviconLink("/icons/calorie.png")}
     </div>
 
     <h2>📋 Today's Log</h2>
-    <p class="card-sub" style="margin:-4px 0 8px;">Click a log to see its item breakdown and correct
-    weight/calories per item.</p>
+    <p class="card-sub" style="margin:-4px 0 8px;">Click a log to see its item breakdown, re-analyze
+    with AI, or delete it.</p>
     <div>
       ${
         todayLogEntries.length
@@ -214,7 +200,6 @@ ${faviconLink("/icons/calorie.png")}
           : `<div class="empty-state">No logs yet.</div>`
       }
     </div>
-    ${editEntry ? editFormHtml(editEntry) : ""}
 
     <h2>📅 7-Day Recap (calories from Protein/Carbs/Fat)</h2>
     ${
@@ -247,7 +232,12 @@ ${faviconLink("/icons/calorie.png")}
       });
     }
     wireProgress("food-photo-form", "food-photo-submit", "food-photo-progress", "Analyzing...");
-    wireProgress("food-reanalyze-form", "food-reanalyze-submit", "food-reanalyze-progress", "Re-analyzing...");
+    ${todayLogEntries
+      .map(
+        (entry) =>
+          `wireProgress("food-reanalyze-form-${entry.id}", "food-reanalyze-submit-${entry.id}", "food-reanalyze-progress-${entry.id}", "Re-analyzing...");`
+      )
+      .join("\n    ")}
   </script>
 </body>
 </html>`;

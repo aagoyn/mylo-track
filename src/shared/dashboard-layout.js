@@ -24,7 +24,7 @@ export const DASHBOARD_CSS = `
   tr:last-child td { border-bottom: none; }
   .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
   @media (max-width: 560px) { .grid-2 { grid-template-columns: 1fr; } }
-  .flash { padding: 12px 16px; border-radius: 8px; font-size: 13px; margin-bottom: 16px; }
+  .flash { padding: 12px 16px; border-radius: 8px; font-size: 13px; margin-bottom: 16px; overflow-wrap: break-word; word-break: break-word; }
   .flash-success { background: #14532d; color: #bbf7d0; }
   .flash-error { background: #450a0a; color: #fecaca; }
   .forms { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }

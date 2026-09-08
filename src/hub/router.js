@@ -38,10 +38,18 @@ function formatRupiah(amount) {
   return `Rp${Math.round(amount).toLocaleString("id-ID")}`;
 }
 
+// beberapa variasi per waktu, dipilih random tiap load - biar nggak monoton doang, bukan
+// nge-track apa-apa jadi nggak ada tekanan buat "harus konsisten"
+const GREETINGS = {
+  morning: ["Good morning", "Rise and shine", "Morning", "Top of the morning to you"],
+  afternoon: ["Good afternoon", "Hey there", "Afternoon", "Hope your day's going well"],
+  evening: ["Good evening", "Evening", "Winding down?", "Hey you"],
+};
+
 function greetingForHour(hour) {
-  if (hour < 12) return "Good morning";
-  if (hour < 17) return "Good afternoon";
-  return "Good evening";
+  const bucket = hour < 12 ? "morning" : hour < 17 ? "afternoon" : "evening";
+  const options = GREETINGS[bucket];
+  return options[Math.floor(Math.random() * options.length)];
 }
 
 const WEEKDAYS_EN = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];

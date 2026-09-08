@@ -122,6 +122,13 @@ export const DASHBOARD_CSS = `
   a.cancel-link { display: block; box-sizing: border-box; width: 100%; margin-top: 8px; padding: 9px 10px; border-radius: 8px; background: #334155; color: #e2e8f0; text-decoration: none; font-size: 13px; text-align: center; }
   a.cancel-link:hover { background: #475569; }
   .danger-zone { margin-top: 20px; padding-top: 16px; border-top: 1px solid #334155; }
+
+  .upload-progress { margin-top: 8px; height: 6px; border-radius: 999px; background: #334155; overflow: hidden; position: relative; }
+  .upload-progress-bar { position: absolute; top: 0; left: -40%; height: 100%; width: 40%; background: #6366f1; border-radius: 999px; animation: upload-progress-slide 1.1s ease-in-out infinite; }
+  @keyframes upload-progress-slide {
+    0% { left: -40%; }
+    100% { left: 100%; }
+  }
 `;
 
 export function escapeHtml(str) {

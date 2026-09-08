@@ -104,9 +104,12 @@ ${faviconLink("/icons/calorie.png")}
       </div>
       <div class="form-card">
         <h3>📸 Via Photo</h3>
-        <form method="POST" action="/dashboard/calorie/food-photo" enctype="multipart/form-data">
+        <form method="POST" action="/dashboard/calorie/food-photo" enctype="multipart/form-data" id="food-photo-form">
           <input type="file" name="photo" accept="image/*" required>
-          <button type="submit">Save</button>
+          <button type="submit" id="food-photo-submit">Save</button>
+          <div class="upload-progress" id="food-photo-progress" hidden>
+            <div class="upload-progress-bar"></div>
+          </div>
         </form>
       </div>
       <div class="form-card">
@@ -163,6 +166,15 @@ ${faviconLink("/icons/calorie.png")}
       <tbody>${weightRows || `<tr><td colspan="2">No data yet.</td></tr>`}</tbody>
     </table>
   </div>
+  <script>
+    // JS minimal, cuma buat kasih feedback visual pas foto lagi dianalisis Gemini (bisa
+    // beberapa detik) - sisa halaman ini tetap murni server-rendered, no-JS.
+    document.getElementById("food-photo-form").addEventListener("submit", function () {
+      document.getElementById("food-photo-submit").disabled = true;
+      document.getElementById("food-photo-submit").textContent = "Analyzing...";
+      document.getElementById("food-photo-progress").hidden = false;
+    });
+  </script>
 </body>
 </html>`;
 }

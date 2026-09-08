@@ -158,10 +158,6 @@ export const DASHBOARD_CSS = `
   .stat-bar-fill.tier-mid { background: #eab308; }
   .stat-bar-fill.tier-low { background: #ef4444; }
   .stat-bar-fill.tier-empty { background: #7f1d1d; }
-
-  .mylo-card { display: flex; align-items: center; gap: 12px; }
-  .mylo-avatar { width: 48px; height: 48px; object-fit: contain; border-radius: 10px; flex-shrink: 0; background: #0f172a; }
-  .mylo-main { flex: 1; min-width: 0; }
 `;
 
 export function escapeHtml(str) {

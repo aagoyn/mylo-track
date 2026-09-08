@@ -1,13 +1,4 @@
-import { DASHBOARD_CSS, escapeHtml, navHeader, faviconLink, statBarHtml } from "../shared/dashboard-layout.js";
-
-// status Mylo (mascot kucing Hub) reaksi ke seberapa aktif kamu hari ini - murni fun,
-// dihitung dari 4 sinyal yang udah ada (bukan data baru): spending/calorie/mood/journal
-function myloStatus(count) {
-  if (count >= 4) return { emoji: "😻", text: "Mylo is having the best day!" };
-  if (count >= 2) return { emoji: "😺", text: "Mylo's doing alright." };
-  if (count >= 1) return { emoji: "😿", text: "Mylo's a little bored." };
-  return { emoji: "🙀", text: "Mylo hasn't seen you today!" };
-}
+import { DASHBOARD_CSS, escapeHtml, navHeader, faviconLink } from "../shared/dashboard-layout.js";
 
 const MOOD_META = {
   terrible: { emoji: "😫", label: "Terrible" },
@@ -64,11 +55,6 @@ export function renderHubDashboard({
        ${moodCheckinsToday > 1 ? `<div class="card-sub">${moodCheckinsToday} check-ins today</div>` : ""}`
     : `<div class="empty-state">Not logged<br><a href="/hub/mood">+ Log mood</a></div>`;
 
-  const activityCount = [hasSpending, hasCalorie, Boolean(moodToday), Boolean(journalToday)].filter(
-    Boolean
-  ).length;
-  const mylo = myloStatus(activityCount);
-
   const recentRows = recentActivity.length
     ? recentActivity.map((a) => activityRow(a)).join("")
     : `<div class="empty-state">No activity yet today.</div>`;
@@ -109,16 +95,6 @@ ${faviconLink("/icons/hub.png")}
         <a class="logout" href="/logout">Log out</a>
       </div>
     </header>
-
-    <div class="card mylo-card">
-      <img class="mylo-avatar" src="/icons/hub.png" alt="Mylo">
-      <div class="mylo-main">
-        <div class="card-label">${mylo.emoji} Mylo</div>
-        <div class="card-value" style="font-size:14px;">${mylo.text}</div>
-        ${statBarHtml((activityCount / 4) * 100)}
-        <div class="card-sub">${activityCount}/4 things logged today</div>
-      </div>
-    </div>
 
     <section class="cards">
       <a class="card" href="/dashboard/calorie">

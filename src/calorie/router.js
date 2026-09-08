@@ -1,6 +1,6 @@
 import express from "express";
 import multer from "multer";
-import { createTelegramClient } from "../shared/telegram.js";
+import { TelegramClient } from "../shared/telegram.js";
 import { analyzeFoodImage, analyzeFoodText } from "./gemini.js";
 import { requireAuth } from "../shared/auth.js";
 import { getAllowedChatIds } from "../shared/users.js";
@@ -25,7 +25,7 @@ import {
   searchFoodLogs,
 } from "./supabase.js";
 
-const { sendText, downloadPhoto, setMyCommands } = createTelegramClient(
+const { sendText, downloadPhoto, setMyCommands } = new TelegramClient(
   process.env.TELEGRAM_BOT_TOKEN_CALORIE
 );
 

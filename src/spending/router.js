@@ -1,6 +1,6 @@
 import express from "express";
 import multer from "multer";
-import { createTelegramClient } from "../shared/telegram.js";
+import { TelegramClient } from "../shared/telegram.js";
 import { analyzeReceiptImage } from "./gemini.js";
 import { detectCategory } from "./categorize.js";
 import { parseExpenseInputs } from "./parse.js";
@@ -25,7 +25,7 @@ import {
 } from "./supabase.js";
 
 const { sendText, editText, answerCallbackQuery, setMyCommands, downloadPhoto } =
-  createTelegramClient(process.env.TELEGRAM_BOT_TOKEN_SPENDING);
+  new TelegramClient(process.env.TELEGRAM_BOT_TOKEN_SPENDING);
 
 const BULAN = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des"];
 

@@ -1,11 +1,16 @@
-// Factory karena dua bot (spending & calorie) jalan di satu process yang sama,
-// masing-masing dengan token-nya sendiri.
-export function createTelegramClient(token) {
-  const API = `https://api.telegram.org/bot${token}`;
-  const FILE_API = `https://api.telegram.org/file/bot${token}`;
+// Class karena dua bot (spending & calorie) jalan di satu process yang sama, masing-masing
+// dengan state-nya sendiri (token/base URL) - butuh instance terpisah per bot.
+export class TelegramClient {
+  #api;
+  #fileApi;
 
-  async function callApi(method, payload) {
-    const res = await fetch(`${API}/${method}`, {
+  constructor(token) {
+    this.#api = `https://api.telegram.org/bot${token}`;
+    this.#fileApi = `https://api.telegram.org/file/bot${token}`;
+  }
+
+  async #callApi(method, payload) {
+    const res = await fetch(`${this.#api}/${method}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
@@ -14,42 +19,42 @@ export function createTelegramClient(token) {
     return res.json();
   }
 
-  return {
-    async sendText(chatId, text, keyboard) {
-      const payload = { chat_id: chatId, text, parse_mode: "HTML" };
-      if (keyboard) payload.reply_markup = { inline_keyboard: keyboard };
-      await callApi("sendMessage", payload);
-    },
+  // arrow function fields biar tetap bisa didestructure di call site (mis. const { sendText } = client)
+  // tanpa kehilangan binding `this` ke instance-nya
+  sendText = async (chatId, text, keyboard) => {
+    const payload = { chat_id: chatId, text, parse_mode: "HTML" };
+    if (keyboard) payload.reply_markup = { inline_keyboard: keyboard };
+    await this.#callApi("sendMessage", payload);
+  };
 
-    async editText(chatId, messageId, text) {
-      await callApi("editMessageText", {
-        chat_id: chatId,
-        message_id: messageId,
-        text,
-        parse_mode: "HTML",
-        reply_markup: { inline_keyboard: [] },
-      });
-    },
+  editText = async (chatId, messageId, text) => {
+    await this.#callApi("editMessageText", {
+      chat_id: chatId,
+      message_id: messageId,
+      text,
+      parse_mode: "HTML",
+      reply_markup: { inline_keyboard: [] },
+    });
+  };
 
-    async answerCallbackQuery(callbackQueryId) {
-      await callApi("answerCallbackQuery", { callback_query_id: callbackQueryId });
-    },
+  answerCallbackQuery = async (callbackQueryId) => {
+    await this.#callApi("answerCallbackQuery", { callback_query_id: callbackQueryId });
+  };
 
-    async setMyCommands(commands) {
-      await callApi("setMyCommands", { commands });
-    },
+  setMyCommands = async (commands) => {
+    await this.#callApi("setMyCommands", { commands });
+  };
 
-    async downloadPhoto(fileId) {
-      const fileRes = await fetch(`${API}/getFile?file_id=${fileId}`);
-      if (!fileRes.ok) throw new Error(`getFile failed: ${fileRes.status}`);
-      const { result } = await fileRes.json();
+  downloadPhoto = async (fileId) => {
+    const fileRes = await fetch(`${this.#api}/getFile?file_id=${fileId}`);
+    if (!fileRes.ok) throw new Error(`getFile failed: ${fileRes.status}`);
+    const { result } = await fileRes.json();
 
-      const fileDownload = await fetch(`${FILE_API}/${result.file_path}`);
-      if (!fileDownload.ok) throw new Error(`file download failed: ${fileDownload.status}`);
+    const fileDownload = await fetch(`${this.#fileApi}/${result.file_path}`);
+    if (!fileDownload.ok) throw new Error(`file download failed: ${fileDownload.status}`);
 
-      const buffer = Buffer.from(await fileDownload.arrayBuffer());
-      const mimeType = result.file_path.endsWith(".png") ? "image/png" : "image/jpeg";
-      return { buffer, mimeType };
-    },
+    const buffer = Buffer.from(await fileDownload.arrayBuffer());
+    const mimeType = result.file_path.endsWith(".png") ? "image/png" : "image/jpeg";
+    return { buffer, mimeType };
   };
 }

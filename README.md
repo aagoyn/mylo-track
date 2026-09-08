@@ -29,7 +29,7 @@ ketik `makan <deskripsi>`, `/today` `/week` `/makro`, `target`, `bb`, `cari`, `e
 src/
   server.js         entrypoint: satu express app, mount kedua router, satu app.listen(PORT)
   shared/
-    telegram.js       createTelegramClient(token) — factory, dipakai beda token per bot
+    telegram.js       class TelegramClient(token) — instance terpisah per bot (beda token)
     supabase-client.js  satu koneksi Supabase yang dipakai bareng
     supabase-app-users.js  query tabel app_users (getUserByUsername, getAllUserPhones, createUser)
     auth.js            session cookie (sign/verify) + halaman login

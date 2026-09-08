@@ -19,11 +19,13 @@ function editFormHtml(entry) {
       <input type="number" step="0.1" name="sugar" placeholder="Sugar (g, optional)" value="${entry.sugar_g ?? ""}">
       <button type="submit">Save</button>
     </form>
-    <form class="delete-form" method="POST" action="/dashboard/calorie/food-delete" style="margin-top:8px;">
-      <input type="hidden" name="id" value="${entry.id}">
-      <button type="submit">Delete</button>
-    </form>
-    <a class="nav-link" href="/dashboard/calorie">Cancel</a>
+    <a class="cancel-link" href="/dashboard/calorie">Cancel</a>
+    <div class="danger-zone">
+      <form class="delete-form" method="POST" action="/dashboard/calorie/food-delete">
+        <input type="hidden" name="id" value="${entry.id}">
+        <button type="submit">Delete this log</button>
+      </form>
+    </div>
   </div>`;
 }
 

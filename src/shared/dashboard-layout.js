@@ -117,6 +117,10 @@ export const DASHBOARD_CSS = `
   .wishlist-item-form button:hover { background: #4f46e5; }
   .delete-form button { background: transparent; border: 1px solid #ef444455; color: #ef4444; padding: 6px 10px; border-radius: 8px; font-size: 12px; cursor: pointer; }
   .delete-form button:hover { background: #ef444422; }
+
+  a.cancel-link { display: inline-block; margin-top: 8px; padding: 8px 12px; border-radius: 8px; color: #94a3b8; text-decoration: none; font-size: 13px; }
+  a.cancel-link:hover { background: #0f172a; color: #e2e8f0; }
+  .danger-zone { margin-top: 20px; padding-top: 16px; border-top: 1px solid #334155; }
 `;
 
 export function escapeHtml(str) {

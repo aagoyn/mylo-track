@@ -172,7 +172,7 @@ router.get("/hub", requireAuth, async (req, res) => {
       calorieToday,
       moodToday,
       moodCheckinsToday,
-      recentActivity: recentActivity.slice(0, 3).map((a) => ({ ...a, time: toWibTime(a.timestamp) })),
+      recentActivity: recentActivity.slice(0, 4).map((a) => ({ ...a, time: toWibTime(a.timestamp) })),
     })
   );
 });

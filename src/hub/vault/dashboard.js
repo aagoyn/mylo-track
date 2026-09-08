@@ -19,12 +19,29 @@ function incomeRow(entry) {
   </div>`;
 }
 
-function savingsRow(entry) {
-  const isWithdrawal = entry.type === "withdrawal";
+function expenseRow(entry) {
   return `<div class="activity-row">
-    <div class="activity-icon">${isWithdrawal ? "🏧" : "💰"}</div>
+    <div class="activity-icon">💸</div>
     <div class="activity-main">
-      <div class="activity-title">${isWithdrawal ? "-" : "+"}${formatRupiah(entry.amount)} ${isWithdrawal ? "Withdrawal" : "Deposit"}</div>
+      <div class="activity-title">-${formatRupiah(entry.amount)}</div>
+      ${entry.note ? `<div class="activity-subtitle">${escapeHtml(entry.note)}</div>` : ""}
+    </div>
+    <div class="activity-time">${entry.dateLabel}</div>
+  </div>`;
+}
+
+const SAVINGS_TYPE_META = {
+  withdrawal: { icon: "🏧", sign: "-", label: "Withdrawal" },
+  deposit: { icon: "💰", sign: "+", label: "Deposit" },
+  opening_balance: { icon: "🏁", sign: "+", label: "Starting Balance" },
+};
+
+function savingsRow(entry) {
+  const meta = SAVINGS_TYPE_META[entry.type] || SAVINGS_TYPE_META.deposit;
+  return `<div class="activity-row">
+    <div class="activity-icon">${meta.icon}</div>
+    <div class="activity-main">
+      <div class="activity-title">${meta.sign}${formatRupiah(entry.amount)} ${meta.label}</div>
       ${entry.note ? `<div class="activity-subtitle">${escapeHtml(entry.note)}</div>` : ""}
     </div>
     <div class="activity-time">${entry.dateLabel}</div>
@@ -55,14 +72,19 @@ function billCardHtml(bill) {
     </div>
     <div class="wishlist-meta">Default: ${bill.defaultAmount != null ? formatRupiah(bill.defaultAmount) : "—"}</div>
     ${payForm}
-    <form class="wishlist-item-form" method="POST" action="/hub/vault/bills/${bill.id}/update" style="margin-top:8px;">
-      <input type="text" name="name" value="${escapeHtml(bill.name)}" required>
-      <input type="number" name="default_amount" placeholder="Default amount" value="${bill.defaultAmount ?? ""}">
-      <button type="submit">Save</button>
-    </form>
-    <form class="delete-form" method="POST" action="/hub/vault/bills/${bill.id}/delete" style="margin-top:8px;">
-      <button type="submit">Delete</button>
-    </form>
+    <details class="inline-toggle">
+      <summary>Edit</summary>
+      <div class="inline-toggle-body">
+        <form class="wishlist-item-form" method="POST" action="/hub/vault/bills/${bill.id}/update">
+          <input type="text" name="name" value="${escapeHtml(bill.name)}" required>
+          <input type="number" name="default_amount" placeholder="Default amount" value="${bill.defaultAmount ?? ""}">
+          <button type="submit">Save</button>
+        </form>
+        <form class="delete-form" method="POST" action="/hub/vault/bills/${bill.id}/delete">
+          <button type="submit">Delete</button>
+        </form>
+      </div>
+    </details>
   </div>`;
 }
 
@@ -71,11 +93,13 @@ export function renderVaultPage({
   monthlySavingsNet,
   monthlyTopupTotal,
   monthlyBillsPaidTotal,
+  monthlyMiscExpenseTotal,
   monthlyRemaining,
   savingsTotal,
   bills,
   recentIncome,
   recentSavings,
+  recentMiscExpenses,
   flash,
 }) {
   const incomeRows = recentIncome.length
@@ -85,6 +109,10 @@ export function renderVaultPage({
   const savingsRows = recentSavings.length
     ? recentSavings.map(savingsRow).join("")
     : `<div class="empty-state">No savings activity yet.</div>`;
+
+  const expenseRows = recentMiscExpenses.length
+    ? recentMiscExpenses.map(expenseRow).join("")
+    : `<div class="empty-state">No other expenses logged yet.</div>`;
 
   const billRows = bills.length
     ? bills.map(billCardHtml).join("")
@@ -113,6 +141,7 @@ export function renderVaultPage({
           ${overviewLine("Savings (net)", monthlySavingsNet, "-")}
           ${overviewLine("Weekly topups", monthlyTopupTotal, "-")}
           ${overviewLine("Bills paid", monthlyBillsPaidTotal, "-")}
+          ${overviewLine("Other expenses", monthlyMiscExpenseTotal, "-")}
         </tbody>
       </table>
     </div>
@@ -143,6 +172,17 @@ export function renderVaultPage({
           <button type="submit" name="type" value="withdrawal">Withdraw</button>
         </div>
       </form>
+      <details class="inline-toggle">
+        <summary>Already have savings from before?</summary>
+        <div class="inline-toggle-body">
+          <form method="POST" action="/hub/vault/savings">
+            <input type="number" name="amount" placeholder="Existing savings amount" required>
+            <input type="text" name="note" placeholder="e.g. Starting balance">
+            <input type="hidden" name="type" value="opening_balance">
+            <button type="submit">Set Starting Balance</button>
+          </form>
+        </div>
+      </details>
     </details>
     <div class="activity-list" style="margin-top:8px;">${savingsRows}</div>
 
@@ -156,6 +196,17 @@ export function renderVaultPage({
         <button type="submit">Save</button>
       </form>
     </details>
+
+    <h2>💸 Other Expenses</h2>
+    <details class="form-card">
+      <summary>Log Expense</summary>
+      <form method="POST" action="/hub/vault/expenses">
+        <input type="number" name="amount" placeholder="Amount" required>
+        <input type="text" name="note" placeholder="e.g. One-off purchase">
+        <button type="submit">Save</button>
+      </form>
+    </details>
+    <div class="activity-list" style="margin-top:8px;">${expenseRows}</div>
   </div>
 </body>
 </html>`;

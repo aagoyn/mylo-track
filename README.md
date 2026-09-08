@@ -32,9 +32,11 @@ favicon sendiri (file PNG di `public/icons/`, di-serve lewat `express.static`).
 - `/hub/wishlist` — daftar barang/hal yang pengen dibeli/dicoba: kategori, prioritas, status,
   estimasi harga, catatan — tambah/edit/hapus langsung dari list
 - `/hub/vault` — tracking keuangan bulanan (terpisah dari Spending yang mingguan): catat
-  income (gaji), catat setor/tarik tabungan, catat tagihan rutin (kos, listrik, dll) tiap
-  template bisa "Mark Paid" per bulan, semua digabung jadi satu angka **Monthly Remaining**
-  (income − tabungan − topup mingguan ke Spending − tagihan yang udah dibayar)
+  income (gaji), setor/tarik tabungan (termasuk input saldo tabungan lama sekali di awal lewat
+  "Starting Balance" — ga ikut ngurangin Monthly Remaining bulan ini), tagihan rutin (kos,
+  listrik, dll) tiap template bisa "Mark Paid" per bulan, plus pengeluaran sekali-jalan yang
+  bukan tagihan rutin ("Other Expenses"). Semua digabung jadi satu angka **Monthly Remaining**
+  (income − tabungan − topup mingguan ke Spending − tagihan yang udah dibayar − other expenses)
 - `/dashboard/spending` — running balance, budget mingguan, breakdown kategori, tren 7 hari,
   transaksi terakhir, form catat pengeluaran (teks/foto) & topup budget
 - `/dashboard/calorie` — kalori & makro (protein/karbo/lemak/gula) hari ini, log hari ini,
@@ -115,7 +117,7 @@ npm install
    `create table if not exists`, nggak ada drop table). Tabel-tabelnya: `expense_logs`,
    `expense_settings` (spending), `food_logs`, `user_settings`, `weight_logs` (calorie),
    `mood_logs`, `journal_logs`, `wishlist_items`, `income_logs`, `savings_logs`,
-   `bill_templates`, `bill_payments` (Personal Hub), `app_users` (akun).
+   `bill_templates`, `bill_payments`, `misc_expense_logs` (Personal Hub), `app_users` (akun).
 3. Buka **Storage**, bikin dua bucket: **`receipt-photos`** (foto struk) dan **`food-photos`**
    (foto makanan) — centang public read kalau mau URL foto langsung diakses browser.
 4. Buka **Settings → API**, catat `Project URL` dan `service_role` key (bukan `anon` key).
@@ -194,4 +196,4 @@ bisa dipakai di production begitu di-run, tidak perlu redeploy.
 - **`/hub/mood`, `/hub/journal`, `/hub/wishlist`, atau `/hub/vault` error pas load** — pastiin
   udah jalanin ulang `supabase/schema.sql` versi terbaru (nambah tabel `mood_logs`,
   `journal_logs`, `wishlist_items`, `income_logs`, `savings_logs`, `bill_templates`,
-  `bill_payments`) di project Supabase kamu.
+  `bill_payments`, `misc_expense_logs`) di project Supabase kamu.

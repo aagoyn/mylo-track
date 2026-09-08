@@ -10,7 +10,12 @@ import { getTodayMoodLogs, getRecentMoodLogs } from "./mood/supabase.js";
 import { getJournalEntry, todayDateKeyWib } from "./journal/supabase.js";
 import { getWishlistItems } from "./wishlist/supabase.js";
 import { getTopupTotal } from "../spending/supabase.js";
-import { getMonthlyIncomeTotal, getMonthlySavingsNet, getBillPaymentsThisMonth } from "./vault/supabase.js";
+import {
+  getMonthlyIncomeTotal,
+  getMonthlySavingsNet,
+  getBillPaymentsThisMonth,
+  getMonthlyMiscExpenseTotal,
+} from "./vault/supabase.js";
 import { renderHubDashboard } from "./dashboard.js";
 
 const WIB_OFFSET_MS = 7 * 60 * 60 * 1000;
@@ -136,14 +141,16 @@ router.get("/hub", requireAuth, async (req, res) => {
     getWishlistItems(phone),
     (async () => {
       const { startISO, endISO } = currentMonthBoundsWib();
-      const [monthlyIncome, monthlySavingsNet, monthlyTopupTotal, billPayments] = await Promise.all([
-        getMonthlyIncomeTotal(phone),
-        getMonthlySavingsNet(phone),
-        getTopupTotal(phone, startISO, endISO),
-        getBillPaymentsThisMonth(phone),
-      ]);
+      const [monthlyIncome, monthlySavingsNet, monthlyTopupTotal, billPayments, monthlyMiscExpenseTotal] =
+        await Promise.all([
+          getMonthlyIncomeTotal(phone),
+          getMonthlySavingsNet(phone),
+          getTopupTotal(phone, startISO, endISO),
+          getBillPaymentsThisMonth(phone),
+          getMonthlyMiscExpenseTotal(phone),
+        ]);
       const monthlyBillsPaidTotal = billPayments.reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
-      return monthlyIncome - monthlySavingsNet - monthlyTopupTotal - monthlyBillsPaidTotal;
+      return monthlyIncome - monthlySavingsNet - monthlyTopupTotal - monthlyBillsPaidTotal - monthlyMiscExpenseTotal;
     })(),
   ]);
 

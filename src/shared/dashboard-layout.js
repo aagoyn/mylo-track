@@ -165,6 +165,13 @@ export const DASHBOARD_CSS = `
 
   .button-row { display: flex; gap: 8px; }
   .button-row button { width: 100%; }
+
+  .inline-toggle { margin-top: 8px; }
+  .inline-toggle > summary { cursor: pointer; font-size: 12px; color: #64748b; list-style: none; }
+  .inline-toggle > summary::-webkit-details-marker { display: none; }
+  .inline-toggle > summary::before { content: "▸ "; }
+  .inline-toggle[open] > summary::before { content: "▾ "; }
+  .inline-toggle-body { margin-top: 8px; display: flex; flex-direction: column; gap: 8px; }
 `;
 
 export function escapeHtml(str) {

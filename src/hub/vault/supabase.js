@@ -1,7 +1,7 @@
 import { supabase } from "../../shared/supabase-client.js";
 
 const WIB_OFFSET_MS = 7 * 60 * 60 * 1000;
-const SAVINGS_TYPES = ["deposit", "withdrawal"];
+const SAVINGS_TYPES = ["deposit", "withdrawal", "opening_balance"];
 
 function wibPartsToIso(year, month, day, hour = 0, minute = 0, second = 0) {
   return new Date(Date.UTC(year, month, day, hour, minute, second) - WIB_OFFSET_MS).toISOString();
@@ -71,12 +71,15 @@ export async function getSavingsTotal(phone) {
   return netSavings(data);
 }
 
+// opening_balance sengaja dikecualikan - itu saldo tabungan lama, bukan aktivitas nabung
+// bulan ini, jadi ga boleh ikut ngurangin Monthly Remaining
 export async function getMonthlySavingsNet(phone) {
   const { startISO, endISO } = getCurrentMonthBoundsWib();
   const { data, error } = await supabase
     .from("savings_logs")
     .select("amount, type")
     .eq("phone", phone)
+    .in("type", ["deposit", "withdrawal"])
     .gte("created_at", startISO)
     .lte("created_at", endISO);
   if (error) throw error;
@@ -153,6 +156,36 @@ export async function getBillPaymentsThisMonth(phone) {
     .eq("phone", phone)
     .gte("created_at", startISO)
     .lte("created_at", endISO);
+  if (error) throw error;
+  return data;
+}
+
+// ===== Other (one-off) expenses =====
+
+export async function saveMiscExpense(phone, amount, note) {
+  const { error } = await supabase.from("misc_expense_logs").insert({ phone, amount, note: note || null });
+  if (error) throw error;
+}
+
+export async function getMonthlyMiscExpenseTotal(phone) {
+  const { startISO, endISO } = getCurrentMonthBoundsWib();
+  const { data, error } = await supabase
+    .from("misc_expense_logs")
+    .select("amount")
+    .eq("phone", phone)
+    .gte("created_at", startISO)
+    .lte("created_at", endISO);
+  if (error) throw error;
+  return data.reduce((sum, row) => sum + (Number(row.amount) || 0), 0);
+}
+
+export async function getRecentMiscExpenses(phone, limit = 10) {
+  const { data, error } = await supabase
+    .from("misc_expense_logs")
+    .select("amount, note, created_at")
+    .eq("phone", phone)
+    .order("created_at", { ascending: false })
+    .limit(limit);
   if (error) throw error;
   return data;
 }

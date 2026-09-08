@@ -149,6 +149,17 @@ create table if not exists bill_payments (
 );
 alter table bill_payments enable row level security;
 
+-- pengeluaran sekali-jalan yang bukan bill rutin (bukan cocok masuk bill_templates) - tetep
+-- ngurangin monthly pool tapi ga perlu bikin template buat sesuatu yang cuma kejadian sekali
+create table if not exists misc_expense_logs (
+  id uuid primary key default gen_random_uuid(),
+  phone text not null,
+  amount numeric not null,
+  note text,
+  created_at timestamptz not null default now()
+);
+alter table misc_expense_logs enable row level security;
+
 -- Tabel akun web, dipakai bareng oleh dashboard spending & kalori (satu login untuk keduanya).
 -- "phone" di sini merujuk ke chat id Telegram-nya (dipakai buat filter data & jadi
 -- allow-list Telegram sekaligus, untuk kedua bot).

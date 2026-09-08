@@ -16,6 +16,9 @@ import {
   deleteBillTemplate,
   payBill,
   getBillPaymentsThisMonth,
+  saveMiscExpense,
+  getMonthlyMiscExpenseTotal,
+  getRecentMiscExpenses,
 } from "./supabase.js";
 import { renderVaultPage } from "./dashboard.js";
 
@@ -62,6 +65,8 @@ router.get("/hub/vault", requireAuth, async (req, res) => {
       billPaymentsThisMonth,
       recentIncome,
       recentSavings,
+      monthlyMiscExpenseTotal,
+      recentMiscExpenses,
     ] = await Promise.all([
       getMonthlyIncomeTotal(phone),
       getMonthlySavingsNet(phone),
@@ -71,6 +76,8 @@ router.get("/hub/vault", requireAuth, async (req, res) => {
       getBillPaymentsThisMonth(phone),
       getRecentIncomeLogs(phone, 10),
       getRecentSavingsLogs(phone, 10),
+      getMonthlyMiscExpenseTotal(phone),
+      getRecentMiscExpenses(phone, 10),
     ]);
 
     const paidByName = new Map(billPaymentsThisMonth.map((p) => [p.name, p]));
@@ -85,7 +92,8 @@ router.get("/hub/vault", requireAuth, async (req, res) => {
       paid: paidByName.get(t.name) || null,
     }));
 
-    const monthlyRemaining = monthlyIncome - monthlySavingsNet - monthlyTopupTotal - monthlyBillsPaidTotal;
+    const monthlyRemaining =
+      monthlyIncome - monthlySavingsNet - monthlyTopupTotal - monthlyBillsPaidTotal - monthlyMiscExpenseTotal;
 
     const flash = req.query.err
       ? { type: "error", text: req.query.err }
@@ -99,11 +107,13 @@ router.get("/hub/vault", requireAuth, async (req, res) => {
         monthlySavingsNet,
         monthlyTopupTotal,
         monthlyBillsPaidTotal,
+        monthlyMiscExpenseTotal,
         monthlyRemaining,
         savingsTotal,
         bills,
         recentIncome: recentIncome.map((r) => ({ ...r, dateLabel: toWibDateLabel(r.created_at) })),
         recentSavings: recentSavings.map((r) => ({ ...r, dateLabel: toWibDateLabel(r.created_at) })),
+        recentMiscExpenses: recentMiscExpenses.map((r) => ({ ...r, dateLabel: toWibDateLabel(r.created_at) })),
         flash,
       })
     );
@@ -129,12 +139,28 @@ router.post("/hub/vault/income", requireAuth, async (req, res) => {
   }
 });
 
+router.post("/hub/vault/expenses", requireAuth, async (req, res) => {
+  const amount = parseFloat(req.body.amount);
+  const note = (req.body.note || "").trim();
+  if (isNaN(amount) || amount <= 0) {
+    return redirectWithError(res, "/hub/vault", "Invalid expense amount.");
+  }
+
+  try {
+    await saveMiscExpense(req.user.phone, amount, note);
+    res.redirect("/hub/vault?ok=1");
+  } catch (err) {
+    console.error(err);
+    redirectWithError(res, "/hub/vault", `Gagal simpan pengeluaran: ${err.message}`);
+  }
+});
+
 router.post("/hub/vault/savings", requireAuth, async (req, res) => {
   const amount = parseFloat(req.body.amount);
   const type = req.body.type;
   const note = (req.body.note || "").trim();
 
-  if (isNaN(amount) || amount <= 0 || !["deposit", "withdrawal"].includes(type)) {
+  if (isNaN(amount) || amount <= 0 || !["deposit", "withdrawal", "opening_balance"].includes(type)) {
     return redirectWithError(res, "/hub/vault", "Invalid savings entry.");
   }
 

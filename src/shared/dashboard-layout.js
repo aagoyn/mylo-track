@@ -73,8 +73,8 @@ export const DASHBOARD_CSS = `
   .calendar-nav .calendar-label { font-size: 14px; font-weight: 600; }
   .mood-calendar { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; max-width: 100%; }
   .mood-calendar .dow { font-size: 11px; color: #64748b; text-align: center; padding-bottom: 4px; }
-  a.mood-cell { display: flex; align-items: center; justify-content: center; aspect-ratio: 1 / 1; border-radius: 6px; background: #1e293b; font-size: 14px; text-decoration: none; border: 2px solid transparent; }
-  a.mood-cell.mood-empty { background: #1e293b; opacity: 0.5; }
+  a.mood-cell { display: flex; align-items: center; justify-content: center; aspect-ratio: 1 / 1; border-radius: 6px; background: #1e293b; font-size: 14px; text-decoration: none; border: 2px solid transparent; color: #e2e8f0; }
+  a.mood-cell.mood-empty { background: #334155; color: #64748b; }
   a.mood-cell.mood-selected { border-color: #e2e8f0; }
   a.mood-cell.mood-terrible { background: #ef444455; }
   a.mood-cell.mood-bad { background: #f9731655; }
@@ -133,7 +133,7 @@ export const DASHBOARD_CSS = `
   .log-item { background: #1e293b; border-radius: 12px; margin-bottom: 8px; overflow: hidden; }
   .log-item summary { display: flex; align-items: center; gap: 10px; padding: 10px 14px; cursor: pointer; list-style: none; }
   .log-item summary::-webkit-details-marker { display: none; }
-  .log-item summary::before { content: "▸"; color: #64748b; font-size: 12px; flex-shrink: 0; transition: transform 0.15s ease; }
+  .log-item summary::before { content: "▸"; color: #64748b; font-size: 18px; flex-shrink: 0; transition: transform 0.15s ease; }
   .log-item[open] summary::before { transform: rotate(90deg); }
   .log-time { font-size: 12px; color: #64748b; white-space: nowrap; }
   .log-name { flex: 1; min-width: 0; overflow-wrap: break-word; font-size: 13px; }

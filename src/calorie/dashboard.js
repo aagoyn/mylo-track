@@ -151,7 +151,7 @@ ${faviconLink("/icons/calorie.png")}
         </form>
       </div>
       <div class="form-card">
-        <h3>📸 Via Photo</h3>
+        <h3>${iconLabel("/icons/camera.png", "Via Photo")}</h3>
         <form method="POST" action="/dashboard/calorie/food-photo" enctype="multipart/form-data" id="food-photo-form">
           <input type="file" name="photo" accept="image/*" required>
           <button type="submit" id="food-photo-submit">Save</button>

@@ -1,4 +1,4 @@
-import { DASHBOARD_CSS, escapeHtml, navHeader } from "../../shared/dashboard-layout.js";
+import { DASHBOARD_CSS, escapeHtml, navHeader, faviconLink } from "../../shared/dashboard-layout.js";
 
 // duplikat kecil dari daftar value di ./supabase.js (dipakai buat validasi di sana) - sengaja
 // nggak di-import dari situ biar dashboard.js (layer render doang) nggak ikut narik
@@ -65,6 +65,7 @@ export function renderWishlistPage({ items, flash }) {
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Wishlist</title>
+${faviconLink("🛍️")}
 <style>${DASHBOARD_CSS}</style>
 </head>
 <body>

@@ -123,6 +123,12 @@ export function escapeHtml(str) {
   return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 
+// favicon dari emoji langsung (data URI SVG) - nggak butuh nyari/nyimpen file gambar
+export function faviconLink(emoji) {
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y="0.9em" font-size="90">${emoji}</text></svg>`;
+  return `<link rel="icon" href="data:image/svg+xml,${encodeURIComponent(svg)}">`;
+}
+
 // header dashboard dengan nav-link ke dashboard "pasangan" (same-origin sekarang, bukan cross-app URL lagi)
 export function navHeader({ icon, title, links = [] }) {
   const linksHtml = links

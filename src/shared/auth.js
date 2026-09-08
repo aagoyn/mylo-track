@@ -1,4 +1,5 @@
 import crypto from "node:crypto";
+import { faviconLink } from "./dashboard-layout.js";
 
 const SESSION_SECRET = process.env.SESSION_SECRET || "";
 const SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000; // 30 hari
@@ -71,11 +72,12 @@ export function requireAuth(req, res, next) {
 
 export function loginPageHtml(error) {
   return `<!doctype html>
-<html lang="id">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Login</title>
+${faviconLink("🔒")}
 <style>
   body { font-family: system-ui, sans-serif; background: #0f172a; color: #e2e8f0; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; }
   form { background: #1e293b; padding: 32px; border-radius: 12px; width: 280px; box-shadow: 0 10px 30px rgba(0,0,0,.3); }

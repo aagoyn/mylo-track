@@ -1,4 +1,4 @@
-import { DASHBOARD_CSS, escapeHtml, navHeader } from "../../shared/dashboard-layout.js";
+import { DASHBOARD_CSS, escapeHtml, navHeader, faviconLink } from "../../shared/dashboard-layout.js";
 
 const MONTHS_EN = [
   "Jan", "Feb", "Mar", "Apr", "May", "Jun",
@@ -42,6 +42,7 @@ export function renderJournalPage({ viewDate, todayKey, entry, recent, editMode,
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Journal</title>
+${faviconLink("📝")}
 <style>${DASHBOARD_CSS}</style>
 </head>
 <body>

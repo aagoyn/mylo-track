@@ -1,4 +1,4 @@
-import { DASHBOARD_CSS, escapeHtml, navHeader } from "../shared/dashboard-layout.js";
+import { DASHBOARD_CSS, escapeHtml, navHeader, faviconLink } from "../shared/dashboard-layout.js";
 
 const MOOD_META = {
   terrible: { emoji: "😫", label: "Terrible" },
@@ -79,7 +79,8 @@ export function renderHubDashboard({
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Personal Hub</title>
+<title>Mylo Hub</title>
+${faviconLink("🐙")}
 <style>${DASHBOARD_CSS}</style>
 </head>
 <body>

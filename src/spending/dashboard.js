@@ -1,4 +1,4 @@
-import { DASHBOARD_CSS, escapeHtml, navHeader, stackedBarChartSvg } from "../shared/dashboard-layout.js";
+import { DASHBOARD_CSS, escapeHtml, navHeader, stackedBarChartSvg, faviconLink } from "../shared/dashboard-layout.js";
 
 const CATEGORY_COLOR_PALETTE = [
   "#6366f1", "#22c55e", "#f59e0b", "#ef4444", "#06b6d4",
@@ -61,6 +61,7 @@ export function renderSpendingDashboard({
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Spending Tracker</title>
+${faviconLink("💸")}
 <style>${DASHBOARD_CSS}</style>
 </head>
 <body>

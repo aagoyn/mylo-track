@@ -1,4 +1,4 @@
-import { DASHBOARD_CSS, escapeHtml, navHeader, stackedBarChartSvg } from "../shared/dashboard-layout.js";
+import { DASHBOARD_CSS, escapeHtml, navHeader, stackedBarChartSvg, faviconLink } from "../shared/dashboard-layout.js";
 
 const MACRO_SERIES = [
   { key: "protein", name: "Protein", color: "#f97316" },
@@ -40,6 +40,7 @@ export function renderCalorieDashboard({
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Calorie Tracker</title>
+${faviconLink("🍽️")}
 <style>${DASHBOARD_CSS}</style>
 </head>
 <body>

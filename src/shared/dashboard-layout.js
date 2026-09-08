@@ -118,6 +118,10 @@ export const DASHBOARD_CSS = `
   .status-badge { background: #33415555; color: #cbd5e1; }
   .wishlist-item-form { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 8px; align-items: end; }
   .wishlist-item-form textarea, .wishlist-item-form select, .wishlist-item-form input { margin-bottom: 0; }
+  .wishlist-item-form input[type="text"], .wishlist-item-form input[type="number"] {
+    width: 100%; padding: 9px 10px; border-radius: 8px; border: 1px solid #334155;
+    background: #0f172a; color: #e2e8f0; box-sizing: border-box; font-size: 14px;
+  }
   .wishlist-item-form button { padding: 9px 10px; border-radius: 8px; border: none; background: #6366f1; color: white; font-size: 13px; cursor: pointer; }
   .wishlist-item-form button:hover { background: #4f46e5; }
   .delete-form button { background: transparent; border: 1px solid #ef444455; color: #ef4444; padding: 6px 10px; border-radius: 8px; font-size: 12px; cursor: pointer; }

@@ -141,13 +141,13 @@ ${faviconLink("/icons/spending.png")}
 
     <h2>${iconLabel("/icons/weekly-budget.png", "Set Weekly Budget")}</h2>
     <div class="forms">
-      <div class="form-card">
-        <h3>${iconLabel("/icons/top-up.png", "Top Up / Update Budget")}</h3>
+      <details class="form-card">
+        <summary>${iconLabel("/icons/top-up.png", "Top Up / Update Budget")}</summary>
         <form method="POST" action="/dashboard/spending/topup">
           <input type="number" name="amount" placeholder="e.g. 500000" required>
           <button type="submit">Save</button>
         </form>
-      </div>
+      </details>
     </div>
 
     <h2>${iconLabel("/icons/trend.png", "7-Day Spending Trend (by Category)")}</h2>

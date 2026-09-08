@@ -30,6 +30,10 @@ export const DASHBOARD_CSS = `
   .forms { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
   .form-card { background: #1e293b; border-radius: 12px; padding: 16px; }
   .form-card h3 { font-size: 13px; color: #94a3b8; margin: 0 0 10px; font-weight: 500; }
+  .form-card > summary { cursor: pointer; font-size: 13px; color: #94a3b8; font-weight: 500; list-style: none; margin-bottom: 10px; }
+  .form-card > summary::-webkit-details-marker { display: none; }
+  .form-card > summary::before { content: "▸ "; color: #64748b; }
+  .form-card[open] > summary::before { content: "▾ "; }
   .form-card input[type="text"], .form-card input[type="number"] {
     width: 100%; padding: 9px 10px; border-radius: 8px; border: 1px solid #334155;
     background: #0f172a; color: #e2e8f0; box-sizing: border-box; font-size: 14px; margin-bottom: 8px;

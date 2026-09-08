@@ -160,26 +160,26 @@ ${faviconLink("/icons/calorie.png")}
           </div>
         </form>
       </div>
-      <div class="form-card">
-        <h3>${iconLabel("/icons/scales.png", "Weight")}</h3>
+      <details class="form-card">
+        <summary>${iconLabel("/icons/scales.png", "Weight")}</summary>
         <form method="POST" action="/dashboard/calorie/weight">
           <input type="number" step="0.1" name="weight" placeholder="e.g. 65.5" required>
           <button type="submit">Save</button>
         </form>
-      </div>
+      </details>
     </div>
 
     <h2>${iconLabel("/icons/target.png", "Set Targets")}</h2>
     <div class="forms">
-      <div class="form-card">
-        <h3>🔥 Daily Calorie Target</h3>
+      <details class="form-card">
+        <summary>🔥 Daily Calorie Target</summary>
         <form method="POST" action="/dashboard/calorie/target">
           <input type="number" name="target" placeholder="e.g. 2000" required>
           <button type="submit">Save</button>
         </form>
-      </div>
-      <div class="form-card">
-        <h3>🥩🍚🧈🍬 Macro Targets (g)</h3>
+      </details>
+      <details class="form-card">
+        <summary>${iconLabel("/icons/macronutrient.png", "Macro Targets (g)")}</summary>
         <form method="POST" action="/dashboard/calorie/target-macro">
           <input type="number" step="0.1" name="protein" placeholder="Protein" required>
           <input type="number" step="0.1" name="carbs" placeholder="Carbs" required>
@@ -187,7 +187,7 @@ ${faviconLink("/icons/calorie.png")}
           <input type="number" step="0.1" name="sugar" placeholder="Sugar (optional)">
           <button type="submit">Save</button>
         </form>
-      </div>
+      </details>
     </div>
 
     <h2>${iconLabel("/icons/log.png", "Today's Log")}</h2>

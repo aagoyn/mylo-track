@@ -260,13 +260,17 @@ router.get("/dashboard/calorie", requireAuth, async (req, res) => {
 
     const expandedId = req.query.expanded || null;
 
-    const todayLogEntries = todayLogs.map((r) => ({
-      id: r.id,
-      time: toWibTime(r.created_at),
-      foodName: r.food_name,
-      calories: r.calories,
-      items: r.items || [],
-    }));
+    // getTodayFoodLogs urutannya ascending (dipakai bareng /today Telegram yang mau kronologis) -
+    // di web-nya di-reverse aja biar log terbaru di paling atas, tanpa ubah query yang di-share
+    const todayLogEntries = todayLogs
+      .map((r) => ({
+        id: r.id,
+        time: toWibTime(r.created_at),
+        foodName: r.food_name,
+        calories: r.calories,
+        items: r.items || [],
+      }))
+      .reverse();
 
     const byDay = {};
     const byDayMacroKcal = {};

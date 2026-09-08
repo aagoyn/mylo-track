@@ -67,7 +67,7 @@ ${faviconLink("/icons/spending.png")}
 <body>
   <div class="container">
     ${navHeader({
-      icon: "💸",
+      icon: "/icons/spending.png",
       title: "Spending Tracker",
       links: [
         { href: "/hub", label: "🏠 Home" },

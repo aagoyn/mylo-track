@@ -70,7 +70,7 @@ ${faviconLink("/icons/calorie.png")}
 <body>
   <div class="container">
     ${navHeader({
-      icon: "🍽️",
+      icon: "/icons/calorie.png",
       title: "Calorie Tracker",
       links: [
         { href: "/hub", label: "🏠 Home" },

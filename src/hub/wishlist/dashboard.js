@@ -70,7 +70,7 @@ ${faviconLink("/icons/wishlist.png")}
 </head>
 <body>
   <div class="container">
-    ${navHeader({ icon: "🛍️", title: "Things I Want", links: [{ href: "/hub", label: "🏠 Home" }] })}
+    ${navHeader({ icon: "/icons/wishlist.png", title: "Things I Want", links: [{ href: "/hub", label: "🏠 Home" }] })}
 
     ${flash ? `<div class="flash flash-${flash.type}">${escapeHtml(flash.text)}</div>` : ""}
 

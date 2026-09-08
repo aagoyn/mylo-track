@@ -3,7 +3,8 @@ export const DASHBOARD_CSS = `
   body { font-family: system-ui, sans-serif; background: #0f172a; color: #e2e8f0; margin: 0; padding: 24px 16px 48px; }
   .container { max-width: 720px; margin: 0 auto; }
   header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; }
-  h1 { font-size: 20px; margin: 0; }
+  h1 { font-size: 20px; margin: 0; display: flex; align-items: center; gap: 8px; }
+  .header-icon { width: 28px; height: 28px; object-fit: contain; border-radius: 6px; flex-shrink: 0; }
   h2 { font-size: 15px; color: #94a3b8; margin: 32px 0 8px; text-transform: uppercase; letter-spacing: .05em; }
   .nav-links { display: flex; align-items: center; gap: 16px; }
   a.nav-link, a.logout { color: #94a3b8; font-size: 13px; text-decoration: none; }
@@ -133,12 +134,13 @@ export function faviconLink(iconPath) {
 }
 
 // header dashboard dengan nav-link ke dashboard "pasangan" (same-origin sekarang, bukan cross-app URL lagi)
+// icon: path ke PNG di public/icons (sama yang dipakai buat faviconLink halaman itu)
 export function navHeader({ icon, title, links = [] }) {
   const linksHtml = links
     .map((l) => `<a class="nav-link" href="${l.href}">${l.label}</a>`)
     .join("");
   return `<header>
-      <h1>${icon} ${title}</h1>
+      <h1><img class="header-icon" src="${icon}" alt="">${title}</h1>
       <div class="nav-links">
         ${linksHtml}
         <a class="logout" href="/logout">Log out</a>

@@ -117,7 +117,7 @@ ${faviconLink("/icons/mood.png")}
 </head>
 <body>
   <div class="container">
-    ${navHeader({ icon: "😊", title: "Mood Tracker", links: [{ href: "/hub", label: "🏠 Home" }] })}
+    ${navHeader({ icon: "/icons/mood.png", title: "Mood Tracker", links: [{ href: "/hub", label: "🏠 Home" }] })}
 
     ${flash ? `<div class="flash flash-${flash.type}">${escapeHtml(flash.text)}</div>` : ""}
 

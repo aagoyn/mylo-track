@@ -5,7 +5,8 @@ satu **Personal Hub** web dashboard: home overview, Mood Tracker (kalender ala G
 contribution graph), Journal harian, dan Wishlist. Satu process, satu deployment, satu login.
 
 Bot Telegram-nya (teks/reply) tetap berbahasa Indonesia. Web dashboard (termasuk Hub, Mood,
-Journal, Wishlist, Spending, Calorie) pakai bahasa Inggris untuk UI-nya.
+Journal, Wishlist, Spending, Calorie) pakai bahasa Inggris untuk UI-nya, dan tiap halaman punya
+favicon sendiri (file PNG di `public/icons/`, di-serve lewat `express.static`).
 
 ## Fitur
 
@@ -77,6 +78,8 @@ scripts/
   add-user.js         CLI buat nambah akun baru (shared, satu untuk kedua bot)
 supabase/
   schema.sql          definisi semua tabel + migrasi
+public/
+  icons/              favicon PNG per halaman (di-serve static, lihat express.static di server.js)
 ```
 
 ## Prasyarat

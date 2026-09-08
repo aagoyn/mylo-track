@@ -52,10 +52,24 @@ export async function getTodayCalories(phone) {
 export async function getTodayFoodLogs(phone) {
   const { data, error } = await supabase
     .from("food_logs")
-    .select("food_name, calories, created_at")
+    .select("id, food_name, calories, created_at")
     .eq("phone", phone)
     .gte("created_at", todayStartUtcISO())
     .order("created_at", { ascending: true });
+  if (error) throw error;
+  return data;
+}
+
+// dipakai buat verifikasi ownership sebelum update/delete dari web dashboard, karena id-nya
+// di situ dikirim dari form (input klien), beda sama flow Telegram yang id-nya selalu
+// didapat dari getLastFoodLog(chatId) yang udah difilter phone duluan
+export async function getFoodLogById(phone, id) {
+  const { data, error } = await supabase
+    .from("food_logs")
+    .select("*")
+    .eq("phone", phone)
+    .eq("id", id)
+    .maybeSingle();
   if (error) throw error;
   return data;
 }

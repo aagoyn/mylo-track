@@ -13,6 +13,7 @@ import {
   getTodayCalories,
   getTodayFoodLogs,
   getLastFoodLog,
+  getFoodLogById,
   deleteFoodLog,
   updateFoodLog,
   getWeekFoodLogs,
@@ -257,10 +258,12 @@ router.get("/dashboard/calorie", requireAuth, async (req, res) => {
         getWeightHistory(chatId, 10),
       ]);
 
+    const editEntry = req.query.edit ? await getFoodLogById(chatId, req.query.edit) : null;
+
     const todayLogRows = todayLogs
       .map(
         (r) =>
-          `<tr><td>${toWibTime(r.created_at)}</td><td>${escapeHtml(r.food_name)}</td><td>${r.calories} kcal</td></tr>`
+          `<tr><td>${toWibTime(r.created_at)}</td><td><a class="nav-link" href="/dashboard/calorie?edit=${r.id}">${escapeHtml(r.food_name)}</a></td><td>${r.calories} kcal</td></tr>`
       )
       .join("");
 
@@ -312,6 +315,7 @@ router.get("/dashboard/calorie", requireAuth, async (req, res) => {
         weekRows,
         weekChartData,
         weightRows,
+        editEntry,
         flash,
       })
     );
@@ -353,6 +357,54 @@ router.post(
     }
   }
 );
+
+router.post("/dashboard/calorie/food-edit", requireAuth, async (req, res) => {
+  const id = req.body.id;
+  const foodName = (req.body.food_name || "").trim();
+  const calories = parseInt(req.body.calories, 10);
+  const protein = parseFloat(req.body.protein);
+  const carbs = parseFloat(req.body.carbs);
+  const fat = parseFloat(req.body.fat);
+  const sugarRaw = (req.body.sugar || "").trim();
+  const sugar = sugarRaw ? parseFloat(sugarRaw) : 0;
+
+  if (!foodName || [calories, protein, carbs, fat].some((v) => isNaN(v) || v < 0) || isNaN(sugar) || sugar < 0) {
+    return res.redirect(`/dashboard/calorie?edit=${id}&err=Invalid values.`);
+  }
+
+  try {
+    const existing = await getFoodLogById(req.user.phone, id);
+    if (!existing) return redirectWithError(res, "/dashboard/calorie", "Log not found.");
+
+    await updateFoodLog(id, {
+      food_name: foodName,
+      calories,
+      protein_g: protein,
+      carbs_g: carbs,
+      fat_g: fat,
+      sugar_g: sugar,
+    });
+    res.redirect("/dashboard/calorie?ok=1");
+  } catch (err) {
+    console.error(err);
+    redirectWithError(res, "/dashboard/calorie", `Gagal update log: ${err.message}`);
+  }
+});
+
+router.post("/dashboard/calorie/food-delete", requireAuth, async (req, res) => {
+  const id = req.body.id;
+
+  try {
+    const existing = await getFoodLogById(req.user.phone, id);
+    if (!existing) return redirectWithError(res, "/dashboard/calorie", "Log not found.");
+
+    await deleteFoodLog(id);
+    res.redirect("/dashboard/calorie?ok=1");
+  } catch (err) {
+    console.error(err);
+    redirectWithError(res, "/dashboard/calorie", `Gagal hapus log: ${err.message}`);
+  }
+});
 
 router.post("/dashboard/calorie/weight", requireAuth, async (req, res) => {
   const weight = parseFloat(String(req.body.weight || "").replace(",", "."));

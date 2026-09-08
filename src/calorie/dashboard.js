@@ -6,6 +6,27 @@ const MACRO_SERIES = [
   { key: "fat", name: "Fat", color: "#a855f7" },
 ];
 
+function editFormHtml(entry) {
+  return `<div class="form-card" style="margin-top:8px;">
+    <h3>✏️ Edit Log</h3>
+    <form method="POST" action="/dashboard/calorie/food-edit">
+      <input type="hidden" name="id" value="${entry.id}">
+      <input type="text" name="food_name" placeholder="Food name" value="${escapeHtml(entry.food_name)}" required>
+      <input type="number" name="calories" placeholder="Calories" value="${entry.calories}" required>
+      <input type="number" step="0.1" name="protein" placeholder="Protein (g)" value="${entry.protein_g}" required>
+      <input type="number" step="0.1" name="carbs" placeholder="Carbs (g)" value="${entry.carbs_g}" required>
+      <input type="number" step="0.1" name="fat" placeholder="Fat (g)" value="${entry.fat_g}" required>
+      <input type="number" step="0.1" name="sugar" placeholder="Sugar (g, optional)" value="${entry.sugar_g ?? ""}">
+      <button type="submit">Save</button>
+    </form>
+    <form class="delete-form" method="POST" action="/dashboard/calorie/food-delete" style="margin-top:8px;">
+      <input type="hidden" name="id" value="${entry.id}">
+      <button type="submit">Delete</button>
+    </form>
+    <a class="nav-link" href="/dashboard/calorie">Cancel</a>
+  </div>`;
+}
+
 export function renderCalorieDashboard({
   target,
   total,
@@ -15,6 +36,7 @@ export function renderCalorieDashboard({
   weekRows,
   weekChartData,
   weightRows,
+  editEntry,
   flash,
 }) {
   const remaining = target != null ? target - total : null;
@@ -120,6 +142,7 @@ ${faviconLink("/icons/calorie.png")}
       <thead><tr><th>🕐 Time</th><th>🍽️ Food</th><th>🔥 Calories</th></tr></thead>
       <tbody>${todayLogRows || `<tr><td colspan="3">No logs yet.</td></tr>`}</tbody>
     </table>
+    ${editEntry ? editFormHtml(editEntry) : ""}
 
     <h2>📅 7-Day Recap (calories from Protein/Carbs/Fat)</h2>
     ${

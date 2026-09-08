@@ -68,6 +68,12 @@ function formatWibLabelFromKey(dateKey) {
   return `${d.getUTCDate()} ${BULAN[d.getUTCMonth()]}`;
 }
 
+// Senin=1 ... Minggu=7, sama kayak convention di getWeekBoundsWib (spending/supabase.js)
+function wibDayOfWeek() {
+  const wibNow = new Date(Date.now() + 7 * 60 * 60 * 1000);
+  return wibNow.getUTCDay() || 7;
+}
+
 // nunggu jawaban nominal kalau user cuma kirim nama barang tanpa harga (mis. "kopi")
 const pendingDescriptions = new Map();
 function setPendingDescription(chatId, desc) {
@@ -417,11 +423,17 @@ router.get("/dashboard/spending", requireAuth, async (req, res) => {
         ? { type: "success", text: "Berhasil disimpan." }
         : null;
 
+    const dayOfWeek = wibDayOfWeek(); // 1=Senin..7=Minggu
+    const daysElapsedInWeek = dayOfWeek; // termasuk hari ini
+    const daysLeftInWeek = 8 - dayOfWeek; // termasuk hari ini
+
     res.send(
       renderSpendingDashboard({
         balance,
         weeklyBudget,
         weekSpent: week.total,
+        daysElapsedInWeek,
+        daysLeftInWeek,
         today,
         week,
         month,

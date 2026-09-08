@@ -46,6 +46,8 @@ export function renderSpendingDashboard({
   balance,
   weeklyBudget,
   weekSpent,
+  daysElapsedInWeek,
+  daysLeftInWeek,
   today,
   week,
   month,
@@ -54,6 +56,9 @@ export function renderSpendingDashboard({
   flash,
 }) {
   const remaining = weeklyBudget ? weeklyBudget - weekSpent : null;
+  const avgDaily = daysElapsedInWeek > 0 ? weekSpent / daysElapsedInWeek : 0;
+  const maxPerDay =
+    remaining != null && remaining > 0 && daysLeftInWeek > 0 ? remaining / daysLeftInWeek : null;
 
   return `<!doctype html>
 <html lang="en">
@@ -81,6 +86,11 @@ ${faviconLink("/icons/spending.png")}
       <div class="card">
         <div class="card-label">💳 Running Balance</div>
         <div class="card-value">Rp${Math.round(balance).toLocaleString("id-ID")}</div>
+        ${
+          maxPerDay != null
+            ? `<div class="card-sub">Rp${Math.round(maxPerDay).toLocaleString("id-ID")}/day max (${daysLeftInWeek}d left this week)</div>`
+            : ""
+        }
       </div>
       <div class="card">
         <div class="card-label">🎯 Weekly Budget</div>
@@ -90,6 +100,11 @@ ${faviconLink("/icons/spending.png")}
             ? `<div class="card-sub">${remaining >= 0 ? `Rp${Math.round(remaining).toLocaleString("id-ID")} left` : `Rp${Math.round(Math.abs(remaining)).toLocaleString("id-ID")} over`}</div>`
             : ""
         }
+      </div>
+      <div class="card">
+        <div class="card-label">📊 Avg Daily</div>
+        <div class="card-value">Rp${Math.round(avgDaily).toLocaleString("id-ID")}</div>
+        <div class="card-sub">this week so far</div>
       </div>
     </section>
 

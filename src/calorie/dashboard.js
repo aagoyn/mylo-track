@@ -144,7 +144,7 @@ ${faviconLink("/icons/calorie.png")}
     <h2>📝 Log Food</h2>
     <div class="forms">
       <div class="form-card">
-        <h3>✍️ Via Text</h3>
+        <h3>${iconLabel("/icons/via-text.png", "Via Text")}</h3>
         <form method="POST" action="/dashboard/calorie/food-text">
           <input type="text" name="description" placeholder="e.g. fried rice 1 serving" required>
           <button type="submit">Save</button>

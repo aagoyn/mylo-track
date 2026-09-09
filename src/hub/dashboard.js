@@ -79,6 +79,7 @@ export function renderHubDashboard({
   const vaultSection = vaultSummary
     ? `<div class="card-value">${formatRupiah(vaultSummary.monthlyRemaining)} left</div>
        <div class="card-sub">Monthly pool</div>
+       <div class="card-sub">Bills · ${vaultSummary.unpaidBillsCount} unpaid</div>
        <a class="nav-link" href="/hub/vault">View vault</a>`
     : `<div class="empty-state">Couldn't load vault.</div>`;
 

@@ -15,6 +15,7 @@ import {
   getMonthlySavingsNet,
   getBillPaymentsThisMonth,
   getMonthlyMiscExpenseTotal,
+  getBillTemplates,
 } from "./vault/supabase.js";
 import { getProducts } from "./skincare/supabase.js";
 import { getDayRoutine } from "./skincare/routine-engine.js";
@@ -144,16 +145,22 @@ router.get("/hub", requireAuth, async (req, res) => {
     getWishlistItems(phone),
     (async () => {
       const { startISO, endISO } = currentMonthBoundsWib();
-      const [monthlyIncome, monthlySavingsNet, monthlyTopupTotal, billPayments, monthlyMiscExpenseTotal] =
+      const [monthlyIncome, monthlySavingsNet, monthlyTopupTotal, billPayments, monthlyMiscExpenseTotal, billTemplates] =
         await Promise.all([
           getMonthlyIncomeTotal(phone),
           getMonthlySavingsNet(phone),
           getTopupTotal(phone, startISO, endISO),
           getBillPaymentsThisMonth(phone),
           getMonthlyMiscExpenseTotal(phone),
+          getBillTemplates(phone),
         ]);
       const monthlyBillsPaidTotal = billPayments.reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
-      return monthlyIncome - monthlySavingsNet - monthlyTopupTotal - monthlyBillsPaidTotal - monthlyMiscExpenseTotal;
+      const paidNames = new Set(billPayments.map((p) => p.name));
+      const unpaidBillsCount = billTemplates.filter((t) => !paidNames.has(t.name)).length;
+      return {
+        monthlyRemaining: monthlyIncome - monthlySavingsNet - monthlyTopupTotal - monthlyBillsPaidTotal - monthlyMiscExpenseTotal,
+        unpaidBillsCount,
+      };
     })(),
     (async () => {
       const [products, dayRoutine] = await Promise.all([getProducts(phone), getDayRoutine(phone, todayKey)]);
@@ -189,7 +196,7 @@ router.get("/hub", requireAuth, async (req, res) => {
       }
     : null;
 
-  const vaultSummary = vaultResult.status === "fulfilled" ? { monthlyRemaining: vaultResult.value } : null;
+  const vaultSummary = vaultResult.status === "fulfilled" ? vaultResult.value : null;
 
   const skincareSummary = skincareResult.status === "fulfilled" ? skincareResult.value : null;
 

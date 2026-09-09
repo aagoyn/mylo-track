@@ -73,6 +73,9 @@ export const DASHBOARD_CSS = `
   .mood-picker input[type="radio"] { position: absolute; opacity: 0; width: 1px; height: 1px; }
   .mood-picker label { display: flex; align-items: center; justify-content: center; width: 52px; height: 52px; border-radius: 12px; background: #0f172a; border: 2px solid #334155; font-size: 24px; cursor: pointer; }
   .mood-picker input[type="radio"]:checked + label { border-color: #6366f1; background: #312e81; }
+  .mood-note-row { display: flex; gap: 8px; align-items: stretch; }
+  .mood-note-row input[type="text"] { flex: 7; width: auto; margin-bottom: 0; }
+  .mood-note-row button { flex: 3; width: auto; margin-bottom: 0; }
   .mood-today .card-value { font-size: 22px; }
   .mood-today .card-note { font-size: 13px; color: #94a3b8; font-style: italic; margin-top: 4px; }
 

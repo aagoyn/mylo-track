@@ -86,7 +86,7 @@ ${faviconLink("/icons/spending.png")}
       icon: "/icons/spending.png",
       title: "Spending Tracker",
       links: [
-        { href: "/hub", label: "🏠 Home" },
+        { href: "/hub", label: iconLabel("/icons/home.png", "Home") },
         { href: "/dashboard/calorie", label: iconLabel("/icons/calorie.png", "Calories") },
       ],
     })}

@@ -323,7 +323,7 @@ function productRowHtml(product, rule) {
     </td>
     <td><span class="badge ${STATUS_BADGE_CLASS[product.status] || "status-badge"}">${product.status}</span></td>
     <td style="font-size:12px;">${routineSummaryHtml(rule)}</td>
-    <td style="text-align:center; vertical-align:middle;">
+    <td style="text-align:center;">
       <div class="actions-menu">
         <button type="button" class="actions-menu-trigger" aria-label="Actions">⋮</button>
         <div class="actions-menu-list">

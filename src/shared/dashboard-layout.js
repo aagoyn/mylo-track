@@ -175,7 +175,13 @@ export const DASHBOARD_CSS = `
   .stat-bar-fill.tier-empty { background: #7f1d1d; }
 
   .button-row { display: flex; gap: 8px; }
-  .button-row button { width: 100%; }
+  .button-row button, .button-row .btn-secondary { width: 100%; }
+  .btn-secondary {
+    display: flex; align-items: center; justify-content: center; box-sizing: border-box;
+    padding: 9px 10px; border-radius: 8px; border: 1px solid #334155;
+    background: transparent; color: #94a3b8; font-size: 13px; text-decoration: none; text-align: center;
+  }
+  .btn-secondary:hover { background: #334155; color: #e2e8f0; }
 
   .inline-toggle { margin-top: 8px; }
   .inline-toggle > summary { cursor: pointer; font-size: 12px; color: #64748b; list-style: none; }

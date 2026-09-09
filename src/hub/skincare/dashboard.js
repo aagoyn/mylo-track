@@ -339,8 +339,12 @@ export function renderProductFormPage({ mode, product, flash }) {
 
 // ---------- AI suggestion review ----------
 
-function dayCheckboxesHtml(selectedDays) {
-  return `<div class="day-checkboxes">${DAY_LABELS_SHORT.map(
+function dayCheckboxesHtml(selectedDays, frequencyType) {
+  // .day-checkboxes punya display:flex di CSS, jadi atribut `hidden` bawaan browser ketimpa
+  // (author style vs UA style, specificity sama tapi author menang) - makanya toggle-nya pakai
+  // inline style.display langsung, bukan .hidden, biar beneran ke-hide.
+  const initialDisplay = frequencyType === "DAYS_OF_WEEK" ? "flex" : "none";
+  return `<div class="day-checkboxes" style="display:${initialDisplay}">${DAY_LABELS_SHORT.map(
     (label, idx) =>
       `<label><input type="checkbox" name="days" value="${idx}" ${selectedDays.includes(idx) ? "checked" : ""}>${label}</label>`
   ).join("")}</div>`;
@@ -400,14 +404,14 @@ export function suggestionCardHtml({ product, enriched, cancelHref }) {
       <div class="field-group">
         <div class="field-label">Frequency</div>
         <div class="radio-row">
-          <label><input type="radio" name="frequency_type" value="DAILY" ${suggestion.frequency_type === "DAILY" ? "checked" : ""}>Every day</label>
-          <label><input type="radio" name="frequency_type" value="DAYS_OF_WEEK" ${suggestion.frequency_type === "DAYS_OF_WEEK" ? "checked" : ""}>Specific days</label>
+          <label><input type="radio" name="frequency_type" value="DAILY" ${suggestion.frequency_type === "DAILY" ? "checked" : ""} onchange="this.closest('.field-group').querySelector('.day-checkboxes').style.display = 'none'">Every day</label>
+          <label><input type="radio" name="frequency_type" value="DAYS_OF_WEEK" ${suggestion.frequency_type === "DAYS_OF_WEEK" ? "checked" : ""} onchange="this.closest('.field-group').querySelector('.day-checkboxes').style.display = 'flex'">Specific days</label>
         </div>
-        ${dayCheckboxesHtml(suggestion.days_of_week)}
+        ${dayCheckboxesHtml(suggestion.days_of_week, suggestion.frequency_type)}
       </div>
 
       <div class="field-group">
-        <div class="field-label">Routine position (lower = used earlier)</div>
+        <div class="field-label">Order (smaller number = used first, e.g. 10 before 90)</div>
         <input type="number" name="routine_order" value="${suggestion.routine_order}" step="10" style="max-width:120px;">
       </div>
 
@@ -416,9 +420,9 @@ export function suggestionCardHtml({ product, enriched, cancelHref }) {
 
       <div class="button-row">
         <button type="submit">Approve</button>
+        <a class="btn-secondary" href="${cancelHref}">Don't use this suggestion</a>
       </div>
     </form>
-    <a class="nav-link" href="${cancelHref}">Don't use this suggestion</a>
   </div>`;
 }
 
@@ -428,7 +432,6 @@ export function renderSuggestionPage({ product, enriched, backHref }) {
     body: `
       <h2>AI Routine Suggestion</h2>
       ${suggestionCardHtml({ product, enriched, cancelHref: backHref })}
-      <a class="nav-link" href="${backHref}">Back</a>
     `,
   });
 }

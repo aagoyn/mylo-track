@@ -213,10 +213,10 @@ export function renderSkincareDashboard({ productsCount, dayRoutine, productById
     title: "Skincare",
     active: "today",
     body: `
-      <p style="color:#94a3b8; font-size:13px; margin-top:-8px;">TODAY — ${escapeHtml(dateLabel)}</p>
+      <p style="color:#94a3b8; font-size:13px; margin:4px 0 16px;">TODAY — ${escapeHtml(dateLabel)}</p>
       ${conflictBannerHtml(allConflicts, productById)}
 
-      <h2>Face</h2>
+      <h2 style="margin-top:16px;">Face</h2>
       ${routineBlockHtml(iconLabel(TIME_ICON.AM, "Face AM"), dayRoutine.faceAM)}
       ${pmBlock}
       ${
@@ -231,7 +231,7 @@ export function renderSkincareDashboard({ productsCount, dayRoutine, productById
       <div class="card">
         <p style="color:#94a3b8; font-size:13px; margin:0 0 10px;">Let AI look at your products and suggest how to organize them. Nothing changes until you approve.</p>
         <form method="POST" action="/hub/skincare/review">
-          <button type="submit">✨ Analyze my skincare routine</button>
+          <button type="submit" class="btn-primary">✨ Analyze my skincare routine</button>
         </form>
       </div>
     `,
@@ -271,19 +271,19 @@ function productRowHtml(product, rule) {
         <a class="nav-link" href="/hub/skincare/products/${product.id}/edit">Edit</a>
         <form method="POST" action="/hub/skincare/analyze" style="display:inline;">
           <input type="hidden" name="product_id" value="${product.id}">
-          <button type="submit" style="padding:4px 8px; font-size:12px;">Analyze with AI</button>
+          <button type="submit" class="btn-primary btn-sm">Analyze with AI</button>
         </form>
         ${
           product.status !== "PAUSED"
-            ? `<form method="POST" action="/hub/skincare/products/${product.id}/pause" style="display:inline;"><button type="submit" style="padding:4px 8px; font-size:12px;">Pause</button></form>`
+            ? `<form method="POST" action="/hub/skincare/products/${product.id}/pause" style="display:inline;"><button type="submit" class="btn-secondary btn-sm">Pause</button></form>`
             : ""
         }
         ${
           product.status !== "FINISHED"
-            ? `<form method="POST" action="/hub/skincare/products/${product.id}/finish" style="display:inline;"><button type="submit" style="padding:4px 8px; font-size:12px;">Finish</button></form>`
+            ? `<form method="POST" action="/hub/skincare/products/${product.id}/finish" style="display:inline;"><button type="submit" class="btn-secondary btn-sm">Finish</button></form>`
             : ""
         }
-        <form method="POST" action="/hub/skincare/products/${product.id}/delete" style="display:inline;" onsubmit="return confirm('Delete this product?');"><button type="submit" style="padding:4px 8px; font-size:12px;">Delete</button></form>
+        <form class="delete-form" method="POST" action="/hub/skincare/products/${product.id}/delete" style="display:inline;" onsubmit="return confirm('Delete this product?');"><button type="submit">Delete</button></form>
       </div>
     </td>
   </tr>`;
@@ -419,7 +419,7 @@ export function suggestionCardHtml({ product, enriched, cancelHref }) {
       ${rotationRow ? `<div class="field-group">${rotationRow}</div>` : ""}
 
       <div class="button-row">
-        <button type="submit">Approve</button>
+        <button type="submit" class="btn-primary">Approve</button>
         <a class="btn-secondary" href="${cancelHref}">Don't use this suggestion</a>
       </div>
     </form>
@@ -481,7 +481,7 @@ function rotationGroupCard(group, productById) {
             .join("")}
           <label><input type="radio" name="preferred_product_id" value="" ${!group.preferred_product_id ? "checked" : ""}>Let me choose each morning</label>
         </div>
-        <button type="submit" style="margin-top:6px;">Save preference</button>
+        <button type="submit" class="btn-primary btn-sm" style="margin-top:6px;">Save preference</button>
       </form>`
     : "";
 

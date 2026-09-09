@@ -174,12 +174,15 @@ export const DASHBOARD_CSS = `
 
   .button-row { display: flex; gap: 8px; }
   .button-row button, .button-row .btn-secondary { width: 100%; }
+  .btn-primary { padding: 9px 10px; border-radius: 8px; border: none; background: #6366f1; color: white; font-size: 13px; cursor: pointer; }
+  .btn-primary:hover { background: #4f46e5; }
   .btn-secondary {
     display: flex; align-items: center; justify-content: center; box-sizing: border-box;
     padding: 9px 10px; border-radius: 8px; border: 1px solid #334155;
-    background: transparent; color: #94a3b8; font-size: 13px; text-decoration: none; text-align: center;
+    background: transparent; color: #94a3b8; font-size: 13px; text-decoration: none; text-align: center; cursor: pointer;
   }
   .btn-secondary:hover { background: #334155; color: #e2e8f0; }
+  .btn-sm { padding: 4px 8px; font-size: 12px; }
 
   .inline-toggle { margin-top: 8px; }
   .inline-toggle > summary { cursor: pointer; font-size: 12px; color: #64748b; list-style: none; }

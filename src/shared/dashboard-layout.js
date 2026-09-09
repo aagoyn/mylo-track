@@ -21,6 +21,7 @@ export const DASHBOARD_CSS = `
   a.card:hover { background: #253347; }
   .card-label { font-size: 12px; color: #94a3b8; margin-bottom: 4px; }
   .card-value { font-size: 18px; font-weight: 600; overflow-wrap: break-word; }
+  .card-value.card-value-compact { font-size: 15px; }
   .card-sub { font-size: 12px; color: #64748b; margin-top: 2px; }
   table { width: 100%; border-collapse: collapse; background: #1e293b; border-radius: 12px; overflow: hidden; }
   th, td { text-align: left; padding: 10px 14px; font-size: 13px; border-bottom: 1px solid #334155; }

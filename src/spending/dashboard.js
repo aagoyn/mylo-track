@@ -103,7 +103,7 @@ ${faviconLink("/icons/spending.png")}
       </div>
       <div class="card">
         <div class="card-label">⚔️ Weekly Budget HP</div>
-        <div class="card-value">${weeklyBudget ? `Rp${Math.round(weeklyBudget).toLocaleString("id-ID")}` : "Not set"}</div>
+        <div class="card-value card-value-compact">${weeklyBudget ? `Rp${Math.round(weeklyBudget).toLocaleString("id-ID")}` : "Not set"}</div>
         ${weeklyBudget ? statBarHtml(budgetPct) : ""}
         ${
           remaining != null

@@ -229,7 +229,34 @@ export const DASHBOARD_CSS = `
   .rule-card .rule-actions button:hover { background: #334155; }
 
   .product-table-wrap { overflow-x: auto; }
+  .product-table-wrap td { vertical-align: top; }
+  .product-name-cell { font-weight: 600; }
+  .product-brand-cell { font-size: 12px; color: #94a3b8; margin-top: 2px; }
+  .product-table-wrap .product-actions { flex-wrap: wrap; row-gap: 6px; }
+  .product-table-wrap tr:hover td { background: #253347; }
+  .skincare-status-active { background: #14532d55; color: #4ade80; }
+  .skincare-status-paused { background: #78350f55; color: #fbbf24; }
+  .skincare-status-finished { background: #33415555; color: #94a3b8; }
   .recovery-banner { background: #0f172a; border: 1px solid #334155; border-radius: 10px; padding: 10px 12px; margin-bottom: 10px; font-size: 12px; color: #94a3b8; }
+
+  .category-dropdown { position: relative; margin-bottom: 8px; }
+  .category-dropdown-trigger {
+    width: 100%; display: flex; align-items: center; gap: 8px; padding: 9px 10px; border-radius: 8px;
+    border: 1px solid #334155; background: #0f172a; color: #e2e8f0; font-size: 14px; cursor: pointer; text-align: left;
+  }
+  .category-dropdown-trigger:hover { border-color: #475569; }
+  .category-dropdown-icon { width: 18px; height: 18px; object-fit: contain; border-radius: 3px; flex-shrink: 0; }
+  .category-dropdown-label { flex: 1; }
+  .category-dropdown-caret { color: #64748b; font-size: 11px; }
+  .category-dropdown-menu {
+    position: absolute; top: calc(100% + 4px); left: 0; right: 0; z-index: 20; max-height: 260px; overflow-y: auto;
+    background: #1e293b; border: 1px solid #334155; border-radius: 8px; padding: 4px; margin: 0; list-style: none;
+    display: none; box-shadow: 0 8px 24px rgba(0,0,0,.4);
+  }
+  .category-dropdown.open .category-dropdown-menu { display: block; }
+  .category-dropdown-menu li { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 6px; font-size: 13px; color: #e2e8f0; cursor: pointer; }
+  .category-dropdown-menu li:hover { background: #334155; }
+  .category-dropdown-menu li img { width: 18px; height: 18px; object-fit: contain; border-radius: 3px; flex-shrink: 0; }
 `;
 
 export function escapeHtml(str) {

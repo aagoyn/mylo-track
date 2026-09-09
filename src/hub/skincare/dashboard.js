@@ -25,29 +25,9 @@ const CATEGORY_VALUES = [
 ];
 const AREA_VALUES = ["FACE", "BODY"];
 
-const CATEGORY_EMOJI = {
-  "Cleansing Oil": "🛢️",
-  "Micellar Water": "💧",
-  Cleanser: "🧼",
-  Toner: "🌊",
-  Essence: "✨",
-  Ampoule: "💉",
-  Serum: "🧪",
-  Treatment: "🩹",
-  "Eye Cream": "👁️",
-  Moisturizer: "🧴",
-  Sunscreen: "☀️",
-  Mask: "🎭",
-  Exfoliant: "🌰",
-  "Spot Treatment": "🎯",
-  "Body Lotion": "🧴",
-  "Body Treatment": "🩹",
-  "Body Sunscreen": "☀️",
-  Other: "📦",
-};
-
-// icon PNG asli per kategori (dipakai di konteks HTML biasa - <option> nggak bisa render
-// <img>, jadi select dropdown tetap pakai CATEGORY_EMOJI di atas, bukan map ini)
+// icon PNG asli per kategori - dipakai di tabel produk dan di custom category dropdown
+// (lihat categoryDropdownHtml) yang gantiin <select> native karena <option> nggak bisa
+// render <img>.
 const CATEGORY_ICON = {
   "Cleansing Oil": "/icons/cleansing-oil.png",
   "Micellar Water": "/icons/micellar-water.png",
@@ -106,6 +86,32 @@ ${faviconLink("/icons/skincare.png")}
     ${subnavHtml(active)}
     ${body}
   </div>
+  <script>
+    // Satu delegated listener buat semua instance .category-dropdown di halaman ini (biasanya
+    // cuma satu - form Add/Edit Product) - dipakai karena <option> nggak bisa render <img>,
+    // jadi dropdown kategori pakai ikon PNG asli via komponen custom ini, bukan <select> native.
+    document.addEventListener("click", function (e) {
+      var trigger = e.target.closest(".category-dropdown-trigger");
+      var open = document.querySelectorAll(".category-dropdown.open");
+      if (trigger) {
+        var dd = trigger.closest(".category-dropdown");
+        var wasOpen = dd.classList.contains("open");
+        for (var i = 0; i < open.length; i++) open[i].classList.remove("open");
+        if (!wasOpen) dd.classList.add("open");
+        return;
+      }
+      var item = e.target.closest(".category-dropdown-menu li");
+      if (item) {
+        var wrap = item.closest(".category-dropdown");
+        wrap.querySelector('input[type="hidden"]').value = item.dataset.value;
+        wrap.querySelector(".category-dropdown-label").textContent = item.dataset.value;
+        wrap.querySelector(".category-dropdown-icon").src = item.dataset.icon;
+        wrap.classList.remove("open");
+        return;
+      }
+      for (var j = 0; j < open.length; j++) open[j].classList.remove("open");
+    });
+  </script>
 </body>
 </html>`;
 }
@@ -118,10 +124,27 @@ function selectOptions(values, selected) {
   return values.map((v) => `<option value="${v}" ${v === selected ? "selected" : ""}>${escapeHtml(v)}</option>`).join("");
 }
 
-function categorySelectOptions(selected) {
-  return CATEGORY_VALUES.map(
-    (v) => `<option value="${v}" ${v === selected ? "selected" : ""}>${CATEGORY_EMOJI[v] || "📦"} ${escapeHtml(v)}</option>`
+// Custom dropdown (bukan <select> native) khusus kategori, biar bisa nampilin icon PNG asli
+// per opsi - <option> HTML nggak bisa render <img>. Value-nya tetep dikirim lewat form via
+// hidden input "category", jadi router/supabase.js nggak perlu berubah sama sekali.
+function categoryDropdownHtml(selected) {
+  const selectedIcon = CATEGORY_ICON[selected] || "/icons/other.png";
+  const items = CATEGORY_VALUES.map(
+    (v) => `<li data-value="${v}" data-icon="${CATEGORY_ICON[v]}">
+        <img src="${CATEGORY_ICON[v]}" alt="">
+        ${escapeHtml(v)}
+      </li>`
   ).join("");
+
+  return `<div class="category-dropdown">
+    <input type="hidden" name="category" value="${escapeHtml(selected)}">
+    <button type="button" class="category-dropdown-trigger">
+      <img class="category-dropdown-icon" src="${selectedIcon}" alt="">
+      <span class="category-dropdown-label">${escapeHtml(selected)}</span>
+      <span class="category-dropdown-caret">▾</span>
+    </button>
+    <ul class="category-dropdown-menu">${items}</ul>
+  </div>`;
 }
 
 // ---------- today's routine ----------
@@ -244,11 +267,13 @@ function productFormFields(product = {}) {
   return `
     <input type="text" name="name" placeholder="Product name" value="${escapeHtml(product.name || "")}" required>
     <input type="text" name="brand" placeholder="Brand (optional)" value="${escapeHtml(product.brand || "")}">
-    <select name="category" required>${categorySelectOptions(product.category || "Other")}</select>
+    ${categoryDropdownHtml(product.category || "Other")}
     <select name="area">${selectOptions(AREA_VALUES, product.area || "FACE")}</select>
     <input type="text" name="notes" placeholder="Notes (optional) — e.g. what it's for" value="${escapeHtml(product.notes || "")}">
   `;
 }
+
+const STATUS_BADGE_CLASS = { ACTIVE: "skincare-status-active", PAUSED: "skincare-status-paused", FINISHED: "skincare-status-finished" };
 
 function productRowHtml(product, rule) {
   const routineSummary = rule
@@ -260,14 +285,18 @@ function productRowHtml(product, rule) {
     : "Not configured yet";
 
   return `<tr>
-    <td>${escapeHtml(product.name)}</td>
-    <td>${escapeHtml(product.brand || "-")}</td>
-    <td>${iconLabel(CATEGORY_ICON[product.category] || "/icons/other.png", escapeHtml(product.category))}</td>
-    <td>${product.area}</td>
-    <td><span class="badge status-badge">${product.status}</span></td>
+    <td>
+      <div class="product-name-cell">${escapeHtml(product.name)}</div>
+      ${product.brand ? `<div class="product-brand-cell">${escapeHtml(product.brand)}</div>` : ""}
+    </td>
+    <td>
+      ${iconLabel(CATEGORY_ICON[product.category] || "/icons/other.png", escapeHtml(product.category))}
+      <span class="badge status-badge" style="margin-left:6px;">${product.area}</span>
+    </td>
+    <td><span class="badge ${STATUS_BADGE_CLASS[product.status] || "status-badge"}">${product.status}</span></td>
     <td style="font-size:12px; color:#94a3b8;">${escapeHtml(routineSummary)}</td>
     <td>
-      <div class="button-row" style="gap:6px;">
+      <div class="button-row product-actions">
         <a class="nav-link" href="/hub/skincare/products/${product.id}/edit">Edit</a>
         <form method="POST" action="/hub/skincare/analyze" style="display:inline;">
           <input type="hidden" name="product_id" value="${product.id}">
@@ -292,7 +321,7 @@ function productRowHtml(product, rule) {
 export function renderProductsPage({ products, rulesByProductId, flash }) {
   const rows = products.length
     ? products.map((p) => productRowHtml(p, rulesByProductId.get(p.id))).join("")
-    : `<tr><td colspan="7"><div class="empty-state">No products yet. Add one below.</div></td></tr>`;
+    : `<tr><td colspan="5"><div class="empty-state">No products yet. Add one below.</div></td></tr>`;
 
   return pageShell({
     title: "My Products",
@@ -310,7 +339,7 @@ export function renderProductsPage({ products, rulesByProductId, flash }) {
       <h2>My Products</h2>
       <div class="product-table-wrap">
         <table>
-          <thead><tr><th>Product</th><th>Brand</th><th>Category</th><th>Area</th><th>Status</th><th>Routine</th><th>Actions</th></tr></thead>
+          <thead><tr><th>Product</th><th>Category</th><th>Status</th><th>Routine</th><th>Actions</th></tr></thead>
           <tbody>${rows}</tbody>
         </table>
       </div>

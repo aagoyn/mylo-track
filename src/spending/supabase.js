@@ -63,7 +63,7 @@ export async function getLastExpenseLog(phone) {
     .from("expense_logs")
     .select("*")
     .eq("phone", phone)
-    .order("created_at", { ascending: false })
+    .order("seq", { ascending: false })
     .limit(1)
     .maybeSingle();
   if (error) throw error;

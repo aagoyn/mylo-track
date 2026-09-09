@@ -14,6 +14,11 @@ create table if not exists expense_logs (
   created_at timestamptz not null default now()
 );
 
+-- created_at bisa nge-tie (sampai microsecond) kalau beberapa baris di-insert dalam satu
+-- batch (lihat saveExpenseLogsBatch) - "order by created_at" doang nggak jamin urutan yang
+-- benar pas ada tie, jadi butuh kolom yang beneran monotonic buat nentuin transaksi terakhir
+alter table expense_logs add column if not exists seq bigserial;
+
 create table if not exists expense_settings (
   phone text primary key,
   weekly_budget numeric,

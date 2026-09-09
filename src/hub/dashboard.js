@@ -109,7 +109,7 @@ ${faviconLink("/icons/hub.png")}
         <p class="hub-sub">Here's your day so far, ${escapeHtml(username)}.</p>
       </div>
       <div class="nav-links">
-        <a class="logout" href="/logout" title="Log out"><img class="logout-icon" src="/icons/exit.png" alt="Log out"></a>
+        <a class="logout" href="/logout">Log out</a>
       </div>
     </header>
 

@@ -245,7 +245,7 @@ export const DASHBOARD_CSS = `
   .category-cell-area { margin-top: 4px; }
   .routine-summary-time { white-space: nowrap; color: #e2e8f0; }
   .routine-summary-freq { color: #94a3b8; margin-top: 2px; }
-  .product-table-wrap .product-actions { flex-direction: row; flex-wrap: wrap; align-items: center; gap: 10px; }
+  .product-table-wrap .product-actions { flex-direction: row; flex-wrap: wrap; align-items: center; gap: 10px; min-width: 320px; }
   .product-table-wrap .product-actions > a, .product-table-wrap .product-actions form button { width: auto; box-sizing: border-box; }
   .product-table-wrap tr:hover td { background: #253347; }
   .skincare-status-active { background: #14532d55; color: #4ade80; }

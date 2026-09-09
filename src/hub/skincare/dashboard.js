@@ -275,6 +275,18 @@ function productFormFields(product = {}) {
 
 const STATUS_BADGE_CLASS = { ACTIVE: "skincare-status-active", PAUSED: "skincare-status-paused", FINISHED: "skincare-status-finished" };
 
+// Nama produk sering panjang banget (mis. "SKIN1004 Madagascar Centella Tone Brightening
+// Cleansing Gel Foam") - daripada ngandelin wrap alami browser (jatuhnya nanggung/beda-beda
+// tiap lebar layar), paksa turun baris tiap N kata biar konsisten.
+function wrapEveryNWords(text, n = 3) {
+  const words = String(text).split(" ").filter(Boolean);
+  const lines = [];
+  for (let i = 0; i < words.length; i += n) {
+    lines.push(words.slice(i, i + n).map(escapeHtml).join(" "));
+  }
+  return lines.join("<br>");
+}
+
 function routineSummaryHtml(rule) {
   if (!rule) return `<span style="color:#64748b;">Not configured yet</span>`;
   const timeText = TIME_TEXT[rule.routine_time] || rule.routine_time;
@@ -289,7 +301,7 @@ function routineSummaryHtml(rule) {
 function productRowHtml(product, rule) {
   return `<tr>
     <td>
-      <div class="product-name-cell">${escapeHtml(product.name)}</div>
+      <div class="product-name-cell">${wrapEveryNWords(product.name, 3)}</div>
       ${product.brand ? `<div class="product-brand-cell">${escapeHtml(product.brand)}</div>` : ""}
     </td>
     <td>

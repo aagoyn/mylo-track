@@ -245,9 +245,27 @@ export const DASHBOARD_CSS = `
   .category-cell-area { margin-top: 4px; }
   .routine-summary-time { white-space: nowrap; color: #e2e8f0; }
   .routine-summary-freq { color: #94a3b8; margin-top: 2px; }
-  .product-table-wrap .product-actions { flex-direction: row; flex-wrap: wrap; align-items: center; gap: 10px; min-width: 320px; }
-  .product-table-wrap .product-actions > a, .product-table-wrap .product-actions form button { width: auto; box-sizing: border-box; }
   .product-table-wrap tr:hover td { background: #253347; }
+  .actions-menu { position: relative; display: inline-block; }
+  .actions-menu-trigger {
+    width: 34px; height: 34px; border-radius: 8px; border: 1px solid #334155;
+    background: #0f172a; color: #e2e8f0; font-size: 18px; line-height: 1; cursor: pointer;
+  }
+  .actions-menu-trigger:hover { border-color: #475569; }
+  .actions-menu-list {
+    position: absolute; top: calc(100% + 4px); right: 0; z-index: 20; min-width: 180px;
+    background: #1e293b; border: 1px solid #334155; border-radius: 8px; padding: 4px;
+    display: none; flex-direction: column; gap: 2px; box-shadow: 0 8px 24px rgba(0,0,0,.4);
+  }
+  .actions-menu.open .actions-menu-list { display: flex; }
+  .actions-menu-list form { display: block; }
+  .actions-menu-item {
+    display: block; width: 100%; text-align: left; padding: 8px 10px; border-radius: 6px; border: none;
+    background: transparent; color: #e2e8f0; font-size: 13px; text-decoration: none; cursor: pointer; box-sizing: border-box;
+  }
+  .actions-menu-item:hover { background: #334155; }
+  .actions-menu-item-danger { color: #ef4444; }
+  .actions-menu-item-danger:hover { background: #ef444422; }
   .skincare-status-active { background: #14532d55; color: #4ade80; }
   .skincare-status-paused { background: #78350f55; color: #fbbf24; }
   .skincare-status-finished { background: #33415555; color: #94a3b8; }

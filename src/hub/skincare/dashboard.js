@@ -87,17 +87,29 @@ ${faviconLink("/icons/skincare.png")}
     ${body}
   </div>
   <script>
-    // Satu delegated listener buat semua instance .category-dropdown di halaman ini (biasanya
-    // cuma satu - form Add/Edit Product) - dipakai karena <option> nggak bisa render <img>,
-    // jadi dropdown kategori pakai ikon PNG asli via komponen custom ini, bukan <select> native.
+    // Satu delegated listener buat dua komponen dropdown custom di halaman ini:
+    // - .category-dropdown (form Add/Edit Product) - <option> nggak bisa render <img>, jadi
+    //   kategori pakai icon PNG asli via komponen custom ini, bukan <select> native.
+    // - .actions-menu (tabel My Products) - kebab menu buat Edit/Analyze/Pause/Finish/Delete
+    //   biar nggak numpuk jadi banyak tombol sejajar di kolom Actions.
     document.addEventListener("click", function (e) {
-      var trigger = e.target.closest(".category-dropdown-trigger");
-      var open = document.querySelectorAll(".category-dropdown.open");
-      if (trigger) {
-        var dd = trigger.closest(".category-dropdown");
+      var catTrigger = e.target.closest(".category-dropdown-trigger");
+      var menuTrigger = e.target.closest(".actions-menu-trigger");
+      var openCategory = document.querySelectorAll(".category-dropdown.open");
+      var openMenus = document.querySelectorAll(".actions-menu.open");
+
+      if (catTrigger) {
+        var dd = catTrigger.closest(".category-dropdown");
         var wasOpen = dd.classList.contains("open");
-        for (var i = 0; i < open.length; i++) open[i].classList.remove("open");
+        for (var i = 0; i < openCategory.length; i++) openCategory[i].classList.remove("open");
         if (!wasOpen) dd.classList.add("open");
+        return;
+      }
+      if (menuTrigger) {
+        var menu = menuTrigger.closest(".actions-menu");
+        var menuWasOpen = menu.classList.contains("open");
+        for (var k = 0; k < openMenus.length; k++) openMenus[k].classList.remove("open");
+        if (!menuWasOpen) menu.classList.add("open");
         return;
       }
       var item = e.target.closest(".category-dropdown-menu li");
@@ -109,7 +121,8 @@ ${faviconLink("/icons/skincare.png")}
         wrap.classList.remove("open");
         return;
       }
-      for (var j = 0; j < open.length; j++) open[j].classList.remove("open");
+      for (var j = 0; j < openCategory.length; j++) openCategory[j].classList.remove("open");
+      for (var m = 0; m < openMenus.length; m++) openMenus[m].classList.remove("open");
     });
   </script>
 </body>
@@ -310,24 +323,27 @@ function productRowHtml(product, rule) {
     </td>
     <td><span class="badge ${STATUS_BADGE_CLASS[product.status] || "status-badge"}">${product.status}</span></td>
     <td style="font-size:12px;">${routineSummaryHtml(rule)}</td>
-    <td>
-      <div class="button-row product-actions">
-        <a class="btn-warning btn-sm" href="/hub/skincare/products/${product.id}/edit">Edit</a>
-        <form method="POST" action="/hub/skincare/analyze">
-          <input type="hidden" name="product_id" value="${product.id}">
-          <button type="submit" class="btn-primary btn-sm">Analyze with AI</button>
-        </form>
-        ${
-          product.status !== "PAUSED"
-            ? `<form method="POST" action="/hub/skincare/products/${product.id}/pause"><button type="submit" class="btn-secondary btn-sm">Pause</button></form>`
-            : ""
-        }
-        ${
-          product.status !== "FINISHED"
-            ? `<form method="POST" action="/hub/skincare/products/${product.id}/finish"><button type="submit" class="btn-secondary btn-sm">Finish</button></form>`
-            : ""
-        }
-        <form class="delete-form" method="POST" action="/hub/skincare/products/${product.id}/delete" onsubmit="return confirm('Delete this product?');"><button type="submit">Delete</button></form>
+    <td style="text-align:center;">
+      <div class="actions-menu">
+        <button type="button" class="actions-menu-trigger" aria-label="Actions">⋮</button>
+        <div class="actions-menu-list">
+          <a class="actions-menu-item" href="/hub/skincare/products/${product.id}/edit">✏️ Edit</a>
+          <form method="POST" action="/hub/skincare/analyze">
+            <input type="hidden" name="product_id" value="${product.id}">
+            <button type="submit" class="actions-menu-item">🤖 Analyze with AI</button>
+          </form>
+          ${
+            product.status !== "PAUSED"
+              ? `<form method="POST" action="/hub/skincare/products/${product.id}/pause"><button type="submit" class="actions-menu-item">⏸️ Pause</button></form>`
+              : ""
+          }
+          ${
+            product.status !== "FINISHED"
+              ? `<form method="POST" action="/hub/skincare/products/${product.id}/finish"><button type="submit" class="actions-menu-item">✅ Finish</button></form>`
+              : ""
+          }
+          <form method="POST" action="/hub/skincare/products/${product.id}/delete" onsubmit="return confirm('Delete this product?');"><button type="submit" class="actions-menu-item actions-menu-item-danger">🗑️ Delete</button></form>
+        </div>
       </div>
     </td>
   </tr>`;

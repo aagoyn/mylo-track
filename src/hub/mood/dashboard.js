@@ -122,11 +122,13 @@ ${faviconLink("/icons/mood.png")}
     ${flash ? `<div class="flash flash-${flash.type}">${escapeHtml(flash.text)}</div>` : ""}
 
     <h2>How are you feeling?</h2>
-    <form method="POST" action="/hub/mood">
-      <div class="mood-picker">${moodPickerButtons}</div>
-      <input type="text" name="note" placeholder="Optional note">
-      <button type="submit">Save Mood</button>
-    </form>
+    <div class="form-card">
+      <form method="POST" action="/hub/mood">
+        <div class="mood-picker">${moodPickerButtons}</div>
+        <input type="text" name="note" placeholder="Optional note">
+        <button type="submit">Save Mood</button>
+      </form>
+    </div>
 
     ${
       moodToday

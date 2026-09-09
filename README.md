@@ -2,12 +2,14 @@
 
 Node/Express + Supabase app yang gabungin dua Telegram bot (Spending & Calorie tracker) plus
 satu **Personal Hub** web dashboard: home overview, Mood Tracker (kalender ala GitHub
-contribution graph), Journal harian, Wishlist, dan Vault (income/tabungan/tagihan bulanan).
-Satu process, satu deployment, satu login.
+contribution graph), Journal harian, Wishlist, Vault (income/tabungan/tagihan bulanan), dan
+Skincare (AI bantu susun rutin skincare dari daftar produk yang kamu punya). Satu process, satu
+deployment, satu login.
 
 Bot Telegram-nya (teks/reply) tetap berbahasa Indonesia. Web dashboard (termasuk Hub, Mood,
-Journal, Wishlist, Spending, Calorie) pakai bahasa Inggris untuk UI-nya, dan tiap halaman punya
-favicon sendiri (file PNG di `public/icons/`, di-serve lewat `express.static`).
+Journal, Wishlist, Vault, Skincare, Spending, Calorie) pakai bahasa Inggris untuk UI-nya, dan
+tiap halaman punya favicon sendiri (file PNG di `public/icons/`, di-serve lewat
+`express.static`).
 
 ## Fitur
 
@@ -37,6 +39,14 @@ favicon sendiri (file PNG di `public/icons/`, di-serve lewat `express.static`).
   listrik, dll) tiap template bisa "Mark Paid" per bulan, plus pengeluaran sekali-jalan yang
   bukan tagihan rutin ("Other Expenses"). Semua digabung jadi satu angka **Monthly Remaining**
   (income − tabungan − topup mingguan ke Spending − tagihan yang udah dibayar − other expenses)
+- `/hub/skincare` — Skincare Routine Manager: catat produk skincare yang kamu punya (nama,
+  brand, kategori, area FACE/BODY), minta **AI (Gemini) analisis & saranin** kapan pakai
+  (AM/PM), seberapa sering, urutan pemakaian, dan hubungan antar produk (dipisah/bergantian/
+  jadi alternatif) — AI cuma nyaranin, **nggak pernah langsung nyimpen jadi rule aktif**
+  sampai kamu approve/edit lewat form. Setelah approve baru jadi rule deterministic yang
+  dipakai routine engine buat nentuin "harus pakai apa hari ini" (AM & PM, terpisah untuk
+  Face & Body) — nggak manggil AI lagi tiap hari, dan nggak pernah milih produk secara acak
+  kalau ada pilihan (mis. 2 sunscreen sebagai alternatif)
 - `/dashboard/spending` — running balance, budget mingguan, breakdown kategori, tren 7 hari,
   transaksi terakhir, form catat pengeluaran (teks/foto) & topup budget
 - `/dashboard/calorie` — kalori & makro (protein/karbo/lemak/gula) hari ini, log hari ini,
@@ -86,6 +96,16 @@ src/
       router.js          route /hub/vault + income/savings/bills (create/update/delete/pay)
       supabase.js          query income_logs, savings_logs, bill_templates, bill_payments
       dashboard.js         render HTML Vault
+    skincare/
+      router.js          route /hub/skincare + products, analyze, approve, rules, groups
+      supabase.js          query skincare_products, _routine_rules, _relationships,
+                             _rotation_groups, _daily_choices
+      gemini.js            analisis produk & review rutin (Gemini) - return saran terstruktur
+                             doang, nggak pernah nyimpen langsung
+      routine-engine.js    computeRoutine()/getRoutineForUser() - deterministic, cuma baca
+                             data yang udah di-approve, nggak pernah manggil AI/milih acak
+      dashboard.js         render HTML Skincare (today's routine, products, AI suggestion
+                             review, rules)
 scripts/
   add-user.js         CLI buat nambah akun baru (shared, satu untuk kedua bot)
 supabase/
@@ -117,7 +137,9 @@ npm install
    `create table if not exists`, nggak ada drop table). Tabel-tabelnya: `expense_logs`,
    `expense_settings` (spending), `food_logs`, `user_settings`, `weight_logs` (calorie),
    `mood_logs`, `journal_logs`, `wishlist_items`, `income_logs`, `savings_logs`,
-   `bill_templates`, `bill_payments`, `misc_expense_logs` (Personal Hub), `app_users` (akun).
+   `bill_templates`, `bill_payments`, `misc_expense_logs` (Personal Hub), `skincare_products`,
+   `skincare_routine_rules`, `skincare_relationships`, `skincare_rotation_groups`,
+   `skincare_daily_choices` (Skincare), `app_users` (akun).
 3. Buka **Storage**, bikin dua bucket: **`receipt-photos`** (foto struk) dan **`food-photos`**
    (foto makanan) — centang public read kalau mau URL foto langsung diakses browser.
 4. Buka **Settings → API**, catat `Project URL` dan `service_role` key (bukan `anon` key).
@@ -193,7 +215,12 @@ bisa dipakai di production begitu di-run, tidak perlu redeploy.
   Supabase Storage.
 - **Dashboard nggak nunjukin data** — pastiin `phone` di tabel `app_users` buat akun kamu
   sama persis dengan chat ID Telegram yang dipakai buat chat ke bot terkait.
-- **`/hub/mood`, `/hub/journal`, `/hub/wishlist`, atau `/hub/vault` error pas load** — pastiin
-  udah jalanin ulang `supabase/schema.sql` versi terbaru (nambah tabel `mood_logs`,
-  `journal_logs`, `wishlist_items`, `income_logs`, `savings_logs`, `bill_templates`,
-  `bill_payments`, `misc_expense_logs`) di project Supabase kamu.
+- **`/hub/mood`, `/hub/journal`, `/hub/wishlist`, `/hub/vault`, atau `/hub/skincare` error pas
+  load** — pastiin udah jalanin ulang `supabase/schema.sql` versi terbaru (nambah tabel
+  `mood_logs`, `journal_logs`, `wishlist_items`, `income_logs`, `savings_logs`,
+  `bill_templates`, `bill_payments`, `misc_expense_logs`, `skincare_products`,
+  `skincare_routine_rules`, `skincare_relationships`, `skincare_rotation_groups`,
+  `skincare_daily_choices`) di project Supabase kamu.
+- **"Analyze with AI" / "Analyze my skincare routine" di Skincare error atau gagal** — pastiin
+  `GEMINI_API_KEY` valid dan belum kena limit — pesan errornya biasanya udah nunjukin
+  penyebabnya (lihat `shared/gemini-json.js`).

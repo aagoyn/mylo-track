@@ -168,12 +168,12 @@ export const DASHBOARD_CSS = `
 
   .inline-icon { width: 16px; height: 16px; object-fit: contain; vertical-align: middle; margin-right: 4px; margin-top: -2px; border-radius: 3px; }
 
-  .stat-bar { height: 14px; border-radius: 999px; background: #334155; overflow: hidden; margin: 6px 0 4px; }
+  .stat-bar { height: 10px; border-radius: 999px; background: #334155; overflow: hidden; margin: 6px 0 4px; }
   .stat-bar-fill { height: 100%; border-radius: 999px; transition: width 0.3s ease; }
-  .stat-bar-fill.tier-high { background: #22c55e; }
-  .stat-bar-fill.tier-mid { background: #eab308; }
-  .stat-bar-fill.tier-low { background: #ef4444; }
-  .stat-bar-fill.tier-empty { background: #7f1d1d; }
+  .stat-bar-fill.tier-high { background: linear-gradient(90deg, #16a34a, #4ade80); }
+  .stat-bar-fill.tier-mid { background: linear-gradient(90deg, #ca8a04, #facc15); }
+  .stat-bar-fill.tier-low { background: linear-gradient(90deg, #b91c1c, #f87171); }
+  .stat-bar-fill.tier-empty { background: linear-gradient(90deg, #450a0a, #7f1d1d); }
 
   .button-row { display: flex; gap: 8px; }
   .button-row button, .button-row .btn-secondary, .button-row .btn-warning { width: 100%; }

@@ -35,6 +35,7 @@ export function renderHubDashboard({
   journalToday,
   wishlistSummary,
   vaultSummary,
+  skincareSummary,
   recentActivity,
 }) {
   const hasSpending = spendingToday && spendingToday.total > 0;
@@ -80,6 +81,15 @@ export function renderHubDashboard({
        <div class="card-sub">Monthly pool</div>
        <a class="nav-link" href="/hub/vault">View vault</a>`
     : `<div class="empty-state">Couldn't load vault.</div>`;
+
+  const skincareSection = skincareSummary
+    ? skincareSummary.hasProducts
+      ? `<div class="card-sub">Morning · ${skincareSummary.amSteps} step${skincareSummary.amSteps === 1 ? "" : "s"}</div>
+         <div class="card-sub">Tonight · ${skincareSummary.pmSteps} step${skincareSummary.pmSteps === 1 ? "" : "s"}</div>
+         <a class="nav-link" href="/hub/skincare">Open Skincare</a>`
+      : `<div class="empty-state">No products yet.</div>
+         <a class="nav-link" href="/hub/skincare">Add your products</a>`
+    : `<div class="empty-state">Couldn't load skincare.</div>`;
 
   return `<!doctype html>
 <html lang="en">
@@ -127,6 +137,9 @@ ${faviconLink("/icons/hub.png")}
     <h2>${iconLabel("/icons/vault.png", "Vault")}</h2>
     <div class="card">${vaultSection}</div>
 
+    <h2>${iconLabel("/icons/skincare.png", "Skincare")}</h2>
+    <div class="card">${skincareSection}</div>
+
     <h2>Recent</h2>
     <div class="activity-list">${recentRows}</div>
 
@@ -144,6 +157,7 @@ ${faviconLink("/icons/hub.png")}
         <a class="hub-nav-item" href="/hub/journal">${iconLabel("/icons/journal.png", "Journal")}</a>
         <a class="hub-nav-item" href="/hub/wishlist">${iconLabel("/icons/wishlist.png", "Wishlist")}</a>
         <a class="hub-nav-item" href="/hub/vault">${iconLabel("/icons/vault.png", "Vault")}</a>
+        <a class="hub-nav-item" href="/hub/skincare">${iconLabel("/icons/skincare.png", "Skincare")}</a>
       </div>
     </div>
   </div>

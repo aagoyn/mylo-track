@@ -165,6 +165,85 @@ create table if not exists misc_expense_logs (
 );
 alter table misc_expense_logs enable row level security;
 
+create table if not exists skincare_products (
+  id uuid primary key default gen_random_uuid(),
+  phone text not null,
+  name text not null,
+  brand text,
+  category text not null default 'Other',
+  area text not null default 'FACE',
+  status text not null default 'ACTIVE',
+  notes text,
+  started_at timestamptz not null default now(),
+  finished_at timestamptz,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+alter table skincare_products enable row level security;
+
+-- satu rule per produk (routine_time bisa 'BOTH' kalau produknya dipakai AM & PM) - approved
+-- oleh user, dipakai murni sama routine engine, AI cuma nyaranin isinya lewat form approve
+create table if not exists skincare_routine_rules (
+  id uuid primary key default gen_random_uuid(),
+  phone text not null,
+  product_id uuid not null references skincare_products(id) on delete cascade,
+  routine_time text not null default 'AM',
+  frequency_type text not null default 'DAILY',
+  days_of_week jsonb not null default '[]'::jsonb,
+  times_per_week int,
+  routine_order int not null default 100,
+  enabled boolean not null default true,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  unique (phone, product_id)
+);
+alter table skincare_routine_rules enable row level security;
+
+-- relationship berarah antar 2 produk, disetujui user. relationship_type: 'EXCLUDE' (kalau
+-- source dipakai hari itu, target di-skip) atau 'OPTIONAL_WITH' (source ditandai opsional
+-- kalau target juga lagi dipakai hari itu)
+create table if not exists skincare_relationships (
+  id uuid primary key default gen_random_uuid(),
+  phone text not null,
+  source_product_id uuid not null references skincare_products(id) on delete cascade,
+  target_product_id uuid not null references skincare_products(id) on delete cascade,
+  relationship_type text not null,
+  note text,
+  enabled boolean not null default true,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+alter table skincare_relationships enable row level security;
+
+-- grup produk yang saling "ROTATE" (engine milih 1 tiap hari secara deterministic berdasarkan
+-- tanggal) atau "ALTERNATIVE" (pilihan eksklusif milik user - preferred_product_id null berarti
+-- "biarkan aku pilih tiap pagi", jawabannya kesimpan harian di skincare_daily_choices)
+create table if not exists skincare_rotation_groups (
+  id uuid primary key default gen_random_uuid(),
+  phone text not null,
+  mode text not null,
+  label text,
+  product_ids jsonb not null default '[]'::jsonb,
+  preferred_product_id uuid references skincare_products(id) on delete set null,
+  enabled boolean not null default true,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+alter table skincare_rotation_groups enable row level security;
+
+-- pilihan harian user buat grup ALTERNATIVE yang mode-nya "biarkan aku pilih tiap pagi" -
+-- dipersist per tanggal biar reload halaman nggak nanya ulang/nggak milih acak
+create table if not exists skincare_daily_choices (
+  id uuid primary key default gen_random_uuid(),
+  phone text not null,
+  group_id uuid not null references skincare_rotation_groups(id) on delete cascade,
+  choice_date date not null,
+  product_id uuid not null references skincare_products(id) on delete cascade,
+  created_at timestamptz not null default now(),
+  unique (phone, group_id, choice_date)
+);
+alter table skincare_daily_choices enable row level security;
+
 -- Tabel akun web, dipakai bareng oleh dashboard spending & kalori (satu login untuk keduanya).
 -- "phone" di sini merujuk ke chat id Telegram-nya (dipakai buat filter data & jadi
 -- allow-list Telegram sekaligus, untuk kedua bot).

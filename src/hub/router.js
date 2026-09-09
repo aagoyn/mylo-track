@@ -16,6 +16,8 @@ import {
   getBillPaymentsThisMonth,
   getMonthlyMiscExpenseTotal,
 } from "./vault/supabase.js";
+import { getProducts } from "./skincare/supabase.js";
+import { getDayRoutine } from "./skincare/routine-engine.js";
 import { renderHubDashboard } from "./dashboard.js";
 
 const WIB_OFFSET_MS = 7 * 60 * 60 * 1000;
@@ -127,6 +129,7 @@ router.get("/hub", requireAuth, async (req, res) => {
     journalResult,
     wishlistResult,
     vaultResult,
+    skincareResult,
   ] = await Promise.allSettled([
     (async () => {
       const { startISO, endISO } = getSpendingDayBoundsWib();
@@ -151,6 +154,10 @@ router.get("/hub", requireAuth, async (req, res) => {
         ]);
       const monthlyBillsPaidTotal = billPayments.reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
       return monthlyIncome - monthlySavingsNet - monthlyTopupTotal - monthlyBillsPaidTotal - monthlyMiscExpenseTotal;
+    })(),
+    (async () => {
+      const [products, dayRoutine] = await Promise.all([getProducts(phone), getDayRoutine(phone, todayKey)]);
+      return { hasProducts: products.length > 0, amSteps: dayRoutine.faceAM.steps.length, pmSteps: dayRoutine.facePM.steps.length };
     })(),
   ]);
 
@@ -183,6 +190,8 @@ router.get("/hub", requireAuth, async (req, res) => {
     : null;
 
   const vaultSummary = vaultResult.status === "fulfilled" ? { monthlyRemaining: vaultResult.value } : null;
+
+  const skincareSummary = skincareResult.status === "fulfilled" ? skincareResult.value : null;
 
   const recentActivity = [];
   if (recentSpendingResult.status === "fulfilled") {
@@ -240,6 +249,7 @@ router.get("/hub", requireAuth, async (req, res) => {
       journalToday,
       wishlistSummary,
       vaultSummary,
+      skincareSummary,
       recentActivity: recentActivity.slice(0, 4).map((a) => ({ ...a, time: toWibTime(a.timestamp) })),
     })
   );

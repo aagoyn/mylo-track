@@ -176,6 +176,46 @@ export const DASHBOARD_CSS = `
   .inline-toggle > summary::before { content: "▸ "; }
   .inline-toggle[open] > summary::before { content: "▾ "; }
   .inline-toggle-body { margin-top: 8px; display: flex; flex-direction: column; gap: 8px; }
+
+  .routine-block { background: #1e293b; border-radius: 12px; padding: 14px 16px; margin-bottom: 12px; }
+  .routine-block h3 { margin: 0 0 10px; font-size: 14px; }
+  .routine-steps { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+  .routine-steps li { display: flex; align-items: baseline; gap: 8px; font-size: 14px; }
+  .routine-steps .step-num { color: #64748b; font-size: 12px; width: 16px; flex-shrink: 0; }
+  .routine-steps .step-optional { color: #94a3b8; font-style: italic; }
+  .routine-steps .step-tag { font-size: 11px; color: #64748b; }
+  .choice-box { background: #0f172a; border: 1px dashed #6366f1; border-radius: 10px; padding: 10px 12px; margin-top: 8px; font-size: 13px; }
+  .choice-box .choice-options { display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
+  .choice-box button { padding: 7px 12px; border-radius: 8px; border: none; background: #6366f1; color: white; font-size: 13px; cursor: pointer; }
+  .choice-box button:hover { background: #4f46e5; }
+  .conflict-banner { background: #451a03; color: #fdba74; border-radius: 10px; padding: 12px 14px; margin-bottom: 16px; font-size: 13px; }
+
+  .ai-suggestion-card { background: #1e293b; border: 1px solid #6366f133; border-radius: 12px; padding: 16px; margin-bottom: 14px; }
+  .ai-suggestion-card .ai-badge { display: inline-block; font-size: 11px; color: #a5b4fc; background: #312e81; padding: 2px 8px; border-radius: 999px; margin-bottom: 8px; }
+  .ai-suggestion-card .ai-reasoning { font-size: 13px; color: #cbd5e1; background: #0f172a; border-radius: 8px; padding: 10px 12px; margin: 10px 0; }
+  .ai-suggestion-card .ai-warning { font-size: 12px; color: #fdba74; margin-top: 6px; }
+  .approved-badge { display: inline-block; font-size: 11px; color: #86efac; background: #14532d; padding: 2px 8px; border-radius: 999px; }
+
+  .field-group { margin-bottom: 12px; }
+  .field-group .field-label { font-size: 12px; color: #94a3b8; margin-bottom: 6px; font-weight: 500; }
+  .radio-row, .checkbox-row { display: flex; gap: 14px; flex-wrap: wrap; font-size: 13px; }
+  .radio-row label, .checkbox-row label { display: flex; align-items: center; gap: 5px; color: #e2e8f0; font-size: 13px; margin: 0; }
+  .day-checkboxes { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px; }
+  .day-checkboxes label { display: flex; flex-direction: column; align-items: center; gap: 2px; font-size: 11px; color: #94a3b8; }
+  .relationship-list { display: flex; flex-direction: column; gap: 6px; margin-top: 4px; }
+  .relationship-list label { display: flex; align-items: flex-start; gap: 6px; font-size: 13px; color: #e2e8f0; }
+  .relationship-list .rel-reason { color: #64748b; font-size: 12px; }
+
+  .rule-card { background: #1e293b; border-radius: 12px; padding: 14px 16px; margin-bottom: 10px; }
+  .rule-card .rule-title { font-weight: 600; font-size: 14px; margin-bottom: 6px; }
+  .rule-card .rule-facts { display: flex; gap: 10px; flex-wrap: wrap; font-size: 13px; color: #cbd5e1; margin-bottom: 6px; }
+  .rule-card .rule-note { font-size: 12px; color: #94a3b8; }
+  .rule-card .rule-actions { display: flex; gap: 8px; margin-top: 8px; }
+  .rule-card .rule-actions button { padding: 6px 10px; border-radius: 8px; border: 1px solid #334155; background: transparent; color: #cbd5e1; font-size: 12px; cursor: pointer; }
+  .rule-card .rule-actions button:hover { background: #334155; }
+
+  .product-table-wrap { overflow-x: auto; }
+  .recovery-banner { background: #0f172a; border: 1px solid #334155; border-radius: 10px; padding: 10px 12px; margin-bottom: 10px; font-size: 12px; color: #94a3b8; }
 `;
 
 export function escapeHtml(str) {

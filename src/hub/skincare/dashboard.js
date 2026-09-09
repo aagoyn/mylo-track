@@ -354,7 +354,7 @@ export function renderProductsPage({ products, rulesByProductId, flash }) {
       <h2>My Products</h2>
       <div class="product-table-wrap">
         <table>
-          <thead><tr><th>Product</th><th>Category</th><th>Status</th><th>Routine</th><th>Actions</th></tr></thead>
+          <thead><tr><th>Product</th><th>Category</th><th>Status</th><th>Routine</th><th style="text-align:center;">Actions</th></tr></thead>
           <tbody>${rows}</tbody>
         </table>
       </div>

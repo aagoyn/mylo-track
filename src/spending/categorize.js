@@ -10,7 +10,7 @@ const CATEGORY_RULES = {
     "roti", "kue", "bubur", "martabak", "martabak manis", "martabak terang bulan",
     "es krim", "ice cream", "gorengan", "keripik", "kerupuk", "ciki", "biskuit",
     "cookies", "pudding", "puding", "dessert", "cokelat", "chocolate", "kacang",
-    "cemilan", "jajan", "snack",
+    "cemilan", "jajan", "snack", "cakwe", "nasi putih", "kejepret",
   ],
   Coffee: [
     "starbucks", "janji jiwa", "kopi kenangan", "kopken", "fore coffee", "fore",
@@ -20,6 +20,7 @@ const CATEGORY_RULES = {
   Drink: [
     "chatime", "mixue", "pocari", "esteh", "es teh", "boba", "bubble tea", "matcha",
     "jus", "juice", "teh", "susu", "minum", "soft drink", "soda", "minuman",
+    "diamond",
   ],
   Groceries: [
     "beras", "rice", "telur", "telor", "daging", "daging sapi", "daging ayam",
@@ -61,7 +62,7 @@ const CATEGORY_RULES = {
     "shampoo bayi", "baby oil", "baby lotion", "minyak telon", "dot bayi",
     "botol bayi", "indomaret", "alfamart", "alfamidi", "superindo", "hypermart", "aeon",
     "lotte mart", "hari hari", "minimarket", "supermarket", "grocery",
-    "groceries",
+    "groceries", "astro", "micellar water", "micellar",
   ],
   Transport: [
     "grabcar", "grab bike", "grabbike", "grab motor", "gojek", "gocar", "goride",

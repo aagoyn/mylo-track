@@ -247,7 +247,9 @@ async function handleTopup(chatId, normalizedText) {
   }
   if (isK) amount *= 1000;
 
-  await setWeeklyBudget(chatId, amount);
+  const currentBudget = await getWeeklyBudget(chatId);
+  const newBudget = currentBudget + amount;
+  await setWeeklyBudget(chatId, newBudget);
   const { balanceAfter } = await saveExpenseLogsBatch(chatId, [
     { description: "Weekly Topup", category: "Topup", amount, type: "Income" },
   ]);
@@ -256,7 +258,7 @@ async function handleTopup(chatId, normalizedText) {
     chatId,
     `🔄 <b>Budget & Balance Updated!</b>\n\n💰 Topup: ${formatRupiah(amount)}\n` +
       `💳 <b>New Balance: ${formatRupiah(balanceAfter)}</b>\n\n` +
-      `(Target budget mingguan sekarang ${formatRupiah(amount)})`
+      `(Target budget mingguan sekarang ${formatRupiah(newBudget)})`
   );
 }
 
@@ -499,7 +501,8 @@ router.post("/dashboard/spending/topup", requireAuth, async (req, res) => {
   if (isNaN(amount) || amount < 0) return res.redirect("/dashboard/spending?err=Nominal tidak valid.");
 
   try {
-    await setWeeklyBudget(req.user.phone, amount);
+    const currentBudget = await getWeeklyBudget(req.user.phone);
+    await setWeeklyBudget(req.user.phone, currentBudget + amount);
     await saveExpenseLogsBatch(req.user.phone, [
       { description: "Weekly Topup", category: "Topup", amount, type: "Income" },
     ]);

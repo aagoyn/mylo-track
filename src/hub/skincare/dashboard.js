@@ -76,7 +76,21 @@ function timeLabelHtml(routineTime) {
   return iconLabel(TIME_ICON[routineTime] || TIME_ICON.AM, TIME_TEXT[routineTime] || routineTime);
 }
 
-function pageShell({ title, body }) {
+const SUBNAV_TABS = [
+  { key: "today", href: "/hub/skincare", label: "Today" },
+  { key: "products", href: "/hub/skincare/products", label: "My Products" },
+  { key: "rules", href: "/hub/skincare/rules", label: "Rules" },
+];
+
+function subnavHtml(active) {
+  return `<nav class="subnav">${SUBNAV_TABS.map(
+    (tab) => `<a href="${tab.href}" class="${tab.key === active ? "active" : ""}">${tab.label}</a>`
+  ).join("")}</nav>`;
+}
+
+// active: "today" | "products" | "rules" | undefined (halaman lepas dari 3 tab utama, mis.
+// edit product / review saran AI - subnav tetep muncul tanpa tab yang di-highlight)
+function pageShell({ title, body, active }) {
   return `<!doctype html>
 <html lang="en">
 <head>
@@ -88,16 +102,8 @@ ${faviconLink("/icons/skincare.png")}
 </head>
 <body>
   <div class="container">
-    ${navHeader({
-      icon: "/icons/skincare.png",
-      title: "Skincare",
-      links: [
-        { href: "/hub", label: "🏠 Home" },
-        { href: "/hub/skincare", label: "Today" },
-        { href: "/hub/skincare/products", label: "My Products" },
-        { href: "/hub/skincare/rules", label: "Rules" },
-      ],
-    })}
+    ${navHeader({ icon: "/icons/skincare.png", title: "Skincare", links: [{ href: "/hub", label: "🏠 Home" }] })}
+    ${subnavHtml(active)}
     ${body}
   </div>
 </body>
@@ -171,6 +177,7 @@ export function renderSkincareDashboard({ productsCount, dayRoutine, productById
   if (productsCount === 0) {
     return pageShell({
       title: "Skincare",
+      active: "today",
       body: `
         <div class="card">
           <h2 style="margin-top:0;">🧴 Build your skincare routine</h2>
@@ -204,6 +211,7 @@ export function renderSkincareDashboard({ productsCount, dayRoutine, productById
 
   return pageShell({
     title: "Skincare",
+    active: "today",
     body: `
       <p style="color:#94a3b8; font-size:13px; margin-top:-8px;">TODAY — ${escapeHtml(dateLabel)}</p>
       ${conflictBannerHtml(allConflicts, productById)}
@@ -288,6 +296,7 @@ export function renderProductsPage({ products, rulesByProductId, flash }) {
 
   return pageShell({
     title: "My Products",
+    active: "products",
     body: `
       ${flashHtml(flash)}
       <h2>Add Product</h2>
@@ -313,6 +322,7 @@ export function renderProductFormPage({ mode, product, flash }) {
   const action = mode === "edit" ? `/hub/skincare/products/${product.id}/update` : "/hub/skincare/products";
   return pageShell({
     title: mode === "edit" ? "Edit Product" : "Add Product",
+    active: "products",
     body: `
       ${flashHtml(flash)}
       <h2>${mode === "edit" ? "Edit Product" : "Add Product"}</h2>
@@ -517,6 +527,7 @@ export function renderRulesPage({ products, rulesByProductId, relationships, rot
 
   return pageShell({
     title: "Routine Rules",
+    active: "rules",
     body: `
       <h2>Routine Rules</h2>
       ${ruleCards || `<div class="empty-state">No products yet.</div>`}

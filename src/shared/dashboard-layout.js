@@ -2,13 +2,17 @@ export const DASHBOARD_CSS = `
   * { box-sizing: border-box; }
   body { font-family: system-ui, sans-serif; background: #0f172a; color: #e2e8f0; margin: 0; padding: 24px 16px 48px; }
   .container { max-width: 720px; margin: 0 auto; }
-  header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; }
+  header { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px 16px; margin-bottom: 24px; }
   h1 { font-size: 20px; margin: 0; display: flex; align-items: center; gap: 8px; }
   .header-icon { width: 28px; height: 28px; object-fit: contain; border-radius: 6px; flex-shrink: 0; }
   h2 { font-size: 15px; color: #94a3b8; margin: 32px 0 8px; text-transform: uppercase; letter-spacing: .05em; }
-  .nav-links { display: flex; align-items: center; gap: 16px; }
+  .nav-links { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
   a.nav-link, a.logout { color: #94a3b8; font-size: 13px; text-decoration: none; }
   a.nav-link:hover, a.logout:hover { color: #e2e8f0; }
+  .subnav { display: flex; gap: 8px; flex-wrap: wrap; margin: -8px 0 20px; }
+  .subnav a { padding: 6px 12px; border-radius: 999px; background: #1e293b; color: #94a3b8; font-size: 13px; text-decoration: none; }
+  .subnav a:hover { background: #334155; color: #e2e8f0; }
+  .subnav a.active { background: #6366f1; color: white; }
   .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 12px; }
   .macro-cards { grid-template-columns: repeat(4, 1fr); margin-top: 12px; }
   @media (max-width: 520px) { .macro-cards { grid-template-columns: repeat(2, 1fr); } }

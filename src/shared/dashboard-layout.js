@@ -165,7 +165,7 @@ export const DASHBOARD_CSS = `
 
   .inline-icon { width: 16px; height: 16px; object-fit: contain; vertical-align: middle; margin-right: 4px; margin-top: -2px; border-radius: 3px; }
   .logout { display: inline-flex; align-items: center; }
-  .logout .inline-icon { width: 20px; height: 20px; margin-top: 0; margin-right: 3px; }
+  .logout-icon { width: 26px; height: 26px; object-fit: contain; border-radius: 4px; }
 
   .stat-bar { height: 14px; border-radius: 999px; background: #334155; overflow: hidden; margin: 6px 0 4px; }
   .stat-bar-fill { height: 100%; border-radius: 999px; transition: width 0.3s ease; }
@@ -258,7 +258,7 @@ export function navHeader({ icon, title, links = [] }) {
       <h1><img class="header-icon" src="${icon}" alt="">${title}</h1>
       <div class="nav-links">
         ${linksHtml}
-        <a class="logout" href="/logout">${iconLabel("/icons/exit.png", "Log out")}</a>
+        <a class="logout" href="/logout" title="Log out"><img class="logout-icon" src="/icons/exit.png" alt="Log out"></a>
       </div>
     </header>`;
 }

@@ -380,7 +380,7 @@ export function suggestionCardHtml({ product, enriched, cancelHref }) {
     : "";
 
   return `<div class="ai-suggestion-card">
-    <span class="ai-badge">🤖 AI Suggestion — not yet active</span>
+    <span class="ai-badge">🤖 AI analyzed this — review below, not active until you approve</span>
     <h3 style="margin:4px 0 8px;">${escapeHtml(product.name)}</h3>
     <div class="ai-reasoning">${escapeHtml(reasoning || "No reasoning provided.")}</div>
     ${warningsHtml}

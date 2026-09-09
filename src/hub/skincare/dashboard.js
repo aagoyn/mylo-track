@@ -275,44 +275,47 @@ function productFormFields(product = {}) {
 
 const STATUS_BADGE_CLASS = { ACTIVE: "skincare-status-active", PAUSED: "skincare-status-paused", FINISHED: "skincare-status-finished" };
 
-function productRowHtml(product, rule) {
-  const routineSummary = rule
-    ? `${TIME_TEXT[rule.routine_time] || rule.routine_time}${
-        rule.frequency_type === "DAYS_OF_WEEK"
-          ? ` · ${(rule.days_of_week || []).map((d) => DAY_LABELS_SHORT[d]).join("/")}`
-          : " · Daily"
-      }${rule.enabled ? "" : " (disabled)"}`
-    : "Not configured yet";
+function routineSummaryHtml(rule) {
+  if (!rule) return `<span style="color:#64748b;">Not configured yet</span>`;
+  const timeText = TIME_TEXT[rule.routine_time] || rule.routine_time;
+  const freqText =
+    rule.frequency_type === "DAYS_OF_WEEK"
+      ? (rule.days_of_week || []).map((d) => DAY_LABELS_SHORT[d]).join("/") || "no days set"
+      : "Daily";
+  return `<div class="routine-summary-time">${escapeHtml(timeText)}</div>
+    <div class="routine-summary-freq">${escapeHtml(freqText)}${rule.enabled ? "" : " (disabled)"}</div>`;
+}
 
+function productRowHtml(product, rule) {
   return `<tr>
     <td>
       <div class="product-name-cell">${escapeHtml(product.name)}</div>
       ${product.brand ? `<div class="product-brand-cell">${escapeHtml(product.brand)}</div>` : ""}
     </td>
     <td>
-      ${iconLabel(CATEGORY_ICON[product.category] || "/icons/other.png", escapeHtml(product.category))}
-      <span class="badge status-badge" style="margin-left:6px;">${product.area}</span>
+      <div class="category-cell-main">${iconLabel(CATEGORY_ICON[product.category] || "/icons/other.png", escapeHtml(product.category))}</div>
+      <div class="category-cell-area"><span class="badge status-badge">${product.area}</span></div>
     </td>
     <td><span class="badge ${STATUS_BADGE_CLASS[product.status] || "status-badge"}">${product.status}</span></td>
-    <td style="font-size:12px; color:#94a3b8;">${escapeHtml(routineSummary)}</td>
+    <td style="font-size:12px;">${routineSummaryHtml(rule)}</td>
     <td>
       <div class="button-row product-actions">
-        <a class="nav-link" href="/hub/skincare/products/${product.id}/edit">Edit</a>
-        <form method="POST" action="/hub/skincare/analyze" style="display:inline;">
+        <a class="btn-warning btn-sm" href="/hub/skincare/products/${product.id}/edit">Edit</a>
+        <form method="POST" action="/hub/skincare/analyze">
           <input type="hidden" name="product_id" value="${product.id}">
           <button type="submit" class="btn-primary btn-sm">Analyze with AI</button>
         </form>
         ${
           product.status !== "PAUSED"
-            ? `<form method="POST" action="/hub/skincare/products/${product.id}/pause" style="display:inline;"><button type="submit" class="btn-secondary btn-sm">Pause</button></form>`
+            ? `<form method="POST" action="/hub/skincare/products/${product.id}/pause"><button type="submit" class="btn-secondary btn-sm">Pause</button></form>`
             : ""
         }
         ${
           product.status !== "FINISHED"
-            ? `<form method="POST" action="/hub/skincare/products/${product.id}/finish" style="display:inline;"><button type="submit" class="btn-secondary btn-sm">Finish</button></form>`
+            ? `<form method="POST" action="/hub/skincare/products/${product.id}/finish"><button type="submit" class="btn-secondary btn-sm">Finish</button></form>`
             : ""
         }
-        <form class="delete-form" method="POST" action="/hub/skincare/products/${product.id}/delete" style="display:inline;" onsubmit="return confirm('Delete this product?');"><button type="submit">Delete</button></form>
+        <form class="delete-form" method="POST" action="/hub/skincare/products/${product.id}/delete" onsubmit="return confirm('Delete this product?');"><button type="submit">Delete</button></form>
       </div>
     </td>
   </tr>`;

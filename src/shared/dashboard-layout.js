@@ -173,7 +173,7 @@ export const DASHBOARD_CSS = `
   .stat-bar-fill.tier-empty { background: #7f1d1d; }
 
   .button-row { display: flex; gap: 8px; }
-  .button-row button, .button-row .btn-secondary { width: 100%; }
+  .button-row button, .button-row .btn-secondary, .button-row .btn-warning { width: 100%; }
   .btn-primary { padding: 9px 10px; border-radius: 8px; border: none; background: #6366f1; color: white; font-size: 13px; cursor: pointer; }
   .btn-primary:hover { background: #4f46e5; }
   .btn-secondary {
@@ -182,6 +182,12 @@ export const DASHBOARD_CSS = `
     background: transparent; color: #94a3b8; font-size: 13px; text-decoration: none; text-align: center; cursor: pointer;
   }
   .btn-secondary:hover { background: #334155; color: #e2e8f0; }
+  .btn-warning {
+    display: flex; align-items: center; justify-content: center; box-sizing: border-box;
+    padding: 9px 10px; border-radius: 8px; border: none;
+    background: #eab308; color: #1e1b0a; font-size: 13px; font-weight: 600; text-decoration: none; text-align: center; cursor: pointer;
+  }
+  .btn-warning:hover { background: #ca8a04; }
   .btn-sm { padding: 4px 8px; font-size: 12px; }
 
   .inline-toggle { margin-top: 8px; }
@@ -230,9 +236,15 @@ export const DASHBOARD_CSS = `
 
   .product-table-wrap { overflow-x: auto; }
   .product-table-wrap td { vertical-align: top; }
-  .product-name-cell { font-weight: 600; }
-  .product-brand-cell { font-size: 12px; color: #94a3b8; margin-top: 2px; }
-  .product-table-wrap .product-actions { flex-wrap: wrap; row-gap: 6px; }
+  .product-name-cell { font-weight: 600; white-space: nowrap; }
+  .product-brand-cell { font-size: 12px; color: #94a3b8; margin-top: 2px; white-space: nowrap; }
+  .category-cell-main { display: inline-flex; align-items: center; white-space: nowrap; }
+  .category-cell-area { margin-top: 4px; }
+  .routine-summary-time { white-space: nowrap; color: #e2e8f0; }
+  .routine-summary-freq { color: #94a3b8; margin-top: 2px; }
+  .product-table-wrap .product-actions { flex-direction: column; align-items: stretch; gap: 10px; min-width: 150px; }
+  .product-table-wrap .product-actions form { display: block; }
+  .product-table-wrap .product-actions form button { width: 100%; box-sizing: border-box; }
   .product-table-wrap tr:hover td { background: #253347; }
   .skincare-status-active { background: #14532d55; color: #4ade80; }
   .skincare-status-paused { background: #78350f55; color: #fbbf24; }

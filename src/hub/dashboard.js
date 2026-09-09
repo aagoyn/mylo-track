@@ -131,14 +131,14 @@ ${faviconLink("/icons/hub.png")}
     <h2>${iconLabel("/icons/journal.png", "Today")}</h2>
     <div class="card">${journalSection}</div>
 
+    <h2>${iconLabel("/icons/skincare.png", "Skincare")}</h2>
+    <div class="card">${skincareSection}</div>
+
     <h2>${iconLabel("/icons/wishlist.png", "Things I Want")}</h2>
     <div class="card">${wishlistSection}</div>
 
     <h2>${iconLabel("/icons/vault.png", "Vault")}</h2>
     <div class="card">${vaultSection}</div>
-
-    <h2>${iconLabel("/icons/skincare.png", "Skincare")}</h2>
-    <div class="card">${skincareSection}</div>
 
     <h2>Recent</h2>
     <div class="activity-list">${recentRows}</div>

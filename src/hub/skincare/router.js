@@ -159,22 +159,44 @@ router.get("/hub/skincare/products", requireAuth, async (req, res) => {
   }
 });
 
+// Add Product langsung disusul AI analysis buat produk itu (bukan 2 langkah terpisah) - kalau
+// AI-nya gagal, produknya tetep kesimpen (cuma belum ada rule), user masih bisa "Analyze with
+// AI" lagi dari list kapan aja (lihat productRowHtml).
 router.post("/hub/skincare/products", requireAuth, async (req, res) => {
+  const phone = req.user.phone;
   const name = (req.body.name || "").trim();
   if (!name) return redirectErr(res, "/hub/skincare/products", "Product name can't be empty.");
 
+  let productId;
   try {
-    await createProduct(req.user.phone, {
+    productId = await createProduct(phone, {
       name,
       brand: (req.body.brand || "").trim(),
       category: req.body.category,
       area: req.body.area,
       notes: (req.body.notes || "").trim(),
     });
-    res.redirect("/hub/skincare/products?ok=1");
   } catch (err) {
     console.error(err);
-    redirectErr(res, "/hub/skincare/products", `Gagal simpan produk: ${err.message}`);
+    return redirectErr(res, "/hub/skincare/products", `Gagal simpan produk: ${err.message}`);
+  }
+
+  try {
+    const product = await getProductById(phone, productId);
+    const activeProducts = await getActiveProducts(phone);
+    const context = activeProducts.filter((p) => p.id !== product.id);
+
+    const rawSuggestion = await analyzeProduct(product, context);
+    const enriched = enrichSuggestion(rawSuggestion, context);
+
+    res.send(renderSuggestionPage({ product, enriched, backHref: "/hub/skincare/products" }));
+  } catch (err) {
+    console.error(err);
+    redirectErr(
+      res,
+      "/hub/skincare/products",
+      `Product saved, but AI analysis failed: ${err.message}. You can retry with "Analyze with AI" from the list.`
+    );
   }
 });
 

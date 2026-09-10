@@ -44,6 +44,47 @@ function parseJsonFromText(text) {
   return JSON.parse(jsonText);
 }
 
+// Groq (gratis, no credit card) dipakai sebagai fallback LEBIH DULU sebelum Claude - tapi
+// cuma buat request text-only, karena model gratisnya (openai/gpt-oss-20b) nggak bisa vision.
+// Kalau contents ada foto (inlineData), langsung skip ke Claude.
+const GROQ_FALLBACK_MODEL = "openai/gpt-oss-20b";
+
+function isTextOnlyContent(contents) {
+  if (typeof contents === "string") return true;
+  return Array.isArray(contents) && !contents.some((part) => part && part.inlineData);
+}
+
+function toPlainTextPrompt(contents) {
+  if (typeof contents === "string") return contents;
+  return contents.filter((part) => typeof part === "string").join("\n\n");
+}
+
+async function tryGroqFallback(contents) {
+  if (!process.env.GROQ_API_KEY || !isTextOnlyContent(contents)) return null;
+
+  try {
+    console.error("Gemini gagal (retryable) - fallback ke Groq (gpt-oss-20b)...");
+    const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${process.env.GROQ_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: GROQ_FALLBACK_MODEL,
+        messages: [{ role: "user", content: toPlainTextPrompt(contents) }],
+        response_format: { type: "json_object" },
+      }),
+    });
+    if (!response.ok) throw new Error(`Groq API error (${response.status}): ${await response.text()}`);
+    const data = await response.json();
+    return parseJsonFromText(data.choices?.[0]?.message?.content || "");
+  } catch (groqErr) {
+    console.error("Fallback Groq juga gagal:", groqErr);
+    return null;
+  }
+}
+
 async function tryClaudeFallback(contents) {
   const client = getAnthropicClient();
   if (!client) return null;
@@ -97,8 +138,11 @@ export async function generateJson(model, contents) {
     console.error("Gemini API error (raw):", err); // detail teknis lengkap tetap kelog di server
 
     if (isRetryableGeminiError(err)) {
-      const fallbackResult = await tryClaudeFallback(contents);
-      if (fallbackResult) return fallbackResult;
+      const groqResult = await tryGroqFallback(contents);
+      if (groqResult) return groqResult;
+
+      const claudeResult = await tryClaudeFallback(contents);
+      if (claudeResult) return claudeResult;
     }
 
     throw new Error(`Gagal menghubungi Gemini API: ${friendlyGeminiError(err)}`);

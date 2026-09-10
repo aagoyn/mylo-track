@@ -11,10 +11,14 @@ function redirectErr(res, path, message) {
 
 // Aksi (clock-in/clock-out/mark-day) dipasang di dua tempat: kartu ringkas di /hub, dan
 // halaman lengkap /hub/clocked - abis submit, balik ke halaman asal submit-nya, bukan selalu
-// ke /hub.
+// ke /hub. Submit dari /hub/clocked juga boleh override mode hari ini yang udah ada (mis. salah
+// pencet WFO padahal maunya WFH) - submit dari kartu ringkas Hub tetap locked-once-per-day.
+function fromClockedPage(req) {
+  return (req.get("Referer") || "").includes("/hub/clocked");
+}
+
 function redirectTarget(req) {
-  const ref = req.get("Referer") || "";
-  return ref.includes("/hub/clocked") ? "/hub/clocked" : "/hub";
+  return fromClockedPage(req) ? "/hub/clocked" : "/hub";
 }
 
 router.get("/hub/clocked", requireAuth, async (req, res) => {
@@ -36,7 +40,7 @@ router.get("/hub/clocked", requireAuth, async (req, res) => {
 router.post("/hub/clocked/clock-in", requireAuth, async (req, res) => {
   const target = redirectTarget(req);
   try {
-    await clockIn(req.user.phone);
+    await clockIn(req.user.phone, { force: fromClockedPage(req) });
     res.redirect(`${target}?ok=1`);
   } catch (err) {
     console.error(err);
@@ -51,7 +55,7 @@ router.post("/hub/clocked/mark-day", requireAuth, async (req, res) => {
     return redirectErr(res, target, "Mode nggak valid.");
   }
   try {
-    await markDay(req.user.phone, mode);
+    await markDay(req.user.phone, mode, { force: fromClockedPage(req) });
     res.redirect(`${target}?ok=1`);
   } catch (err) {
     console.error(err);

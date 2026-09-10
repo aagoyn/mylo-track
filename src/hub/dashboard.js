@@ -1,5 +1,5 @@
 import { DASHBOARD_CSS, escapeHtml, navHeader, faviconLink, iconLabel } from "../shared/dashboard-layout.js";
-import { clockedHubSummaryHtml } from "./clocked/dashboard.js";
+import { clockedHubCardHtml } from "./clocked/dashboard.js";
 
 const MOOD_META = {
   terrible: { emoji: "😫", label: "Terrible" },
@@ -59,7 +59,7 @@ export function renderHubDashboard({
        ${moodCheckinsToday > 1 ? `<div class="card-sub">${moodCheckinsToday} check-ins today</div>` : ""}`
     : `<div class="empty-state">Not logged<br><a href="/hub/mood">+ Log mood</a></div>`;
 
-  const { html: clockedCard, script: clockedScript } = clockedHubSummaryHtml(clockedToday);
+  const { html: clockedCard, script: clockedScript } = clockedHubCardHtml(clockedToday);
 
   const recentRows = recentActivity.length
     ? recentActivity.map((a) => activityRow(a)).join("")
@@ -126,20 +126,20 @@ ${faviconLink("/icons/hub.png")}
         <div class="card-label">${iconLabel("/icons/spending.png", "Spending")}</div>
         ${spendingCard}
       </a>
-      <a class="card" href="/hub/clocked">
+      <div class="card">
         <div class="card-label">${iconLabel("/icons/clocked.png", "Clocked!")}</div>
         ${clockedCard}
-      </a>
+      </div>
     </section>
 
     <div class="grid-2">
-      <div>
+      <div style="display:flex; flex-direction:column;">
         <h2>${iconLabel("/icons/journal.png", "Today")}</h2>
-        <div class="card">${journalSection}</div>
+        <div class="card" style="flex:1;">${journalSection}</div>
       </div>
-      <div>
+      <div style="display:flex; flex-direction:column;">
         <h2>${iconLabel("/icons/mood.png", "Mood")}</h2>
-        <div class="card mood-today">${moodCard}</div>
+        <div class="card mood-today" style="flex:1;">${moodCard}</div>
       </div>
     </div>
 

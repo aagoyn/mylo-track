@@ -30,6 +30,7 @@ export const DASHBOARD_CSS = `
   tr:last-child td { border-bottom: none; }
   .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
   @media (max-width: 560px) { .grid-2 { grid-template-columns: 1fr; } }
+  .grid-2-always { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
   .flash { padding: 12px 16px; border-radius: 8px; font-size: 13px; margin-bottom: 16px; overflow-wrap: break-word; word-break: break-word; }
   .flash-success { background: #14532d; color: #bbf7d0; }
   .flash-error { background: #450a0a; color: #fecaca; }
@@ -199,20 +200,23 @@ export const DASHBOARD_CSS = `
   .button-row { display: flex; gap: 8px; }
   .button-row button, .button-row .btn-secondary, .button-row .btn-warning { width: 100%; }
   .btn-primary { padding: 9px 10px; border-radius: 8px; border: none; background: #6366f1; color: white; font-size: 13px; cursor: pointer; }
-  .btn-primary:hover { background: #4f46e5; }
+  .btn-primary:hover:not(:disabled) { background: #4f46e5; }
   .btn-secondary {
     display: flex; align-items: center; justify-content: center; box-sizing: border-box;
     padding: 9px 10px; border-radius: 8px; border: 1px solid #334155;
     background: transparent; color: #94a3b8; font-size: 13px; text-decoration: none; text-align: center; cursor: pointer;
   }
-  .btn-secondary:hover { background: #334155; color: #e2e8f0; }
+  .btn-secondary:hover:not(:disabled) { background: #334155; color: #e2e8f0; }
   .btn-warning {
     display: flex; align-items: center; justify-content: center; box-sizing: border-box;
     padding: 9px 10px; border-radius: 8px; border: none;
     background: #eab308; color: #1e1b0a; font-size: 13px; font-weight: 600; text-decoration: none; text-align: center; cursor: pointer;
   }
-  .btn-warning:hover { background: #ca8a04; }
-  .btn-sm { padding: 4px 8px; font-size: 12px; }
+  .btn-warning:hover:not(:disabled) { background: #ca8a04; }
+  .btn-primary:disabled, .btn-secondary:disabled, .btn-warning:disabled {
+    opacity: 0.45; cursor: not-allowed;
+  }
+  .btn-sm { padding: 6px 10px; font-size: 12px; }
 
   .inline-toggle { margin-top: 8px; }
   .inline-toggle > summary { cursor: pointer; font-size: 12px; color: #64748b; list-style: none; }

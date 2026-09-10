@@ -132,7 +132,7 @@ ${faviconLink("/icons/hub.png")}
       </div>
     </section>
 
-    <div class="grid-2">
+    <div class="grid-2-always">
       <div style="display:flex; flex-direction:column;">
         <h2>${iconLabel("/icons/journal.png", "Today")}</h2>
         <div class="card" style="flex:1;">${journalSection}</div>

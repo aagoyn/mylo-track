@@ -113,15 +113,18 @@ export function clockedHubCardHtml(todayLog) {
     };
   }
 
+  const historyLink = `<a class="nav-link" href="/hub/clocked" style="display:inline-block; margin-top:6px;">View history</a>`;
+
   if (todayLog.work_mode !== "WFO") {
-    return { html: `<div class="card-value">${modeIconLabel(todayLog.work_mode)} today</div>`, script: "" };
+    return { html: `<div class="card-value">${modeIconLabel(todayLog.work_mode)} today</div>${historyLink}`, script: "" };
   }
 
   if (todayLog.clock_out_at) {
     const durationMs = new Date(todayLog.clock_out_at) - new Date(todayLog.clock_in_at);
     return {
       html: `<div class="card-value">✅ ${formatDuration(durationMs)}</div>
-             <div class="card-sub">${toWibTime(todayLog.clock_in_at)} → ${toWibTime(todayLog.clock_out_at)}</div>`,
+             <div class="card-sub">${toWibTime(todayLog.clock_in_at)} → ${toWibTime(todayLog.clock_out_at)}</div>
+             ${historyLink}`,
       script: "",
     };
   }
@@ -134,7 +137,8 @@ export function clockedHubCardHtml(todayLog) {
       <div class="card-sub">In at ${toWibTime(todayLog.clock_in_at)}</div>
       <form method="POST" action="/hub/clocked/clock-out" style="margin-top:6px;">
         <button type="submit" class="btn-primary" id="clocked-hub-out-btn" ${ready ? "" : "disabled"}>Clock Out</button>
-      </form>`,
+      </form>
+      ${historyLink}`,
     script: countdownScript("clocked-hub-countdown", "clocked-hub-out-btn", targetMs),
   };
 }
@@ -143,21 +147,29 @@ export function clockedHubCardHtml(todayLog) {
 // SELALU ada (Clock In/Mark WFH/Mark Day Off) biar bisa diganti kapan aja - mis. salah pencet
 // WFO padahal maunya WFH, atau WFO dadakan pas defaultnya WFH/libur. ----------
 
-function overrideButton(action, mode, label, isCurrent) {
-  const hidden = mode ? `<input type="hidden" name="mode" value="${mode}">` : "";
+function overrideButton(mode, action, label) {
+  const hidden = mode !== "WFO" ? `<input type="hidden" name="mode" value="${mode}">` : "";
   return `<form method="POST" action="${action}" style="margin:0;">
     ${hidden}
-    <button type="submit" class="btn-secondary btn-sm" ${isCurrent ? "disabled" : ""}>${label}</button>
+    <button type="submit" class="btn-secondary btn-sm">${label}</button>
   </form>`;
 }
 
+// Cuma nampilin opsi yang BEDA dari mode hari ini - kalau semua 3 opsi ditampilin termasuk
+// yang lagi aktif (di-disable), user bisa nyangka tombolnya error/nggak ngerespon pas diklik.
 function overrideSectionHtml(currentMode) {
+  const options = [
+    { mode: "WFO", action: "/hub/clocked/clock-in", label: iconLabel(MODE_ICON.WFO, "WFO") },
+    { mode: "WFH", action: "/hub/clocked/mark-day", label: iconLabel(MODE_ICON.WFH, "WFH") },
+    { mode: "OFF", action: "/hub/clocked/mark-day", label: iconLabel(MODE_ICON.OFF, "Off") },
+  ].filter((o) => o.mode !== currentMode);
+
+  if (!options.length) return "";
+
   return `
     <div class="card-sub" style="margin-top:14px; margin-bottom:6px; text-align:center;">Change today to</div>
     <div class="button-row" style="justify-content:center; gap:8px;">
-      ${overrideButton("/hub/clocked/clock-in", null, iconLabel(MODE_ICON.WFO, "WFO"), currentMode === "WFO")}
-      ${overrideButton("/hub/clocked/mark-day", "WFH", iconLabel(MODE_ICON.WFH, "WFH"), currentMode === "WFH")}
-      ${overrideButton("/hub/clocked/mark-day", "OFF", iconLabel(MODE_ICON.OFF, "Off"), currentMode === "OFF")}
+      ${options.map((o) => overrideButton(o.mode, o.action, o.label)).join("")}
     </div>`;
 }
 

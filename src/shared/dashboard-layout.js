@@ -237,6 +237,30 @@ export const DASHBOARD_CSS = `
   .field-group .field-label { font-size: 12px; color: #94a3b8; margin-bottom: 6px; font-weight: 500; }
   .radio-row, .checkbox-row { display: flex; gap: 14px; flex-wrap: wrap; font-size: 13px; }
   .radio-row label, .checkbox-row label { display: flex; align-items: center; gap: 5px; color: #e2e8f0; font-size: 13px; margin: 0; }
+  .radio-row { gap: 8px; }
+  .radio-row label {
+    padding: 7px 14px; border-radius: 999px; border: 1px solid #334155;
+    background: #0f172a; color: #94a3b8; cursor: pointer;
+    transition: background .15s ease, border-color .15s ease, color .15s ease;
+  }
+  .radio-row label:hover { border-color: #475569; color: #cbd5e1; }
+  .radio-row input[type="radio"] { position: absolute; opacity: 0; width: 1px; height: 1px; }
+  .radio-row label:has(input:checked) { background: #312e8188; border-color: #6366f1; color: #e2e8f0; }
+
+  input[type="checkbox"] {
+    appearance: none; -webkit-appearance: none; margin: 0;
+    width: 16px; height: 16px; border-radius: 4px; border: 1px solid #334155;
+    background: #0f172a; cursor: pointer; position: relative; flex-shrink: 0;
+    transition: background .15s ease, border-color .15s ease;
+  }
+  input[type="checkbox"]:hover { border-color: #475569; }
+  input[type="checkbox"]:checked { background: #6366f1; border-color: #6366f1; }
+  input[type="checkbox"]:checked::after {
+    content: ""; position: absolute; left: 5px; top: 1px;
+    width: 4px; height: 8px; border: solid white; border-width: 0 2px 2px 0;
+    transform: rotate(45deg);
+  }
+
   .day-checkboxes { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px; }
   .day-checkboxes label { display: flex; flex-direction: column; align-items: center; gap: 2px; font-size: 11px; color: #94a3b8; }
   .relationship-list { display: flex; flex-direction: column; gap: 6px; margin-top: 4px; }
@@ -250,6 +274,8 @@ export const DASHBOARD_CSS = `
   .rule-card .rule-actions { display: flex; gap: 8px; margin-top: 8px; }
   .rule-card .rule-actions button { padding: 6px 10px; border-radius: 8px; border: 1px solid #334155; background: transparent; color: #cbd5e1; font-size: 12px; cursor: pointer; }
   .rule-card .rule-actions button:hover { background: #334155; }
+  .rule-card .rule-actions button.btn-danger-outline { border-color: #ef444488; color: #ef4444; }
+  .rule-card .rule-actions button.btn-danger-outline:hover { background: #ef444422; border-color: #ef4444; }
 
   .product-table-wrap { overflow-x: auto; }
   .product-table-wrap td { vertical-align: top; }
@@ -390,6 +416,78 @@ export function overlayFormScript(formIds, overlayId = "loading-overlay") {
         const form = document.getElementById(formId);
         if (form) form.addEventListener("submit", function () { overlay.classList.add("visible"); });
       });
+    })();
+  </script>`;
+}
+
+// Submit form[data-ajax-approve] lewat fetch (bukan full-page POST) supaya card lain di halaman
+// yang sama (mis. daftar saran AI) nggak ikut hilang dari layar cuma karena approve 1 card -
+// halaman nggak pernah navigate, cuma card yang di-approve yang diganti jadi badge "Approved".
+// Juga nyediain tombol "approve-all-btn"/"reject-all-btn" opsional (dipakai kalau ada di DOM).
+export function ajaxApproveFormScript() {
+  return `<script>
+    (function () {
+      function approveForm(form) {
+        const card = form.closest(".ai-suggestion-card") || form;
+        const submitBtn = form.querySelector('button[type="submit"]');
+        const originalLabel = submitBtn ? submitBtn.textContent : "";
+        if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = "Approving..."; }
+
+        return fetch(form.action, {
+          method: "POST",
+          headers: { "X-Requested-With": "XMLHttpRequest" },
+          body: new FormData(form),
+        })
+          .then(function (res) {
+            return res.json().then(function (data) { return { httpOk: res.ok, data: data }; });
+          })
+          .then(function (result) {
+            if (result.httpOk && result.data.ok) {
+              card.innerHTML = '<span class="approved-badge">Approved</span>';
+            } else {
+              throw new Error((result.data && result.data.error) || "Failed to approve.");
+            }
+          })
+          .catch(function (err) {
+            if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = originalLabel; }
+            let errBox = form.querySelector(".ajax-approve-error");
+            if (!errBox) {
+              errBox = document.createElement("div");
+              errBox.className = "ai-warning ajax-approve-error";
+              form.appendChild(errBox);
+            }
+            errBox.textContent = "⚠️ " + err.message;
+          });
+      }
+
+      document.querySelectorAll("form[data-ajax-approve]").forEach(function (form) {
+        form.addEventListener("submit", function (e) {
+          e.preventDefault();
+          approveForm(form);
+        });
+      });
+
+      const approveAllBtn = document.getElementById("approve-all-btn");
+      const rejectAllBtn = document.getElementById("reject-all-btn");
+
+      if (approveAllBtn) {
+        approveAllBtn.addEventListener("click", function () {
+          const forms = Array.from(document.querySelectorAll("form[data-ajax-approve]"));
+          if (!forms.length) return;
+          approveAllBtn.disabled = true;
+          if (rejectAllBtn) rejectAllBtn.disabled = true;
+          Promise.all(forms.map(approveForm)).finally(function () {
+            approveAllBtn.disabled = false;
+            if (rejectAllBtn) rejectAllBtn.disabled = false;
+          });
+        });
+      }
+
+      if (rejectAllBtn) {
+        rejectAllBtn.addEventListener("click", function () {
+          document.querySelectorAll(".ai-suggestion-card").forEach(function (card) { card.remove(); });
+        });
+      }
     })();
   </script>`;
 }

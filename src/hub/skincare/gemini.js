@@ -18,7 +18,17 @@ ATURAN KETAT:
 - JANGAN mengarang kandungan/ingredient yang tidak diberikan user - kamu cuma tahu nama, brand, kategori, dan catatan produk.
 - Kalau informasi kurang, katakan asumsimu di "warnings" dan sarankan rutin yang sederhana & konservatif.
 - Semua yang kamu balas adalah SARAN untuk direview manusia, bukan aturan final.
-- Balas HANYA JSON valid, tanpa markdown, tanpa teks lain di luar JSON.`;
+- Balas HANYA JSON valid, tanpa markdown, tanpa teks lain di luar JSON.
+
+URUTAN PEMAKAIAN ("routine_order") - default umum kalau nggak ada alasan lain dari catatan user:
+Cleanser/Micellar Water/Cleansing Oil → Toner → Essence → Ampoule/Serum/Treatment/Spot Treatment
+→ Eye Cream → Moisturizer → Sunscreen (SELALU paling akhir di rutin AM, jangan pernah taruh
+produk lain setelah sunscreen) → Exfoliant/Mask dipakai terpisah, bukan bagian urutan harian.
+Prinsipnya tekstur/fungsi tipis ke tebal, produk yang "menutup" (moisturizer, sunscreen) di
+akhir. Kalau produk existing sudah punya "order" tersimpan (lihat konteks di bawah), SISIPKAN
+produk baru di antara angka-angka itu (pakai kelipatan 10 supaya ada ruang buat nyisip lagi
+nanti) - JANGAN asal kasih angka gede/kecil tanpa mikirin posisi relatifnya ke produk lain yang
+sudah ada, dan JANGAN nyaranin ubah order produk lain kecuali itu emang salah taruh.`;
 
 const SUGGESTION_SHAPE = `{
   "suggestion": {
@@ -35,10 +45,14 @@ const SUGGESTION_SHAPE = `{
   "warnings": [string] (kosongkan array kalau tidak ada catatan penting)
 }`;
 
-function productsContextText(products) {
+function productsContextText(products, rulesByProductId = new Map()) {
   if (!products.length) return "(belum ada produk skincare aktif lainnya)";
   return products
-    .map((p) => `- ${p.name}${p.brand ? ` (${p.brand})` : ""} — kategori: ${p.category}${p.notes ? `, catatan: ${p.notes}` : ""}`)
+    .map((p) => {
+      const rule = rulesByProductId.get(p.id);
+      const ruleText = rule ? `, rule tersimpan: ${rule.routine_time}, order ${rule.routine_order}` : "";
+      return `- ${p.name}${p.brand ? ` (${p.brand})` : ""} — kategori: ${p.category}${p.notes ? `, catatan: ${p.notes}` : ""}${ruleText}`;
+    })
     .join("\n");
 }
 
@@ -79,7 +93,7 @@ function normalizeSuggestion(parsed) {
 
 // Analisis satu produk (baru ditambah, atau existing yang mau di-"Analyze with AI" ulang)
 // dalam kaitannya dengan produk aktif lain milik user.
-export async function analyzeProduct(newProduct, existingProducts) {
+export async function analyzeProduct(newProduct, existingProducts, rulesByProductId = new Map()) {
   const prompt = `${SYSTEM_RULES}
 
 Produk yang mau dianalisis:
@@ -89,7 +103,7 @@ Kategori: ${newProduct.category}
 Catatan dari user: ${newProduct.notes || "-"}
 
 Produk skincare aktif user saat ini (selain produk di atas):
-${productsContextText(existingProducts)}
+${productsContextText(existingProducts, rulesByProductId)}
 
 Analisis produk ini dalam kaitannya dengan produk yang sudah ada, lalu balas JSON dengan struktur PERSIS:
 ${SUGGESTION_SHAPE}`;
@@ -110,7 +124,7 @@ export async function reviewRoutine(products, rulesByProductId) {
     .map((p) => {
       const rule = rulesByProductId.get(p.id);
       const currentRule = rule
-        ? `sudah ada rule: ${rule.routine_time}, ${rule.frequency_type}${
+        ? `sudah ada rule: ${rule.routine_time}, order ${rule.routine_order}, ${rule.frequency_type}${
             rule.frequency_type === "DAYS_OF_WEEK" ? ` (hari: ${(rule.days_of_week || []).join(",")})` : ""
           }`
         : "belum ada rule tersimpan";

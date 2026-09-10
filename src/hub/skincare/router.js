@@ -183,10 +183,11 @@ router.post("/hub/skincare/products", requireAuth, async (req, res) => {
 
   try {
     const product = await getProductById(phone, productId);
-    const activeProducts = await getActiveProducts(phone);
+    const [activeProducts, rules] = await Promise.all([getActiveProducts(phone), getAllRoutineRules(phone)]);
     const context = activeProducts.filter((p) => p.id !== product.id);
+    const rulesByProductId = new Map(rules.map((r) => [r.product_id, r]));
 
-    const rawSuggestion = await analyzeProduct(product, context);
+    const rawSuggestion = await analyzeProduct(product, context, rulesByProductId);
     const enriched = enrichSuggestion(rawSuggestion, context);
 
     res.send(renderSuggestionPage({ product, enriched, backHref: "/hub/skincare/products" }));
@@ -268,10 +269,11 @@ router.post("/hub/skincare/analyze", requireAuth, async (req, res) => {
     const product = await getProductById(phone, req.body.product_id);
     if (!product) return res.status(404).send("Product not found.");
 
-    const activeProducts = await getActiveProducts(phone);
+    const [activeProducts, rules] = await Promise.all([getActiveProducts(phone), getAllRoutineRules(phone)]);
     const context = activeProducts.filter((p) => p.id !== product.id);
+    const rulesByProductId = new Map(rules.map((r) => [r.product_id, r]));
 
-    const rawSuggestion = await analyzeProduct(product, context);
+    const rawSuggestion = await analyzeProduct(product, context, rulesByProductId);
     const enriched = enrichSuggestion(rawSuggestion, context);
 
     res.send(renderSuggestionPage({ product, enriched, backHref: "/hub/skincare/products" }));
@@ -295,7 +297,7 @@ router.post("/hub/skincare/review", requireAuth, async (req, res) => {
         if (!product) return null;
         const context = activeProducts.filter((p) => p.id !== product.id);
         const enriched = enrichSuggestion(s, context);
-        return suggestionCardHtml({ product, enriched, cancelHref: "/hub/skincare" });
+        return suggestionCardHtml({ product, enriched, cancelHref: "/hub/skincare", ajaxApprove: true });
       })
       .filter(Boolean);
 
@@ -309,10 +311,14 @@ router.post("/hub/skincare/review", requireAuth, async (req, res) => {
 // ---------- approve suggestion -> jadi rule/relationship/rotation deterministic ----------
 
 router.post("/hub/skincare/suggestions/approve", requireAuth, async (req, res) => {
+  const isAjax = req.get("X-Requested-With") === "XMLHttpRequest";
   try {
     const phone = req.user.phone;
     const product = await getProductById(phone, req.body.product_id);
-    if (!product) return res.status(404).send("Product not found.");
+    if (!product) {
+      if (isAjax) return res.status(404).json({ ok: false, error: "Product not found." });
+      return res.status(404).send("Product not found.");
+    }
 
     const days = toArray(req.body.days).map((d) => parseInt(d, 10)).filter((d) => Number.isInteger(d) && d >= 0 && d <= 6);
 
@@ -342,9 +348,11 @@ router.post("/hub/skincare/suggestions/approve", requireAuth, async (req, res) =
       }
     }
 
+    if (isAjax) return res.json({ ok: true });
     res.redirect("/hub/skincare/rules?ok=1");
   } catch (err) {
     console.error(err);
+    if (isAjax) return res.status(500).json({ ok: false, error: err.message });
     redirectErr(res, "/hub/skincare", `Gagal simpan rule dari saran AI: ${err.message}`);
   }
 });

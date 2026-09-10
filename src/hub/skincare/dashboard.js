@@ -1,4 +1,4 @@
-import { DASHBOARD_CSS, escapeHtml, faviconLink, iconLabel, navHeader, progressFormScript, loadingOverlayHtml, overlayFormScript } from "../../shared/dashboard-layout.js";
+import { DASHBOARD_CSS, escapeHtml, faviconLink, iconLabel, navHeader, progressFormScript, loadingOverlayHtml, overlayFormScript, ajaxApproveFormScript } from "../../shared/dashboard-layout.js";
 
 // duplikat kecil dari ./supabase.js (dipakai buat validasi di sana) - sengaja nggak di-import
 // dari situ biar dashboard.js (layer render doang) nggak ikut narik shared/supabase-client.js
@@ -70,7 +70,7 @@ function subnavHtml(active) {
 
 // active: "today" | "products" | "rules" | undefined (halaman lepas dari 3 tab utama, mis.
 // edit product / review saran AI - subnav tetep muncul tanpa tab yang di-highlight)
-function pageShell({ title, body, active, progressForms = [], overlayFormIds = [] }) {
+function pageShell({ title, body, active, progressForms = [], overlayFormIds = [], ajaxApprove = false }) {
   return `<!doctype html>
 <html lang="en">
 <head>
@@ -128,6 +128,7 @@ ${faviconLink("/icons/skincare.png")}
   </script>
   ${progressFormScript(progressForms)}
   ${overlayFormScript(overlayFormIds)}
+  ${ajaxApprove ? ajaxApproveFormScript() : ""}
 </body>
 </html>`;
 }
@@ -428,7 +429,7 @@ function dayCheckboxesHtml(selectedDays, frequencyType) {
 
 // Satu kartu saran AI + form approve yang bisa diedit langsung (edit = ubah nilai sebelum
 // submit, jadi nggak butuh mode "edit" terpisah - lihat test-prompt.txt #10).
-export function suggestionCardHtml({ product, enriched, cancelHref }) {
+export function suggestionCardHtml({ product, enriched, cancelHref, ajaxApprove = false }) {
   const { suggestion, relationships, rotation, reasoning, warnings } = enriched;
 
   const relRows = relationships.length
@@ -465,7 +466,7 @@ export function suggestionCardHtml({ product, enriched, cancelHref }) {
     <div class="ai-reasoning">${escapeHtml(reasoning || "No reasoning provided.")}</div>
     ${warningsHtml}
 
-    <form method="POST" action="/hub/skincare/suggestions/approve">
+    <form method="POST" action="/hub/skincare/suggestions/approve" ${ajaxApprove ? "data-ajax-approve" : ""}>
       <input type="hidden" name="product_id" value="${product.id}">
 
       <div class="field-group">
@@ -496,7 +497,11 @@ export function suggestionCardHtml({ product, enriched, cancelHref }) {
 
       <div class="button-row">
         <button type="submit" class="btn-primary">Approve</button>
-        <a class="btn-secondary" href="${cancelHref}">Don't use this suggestion</a>
+        ${
+          ajaxApprove
+            ? `<button type="button" class="btn-secondary" onclick="this.closest('.ai-suggestion-card').remove()">Don't use this suggestion</button>`
+            : `<a class="btn-secondary" href="${cancelHref}">Don't use this suggestion</a>`
+        }
       </div>
     </form>
   </div>`;
@@ -521,10 +526,15 @@ export function renderRoutineReviewPage({ cards, overallNotes, hasNoSuggestions 
       ${
         hasNoSuggestions
           ? `<div class="empty-state">Your current routine already looks reasonable — no changes suggested right now.</div>`
-          : cards.join("")
+          : `<div class="button-row" style="margin-bottom:16px; max-width:320px;">
+              <button type="button" id="approve-all-btn" class="btn-primary">✅ Approve all</button>
+              <button type="button" id="reject-all-btn" class="btn-secondary">✖ Reject all</button>
+            </div>
+            ${cards.join("")}`
       }
       <a class="nav-link" href="/hub/skincare">Back to today's routine</a>
     `,
+    ajaxApprove: true,
   });
 }
 
@@ -538,7 +548,7 @@ function relationshipRuleCard(rel) {
     ${rel.note ? `<div class="rule-note">${escapeHtml(rel.note)}</div>` : ""}
     <div class="rule-actions">
       <form method="POST" action="/hub/skincare/relationships/${rel.id}/toggle"><button type="submit">${rel.enabled ? "Disable" : "Enable"}</button></form>
-      <form method="POST" action="/hub/skincare/relationships/${rel.id}/delete" onsubmit="return confirm('Remove this rule?');"><button type="submit">Remove</button></form>
+      <form method="POST" action="/hub/skincare/relationships/${rel.id}/delete" onsubmit="return confirm('Remove this rule?');"><button type="submit" class="btn-danger-outline">Remove</button></form>
     </div>
   </div>`;
 }

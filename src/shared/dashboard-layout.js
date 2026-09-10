@@ -217,6 +217,7 @@ export const DASHBOARD_CSS = `
     opacity: 0.45; cursor: not-allowed;
   }
   .btn-sm { padding: 6px 10px; font-size: 12px; }
+  .btn-wide-short { padding: 6px 28px; }
 
   .inline-toggle { margin-top: 8px; }
   .inline-toggle > summary { cursor: pointer; font-size: 12px; color: #64748b; list-style: none; }

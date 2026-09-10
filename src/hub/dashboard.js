@@ -126,7 +126,7 @@ ${faviconLink("/icons/hub.png")}
         <div class="card-label">${iconLabel("/icons/spending.png", "Spending")}</div>
         ${spendingCard}
       </a>
-      <div class="card">
+      <div class="card" onclick="location.href='/hub/clocked'" style="cursor:pointer;">
         <div class="card-label">${iconLabel("/icons/clocked.png", "Clocked!")}</div>
         ${clockedCard}
       </div>

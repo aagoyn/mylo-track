@@ -89,42 +89,39 @@ export function clockedHubCardHtml(todayLog) {
     if (isFixedWfoDay) {
       return {
         html: `<div class="card-sub">📅 Scheduled WFO today</div>
-               <form method="POST" action="/hub/clocked/clock-in" style="margin-top:6px;">
-                 <button type="submit" class="btn-primary">${iconLabel(MODE_ICON.WFO, "Clock In")}</button>
+               <form method="POST" action="/hub/clocked/clock-in" style="margin-top:6px;" onclick="event.stopPropagation()">
+                 <button type="submit" class="btn-primary btn-wide-short">${iconLabel(MODE_ICON.WFO, "Clock In")}</button>
                </form>`,
         script: "",
       };
     }
     if (isWeekend) {
       return {
-        html: `<form method="POST" action="/hub/clocked/mark-day" style="margin-top:6px;">
+        html: `<form method="POST" action="/hub/clocked/mark-day" style="margin-top:6px;" onclick="event.stopPropagation()">
                  <input type="hidden" name="mode" value="OFF">
-                 <button type="submit" class="btn-primary">${iconLabel(MODE_ICON.OFF, "Mark Day Off")}</button>
+                 <button type="submit" class="btn-primary btn-wide-short">${iconLabel(MODE_ICON.OFF, "Mark Day Off")}</button>
                </form>`,
         script: "",
       };
     }
     return {
-      html: `<form method="POST" action="/hub/clocked/mark-day" style="margin-top:6px;">
+      html: `<form method="POST" action="/hub/clocked/mark-day" style="margin-top:6px;" onclick="event.stopPropagation()">
                <input type="hidden" name="mode" value="WFH">
-               <button type="submit" class="btn-primary">${iconLabel(MODE_ICON.WFH, "Mark WFH")}</button>
+               <button type="submit" class="btn-primary btn-wide-short">${iconLabel(MODE_ICON.WFH, "Mark WFH")}</button>
              </form>`,
       script: "",
     };
   }
 
-  const historyLink = `<a class="nav-link" href="/hub/clocked" style="display:inline-block; margin-top:6px;">View history</a>`;
-
   if (todayLog.work_mode !== "WFO") {
-    return { html: `<div class="card-value">${modeIconLabel(todayLog.work_mode)} today</div>${historyLink}`, script: "" };
+    return { html: `<div class="card-value">${modeIconLabel(todayLog.work_mode)} today</div>`, script: "" };
   }
 
   if (todayLog.clock_out_at) {
     const durationMs = new Date(todayLog.clock_out_at) - new Date(todayLog.clock_in_at);
     return {
       html: `<div class="card-value">✅ ${formatDuration(durationMs)}</div>
-             <div class="card-sub">${toWibTime(todayLog.clock_in_at)} → ${toWibTime(todayLog.clock_out_at)}</div>
-             ${historyLink}`,
+             <div class="card-sub">${toWibTime(todayLog.clock_in_at)} → ${toWibTime(todayLog.clock_out_at)}</div>`,
       script: "",
     };
   }
@@ -135,10 +132,9 @@ export function clockedHubCardHtml(todayLog) {
     html: `
       <div class="card-value" id="clocked-hub-countdown">${ready ? "Ready to go home! 🎉" : formatDuration(targetMs - Date.now())}</div>
       <div class="card-sub">In at ${toWibTime(todayLog.clock_in_at)}</div>
-      <form method="POST" action="/hub/clocked/clock-out" style="margin-top:6px;">
-        <button type="submit" class="btn-primary" id="clocked-hub-out-btn" ${ready ? "" : "disabled"}>Clock Out</button>
-      </form>
-      ${historyLink}`,
+      <form method="POST" action="/hub/clocked/clock-out" style="margin-top:6px;" onclick="event.stopPropagation()">
+        <button type="submit" class="btn-primary btn-wide-short" id="clocked-hub-out-btn" ${ready ? "" : "disabled"}>Clock Out</button>
+      </form>`,
     script: countdownScript("clocked-hub-countdown", "clocked-hub-out-btn", targetMs),
   };
 }
@@ -197,7 +193,7 @@ export function clockedFullCardHtml(todayLog) {
         <div class="card-value" id="clocked-countdown">${ready ? "Ready to go home! 🎉" : formatDuration(targetMs - Date.now())}</div>
         <div class="card-sub" style="margin-top:2px;">In at ${toWibTime(todayLog.clock_in_at)}</div>
         <form method="POST" action="/hub/clocked/clock-out" style="margin-top:8px;">
-          <button type="submit" class="btn-primary" id="clocked-out-btn" ${ready ? "" : "disabled"}>Clock Out</button>
+          <button type="submit" class="btn-primary btn-wide-short" id="clocked-out-btn" ${ready ? "" : "disabled"}>Clock Out</button>
         </form>
       </div>`;
     script = countdownScript("clocked-countdown", "clocked-out-btn", targetMs);

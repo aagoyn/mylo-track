@@ -87,7 +87,7 @@ ${faviconLink("/icons/spending.png")}
     ${navHeader({
       icon: "/icons/spending.png",
       title: "Spending Tracker",
-      links: [{ href: "/hub", label: iconLabel("/icons/home.png", "Home") }],
+      links: [{ href: "/hub", label: "Home" }],
     })}
     <nav class="subnav"><a href="/dashboard/calorie">${iconLabel("/icons/calorie.png", "Calories")}</a></nav>
 

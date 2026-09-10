@@ -129,7 +129,7 @@ ${faviconLink("/icons/vault.png")}
 </head>
 <body>
   <div class="container">
-    ${navHeader({ icon: "/icons/vault.png", title: "Vault", links: [{ href: "/hub", label: iconLabel("/icons/home.png", "Home") }] })}
+    ${navHeader({ icon: "/icons/vault.png", title: "Vault", links: [{ href: "/hub", label: "Home" }] })}
 
     ${flash ? `<div class="flash flash-${flash.type}">${escapeHtml(flash.text)}</div>` : ""}
 

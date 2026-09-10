@@ -82,7 +82,7 @@ ${faviconLink("/icons/skincare.png")}
 </head>
 <body>
   <div class="container">
-    ${navHeader({ icon: "/icons/skincare.png", title: "Skincare", links: [{ href: "/hub", label: iconLabel("/icons/home.png", "Home") }] })}
+    ${navHeader({ icon: "/icons/skincare.png", title: "Skincare", links: [{ href: "/hub", label: "Home" }] })}
     ${subnavHtml(active)}
     ${body}
   </div>

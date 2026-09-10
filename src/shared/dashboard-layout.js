@@ -436,8 +436,11 @@ export function ajaxApproveFormScript() {
 
         return fetch(form.action, {
           method: "POST",
-          headers: { "X-Requested-With": "XMLHttpRequest" },
-          body: new FormData(form),
+          headers: {
+            "X-Requested-With": "XMLHttpRequest",
+            "Content-Type": "application/x-www-form-urlencoded",
+          },
+          body: new URLSearchParams(new FormData(form)),
         })
           .then(function (res) {
             return res.json().then(function (data) { return { httpOk: res.ok, data: data }; });

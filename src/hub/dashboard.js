@@ -1,5 +1,5 @@
 import { DASHBOARD_CSS, escapeHtml, navHeader, faviconLink, iconLabel } from "../shared/dashboard-layout.js";
-import { clockedCardHtml } from "./clocked/dashboard.js";
+import { clockedHubSummaryHtml } from "./clocked/dashboard.js";
 
 const MOOD_META = {
   terrible: { emoji: "😫", label: "Terrible" },
@@ -59,7 +59,7 @@ export function renderHubDashboard({
        ${moodCheckinsToday > 1 ? `<div class="card-sub">${moodCheckinsToday} check-ins today</div>` : ""}`
     : `<div class="empty-state">Not logged<br><a href="/hub/mood">+ Log mood</a></div>`;
 
-  const { html: clockedCard, script: clockedScript } = clockedCardHtml(clockedToday);
+  const { html: clockedCard, script: clockedScript } = clockedHubSummaryHtml(clockedToday);
 
   const recentRows = recentActivity.length
     ? recentActivity.map((a) => activityRow(a)).join("")
@@ -126,17 +126,21 @@ ${faviconLink("/icons/hub.png")}
         <div class="card-label">${iconLabel("/icons/spending.png", "Spending")}</div>
         ${spendingCard}
       </a>
-      <div class="card">
-        <div class="card-label">⏰ Clocked!</div>
+      <a class="card" href="/hub/clocked">
+        <div class="card-label">${iconLabel("/icons/clocked.png", "Clocked!")}</div>
         ${clockedCard}
-      </div>
+      </a>
     </section>
 
-    <h2>${iconLabel("/icons/journal.png", "Today")}</h2>
-    <div class="card">${journalSection}</div>
-    <div class="card mood-today" style="margin-top:12px;">
-      <div class="card-label">${iconLabel("/icons/mood.png", "Mood")}</div>
-      ${moodCard}
+    <div class="grid-2">
+      <div>
+        <h2>${iconLabel("/icons/journal.png", "Today")}</h2>
+        <div class="card">${journalSection}</div>
+      </div>
+      <div>
+        <h2>${iconLabel("/icons/mood.png", "Mood")}</h2>
+        <div class="card mood-today">${moodCard}</div>
+      </div>
     </div>
 
     <h2>${iconLabel("/icons/skincare.png", "Skincare")}</h2>
@@ -163,7 +167,7 @@ ${faviconLink("/icons/hub.png")}
       <div class="hub-nav-links">
         <a class="hub-nav-item" href="/hub/mood">${iconLabel("/icons/mood.png", "Mood")}</a>
         <a class="hub-nav-item" href="/hub/journal">${iconLabel("/icons/journal.png", "Journal")}</a>
-        <a class="hub-nav-item" href="/hub/clocked">⏰ Clocked!</a>
+        <a class="hub-nav-item" href="/hub/clocked">${iconLabel("/icons/clocked.png", "Clocked!")}</a>
         <a class="hub-nav-item" href="/hub/wishlist">${iconLabel("/icons/wishlist.png", "Wishlist")}</a>
         <a class="hub-nav-item" href="/hub/vault">${iconLabel("/icons/vault.png", "Vault")}</a>
         <a class="hub-nav-item" href="/hub/skincare">${iconLabel("/icons/skincare.png", "Skincare")}</a>

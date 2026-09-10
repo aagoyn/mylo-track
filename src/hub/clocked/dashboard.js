@@ -1,7 +1,10 @@
-import { DASHBOARD_CSS, escapeHtml, navHeader, faviconLink } from "../../shared/dashboard-layout.js";
+import { DASHBOARD_CSS, escapeHtml, navHeader, faviconLink, iconLabel } from "../../shared/dashboard-layout.js";
 
 const WIB_OFFSET_MS = 7 * 60 * 60 * 1000;
 const CLOCK_OUT_AFTER_MS = 9 * 60 * 60 * 1000;
+
+const MODE_ICON = { WFO: "/icons/work-from-office.png", WFH: "/icons/work-from-home.png", OFF: "/icons/day-off.png" };
+const MODE_LABEL = { WFO: "WFO", WFH: "WFH", OFF: "Off" };
 
 function toWibTime(isoString) {
   const wib = new Date(new Date(isoString).getTime() + WIB_OFFSET_MS);
@@ -28,64 +31,112 @@ function dayOfWeekWib() {
   return wib.getUTCDay() || 7;
 }
 
-const clockInForm = (extraClass = "") =>
-  `<form method="POST" action="/hub/clocked/clock-in" style="margin-top:4px;">
-     <button type="submit" class="${extraClass || "btn-primary"}">Clock In</button>
-   </form>`;
+function modeIconLabel(mode) {
+  return iconLabel(MODE_ICON[mode] || MODE_ICON.WFO, MODE_LABEL[mode] || mode);
+}
 
-const markDayForm = (mode, label, extraClass = "") =>
-  `<form method="POST" action="/hub/clocked/mark-day" style="margin-top:4px;">
-     <input type="hidden" name="mode" value="${mode}">
-     <button type="submit" class="${extraClass || "btn-primary"}">${label}</button>
-   </form>`;
+// ---------- Hub card: cuma status/countdown, TANPA tombol - seluruh card itu sendiri jadi
+// <a> link ke /hub/clocked (sama kayak Calories/Spending), aksi beneran dilakuin di sana. ----------
 
-// Belum ada log hari ini - Hub card cuma nunjukin SATU tombol default sesuai hari (biar ringkas),
-// halaman /hub/clocked (fullOverride) nunjukin ketiga opsi biar bisa override kapan aja (mis.
-// WFO dadakan pas harusnya WFH/libur, atau kebalikannya).
-function noLogHtml(fullOverride) {
-  const day = dayOfWeekWib();
-  const isFixedWfoDay = [1, 2, 4].includes(day); // Senin, Selasa, Kamis
-  const isWeekend = day === 6 || day === 7;
-
-  if (!fullOverride) {
-    if (isFixedWfoDay) {
-      return `<div class="card-sub">📅 Scheduled WFO today</div>${clockInForm()}`;
-    }
-    if (isWeekend) {
-      return markDayForm("OFF", "🌴 Mark Day Off");
-    }
-    return markDayForm("WFH", "🏠 Mark WFH");
+export function clockedHubSummaryHtml(todayLog) {
+  if (!todayLog) {
+    const day = dayOfWeekWib();
+    const isFixedWfoDay = [1, 2, 4].includes(day);
+    const isWeekend = day === 6 || day === 7;
+    const text = isFixedWfoDay ? "Scheduled WFO — tap to clock in" : isWeekend ? "Tap to log your day" : "Tap to log WFH";
+    return { html: `<div class="empty-state">${text}</div>`, script: "" };
   }
 
-  // fullOverride: ketiga opsi selalu ada, yang sesuai default hari itu ditandain primary
+  if (todayLog.work_mode !== "WFO") {
+    return { html: `<div class="card-value">${modeIconLabel(todayLog.work_mode)} today</div>`, script: "" };
+  }
+
+  if (todayLog.clock_out_at) {
+    const durationMs = new Date(todayLog.clock_out_at) - new Date(todayLog.clock_in_at);
+    return {
+      html: `<div class="card-value">✅ ${formatDuration(durationMs)}</div>
+             <div class="card-sub">${toWibTime(todayLog.clock_in_at)} → ${toWibTime(todayLog.clock_out_at)}</div>`,
+      script: "",
+    };
+  }
+
+  const targetMs = new Date(todayLog.clock_in_at).getTime() + CLOCK_OUT_AFTER_MS;
+  const ready = Date.now() >= targetMs;
+  return {
+    html: `<div class="card-value" id="clocked-hub-countdown">${ready ? "✅ Ready to go home!" : formatDuration(targetMs - Date.now()) + " left"}</div>
+           <div class="card-sub">In at ${toWibTime(todayLog.clock_in_at)}</div>`,
+    script: countdownScript("clocked-hub-countdown", null, targetMs),
+  };
+}
+
+// ---------- Halaman /hub/clocked: full interaktif - Clock In/Mark WFH/Mark Day Off selalu
+// ketiga-tiganya ada (biar bisa override jadwal, mis. WFO dadakan), Clock Out muncul kalau
+// lagi WFO & belum keluar. ----------
+
+const clockInForm = (extraClass) =>
+  `<form method="POST" action="/hub/clocked/clock-in" style="margin-top:4px;">
+     <button type="submit" class="${extraClass}">${iconLabel(MODE_ICON.WFO, "Clock In")}</button>
+   </form>`;
+
+const markDayForm = (mode, label, extraClass) =>
+  `<form method="POST" action="/hub/clocked/mark-day" style="margin-top:4px;">
+     <input type="hidden" name="mode" value="${mode}">
+     <button type="submit" class="${extraClass}">${label}</button>
+   </form>`;
+
+function noLogFullHtml() {
+  const day = dayOfWeekWib();
+  const isFixedWfoDay = [1, 2, 4].includes(day);
+  const isWeekend = day === 6 || day === 7;
+
   const wfoBtn = clockInForm(isFixedWfoDay ? "btn-primary" : "btn-secondary btn-sm");
-  const wfhBtn = markDayForm("WFH", "🏠 Mark WFH", !isFixedWfoDay && !isWeekend ? "btn-primary" : "btn-secondary btn-sm");
-  const offBtn = markDayForm("OFF", "🌴 Mark Day Off", isWeekend ? "btn-primary" : "btn-secondary btn-sm");
+  const wfhBtn = markDayForm("WFH", iconLabel(MODE_ICON.WFH, "Mark WFH"), !isFixedWfoDay && !isWeekend ? "btn-primary" : "btn-secondary btn-sm");
+  const offBtn = markDayForm("OFF", iconLabel(MODE_ICON.OFF, "Mark Day Off"), isWeekend ? "btn-primary" : "btn-secondary btn-sm");
   return `<div class="card-sub" style="margin-bottom:4px;">What's today?</div>${wfoBtn}${wfhBtn}${offBtn}`;
 }
 
-// Fragment card buat ditempel di Hub (fullOverride: false) dan di halaman /hub/clocked sendiri
-// (fullOverride: true, ngasih ketiga opsi Clock In/WFH/Off biar bisa override kapan aja).
-export function clockedCardHtml(todayLog, { fullOverride = false } = {}) {
+function countdownScript(elId, btnId, targetMs) {
+  return `<script>
+    (function () {
+      const el = document.getElementById(${JSON.stringify(elId)});
+      const btn = ${btnId ? `document.getElementById(${JSON.stringify(btnId)})` : "null"};
+      if (!el) return;
+      const target = ${targetMs};
+      function tick() {
+        const diff = target - Date.now();
+        if (diff <= 0) {
+          el.textContent = "✅ Ready to go home!";
+          if (btn) btn.disabled = false;
+          return false;
+        }
+        const h = Math.floor(diff / 3600000);
+        const m = Math.floor((diff % 3600000) / 60000);
+        const s = Math.floor((diff % 60000) / 1000);
+        el.textContent = h + "h " + m + "m " + s + "s left";
+        return true;
+      }
+      if (tick()) {
+        const interval = setInterval(function () { if (!tick()) clearInterval(interval); }, 1000);
+      }
+    })();
+  </script>`;
+}
+
+export function clockedFullCardHtml(todayLog) {
   if (!todayLog) {
-    return { html: noLogHtml(fullOverride), script: "" };
+    return { html: noLogFullHtml(), script: "" };
   }
 
-  if (todayLog.work_mode === "WFH") {
-    return { html: `<div class="card-value">🏠 WFH today</div><a class="nav-link" href="/hub/clocked">View history</a>`, script: "" };
-  }
-  if (todayLog.work_mode === "OFF") {
-    return { html: `<div class="card-value">🌴 Day off</div><a class="nav-link" href="/hub/clocked">View history</a>`, script: "" };
+  if (todayLog.work_mode !== "WFO") {
+    return { html: `<div class="card-value">${modeIconLabel(todayLog.work_mode)} today</div>`, script: "" };
   }
 
-  // work_mode WFO
   if (todayLog.clock_out_at) {
     const durationMs = new Date(todayLog.clock_out_at) - new Date(todayLog.clock_in_at);
     return {
       html: `
         <div class="card-value">✅ ${formatDuration(durationMs)}</div>
-        <div class="card-sub">${toWibTime(todayLog.clock_in_at)} → ${toWibTime(todayLog.clock_out_at)}</div>
-        <a class="nav-link" href="/hub/clocked">View history</a>`,
+        <div class="card-sub">${toWibTime(todayLog.clock_in_at)} → ${toWibTime(todayLog.clock_out_at)}</div>`,
       script: "",
     };
   }
@@ -99,37 +150,9 @@ export function clockedCardHtml(todayLog, { fullOverride = false } = {}) {
       <div class="card-sub">In at ${toWibTime(todayLog.clock_in_at)}</div>
       <form method="POST" action="/hub/clocked/clock-out" style="margin-top:6px;">
         <button type="submit" class="btn-primary" id="clocked-out-btn" ${ready ? "" : "disabled"}>Clock Out</button>
-      </form>
-      <a class="nav-link" href="/hub/clocked">View history</a>`,
-    script: `<script>
-      (function () {
-        const el = document.getElementById("clocked-countdown");
-        const btn = document.getElementById("clocked-out-btn");
-        if (!el) return;
-        const target = ${targetMs};
-        function tick() {
-          const diff = target - Date.now();
-          if (diff <= 0) {
-            el.textContent = "✅ Ready to go home!";
-            if (btn) btn.disabled = false;
-            return false;
-          }
-          const h = Math.floor(diff / 3600000);
-          const m = Math.floor((diff % 3600000) / 60000);
-          const s = Math.floor((diff % 60000) / 1000);
-          el.textContent = h + "h " + m + "m " + s + "s left";
-          return true;
-        }
-        if (tick()) {
-          const interval = setInterval(function () { if (!tick()) clearInterval(interval); }, 1000);
-        }
-      })();
-    </script>`,
+      </form>`,
+    script: countdownScript("clocked-countdown", "clocked-out-btn", targetMs),
   };
-}
-
-function modeLabel(mode) {
-  return mode === "WFH" ? "🏠 WFH" : mode === "OFF" ? "🌴 Off" : "🏢 WFO";
 }
 
 function historyRowHtml(log) {
@@ -139,7 +162,7 @@ function historyRowHtml(log) {
       : "—";
   return `<tr>
     <td class="nowrap">${toWibDateLabel(log.work_date)}</td>
-    <td class="nowrap">${modeLabel(log.work_mode)}</td>
+    <td class="nowrap">${modeIconLabel(log.work_mode)}</td>
     <td class="nowrap">${log.clock_in_at ? toWibTime(log.clock_in_at) : "—"}</td>
     <td class="nowrap">${log.clock_out_at ? toWibTime(log.clock_out_at) : "—"}</td>
     <td>${duration}</td>
@@ -147,7 +170,7 @@ function historyRowHtml(log) {
 }
 
 export function renderClockedPage({ logs, flash, todayLog }) {
-  const { html: cardHtml, script } = clockedCardHtml(todayLog, { fullOverride: true });
+  const { html: cardHtml, script } = clockedFullCardHtml(todayLog);
   const historyRows = logs.length
     ? logs.map(historyRowHtml).join("")
     : `<tr><td colspan="5">No history yet.</td></tr>`;
@@ -158,12 +181,12 @@ export function renderClockedPage({ logs, flash, todayLog }) {
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Clocked!</title>
-${faviconLink("/icons/hub.png")}
+${faviconLink("/icons/clocked.png")}
 <style>${DASHBOARD_CSS}</style>
 </head>
 <body>
   <div class="container">
-    ${navHeader({ icon: "/icons/hub.png", title: "⏰ Clocked!", links: [{ href: "/hub", label: "Home" }] })}
+    ${navHeader({ icon: "/icons/clocked.png", title: "Clocked!", links: [{ href: "/hub", label: "Home" }] })}
 
     ${flash ? `<div class="flash flash-${flash.type}">${escapeHtml(flash.text)}</div>` : ""}
 

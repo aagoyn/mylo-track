@@ -397,14 +397,14 @@ router.get("/dashboard/spending", requireAuth, async (req, res) => {
       getAggregatedExpenses(chatId, dayBounds.startISO, dayBounds.endISO),
       getAggregatedExpenses(chatId, weekBounds.startISO, weekBounds.endISO),
       getAggregatedExpenses(chatId, monthBounds.startISO, monthBounds.endISO),
-      getRecentExpenseLogs(chatId, 20),
+      getRecentExpenseLogs(chatId, 15),
       getWeekExpenseLogs(chatId),
     ]);
 
     const transactionRows = transactions
       .map(
         (r) =>
-          `<tr><td>${formatDateLabelWib(r.created_at)}</td><td>${escapeHtml(r.description)}</td><td>${escapeHtml(r.category)}</td><td>${r.type === "Income" ? "+" : "-"}${formatRupiah(r.amount)}</td></tr>`
+          `<tr><td class="nowrap">${formatDateLabelWib(r.created_at)}</td><td>${escapeHtml(r.description)}</td><td>${escapeHtml(r.category)}</td><td>${r.type === "Income" ? "+" : "-"}${formatRupiah(r.amount)}</td></tr>`
       )
       .join("");
 

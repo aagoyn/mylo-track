@@ -25,6 +25,7 @@ export const DASHBOARD_CSS = `
   .card-sub { font-size: 12px; color: #64748b; margin-top: 2px; }
   table { width: 100%; border-collapse: collapse; background: #1e293b; border-radius: 12px; overflow: hidden; }
   th, td { text-align: left; padding: 10px 14px; font-size: 13px; border-bottom: 1px solid #334155; }
+  th.nowrap, td.nowrap { white-space: nowrap; }
   th { color: #94a3b8; font-weight: 500; }
   tr:last-child td { border-bottom: none; }
   .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }

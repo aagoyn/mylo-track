@@ -169,7 +169,7 @@ ${faviconLink("/icons/spending.png")}
 
     <h2>${iconLabel("/icons/recent-transactions.png", "Recent Transactions")}</h2>
     <table>
-      <thead><tr><th>🗓️ Date</th><th>📝 Description</th><th>🏷️ Category</th><th>💰 Amount</th></tr></thead>
+      <thead><tr><th class="nowrap">🗓️ Date</th><th>📝 Description</th><th>🏷️ Category</th><th>💰 Amount</th></tr></thead>
       <tbody>${transactionRows || `<tr><td colspan="4">No transactions yet.</td></tr>`}</tbody>
     </table>
   </div>

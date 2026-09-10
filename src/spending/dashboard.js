@@ -1,4 +1,4 @@
-import { DASHBOARD_CSS, escapeHtml, navHeader, stackedBarChartSvg, faviconLink, iconLabel, statBarHtml, progressFormScript } from "../shared/dashboard-layout.js";
+import { DASHBOARD_CSS, escapeHtml, navHeader, horizontalStackedBarChartSvg, faviconLink, iconLabel, statBarHtml, progressFormScript } from "../shared/dashboard-layout.js";
 
 // flavor text buat "Budget Boss HP bar" - gamify budget mingguan biar lebih iseng dilihat
 function budgetFlavorText(pct, remaining, weeklyBudget) {
@@ -154,7 +154,7 @@ ${faviconLink("/icons/spending.png")}
     <h2>${iconLabel("/icons/trend.png", "7-Day Spending Trend (by Category)")}</h2>
     ${
       weekChartData?.length
-        ? `<div class="chart-card">${stackedBarChartSvg(weekChartData, buildCategorySeries(weekChartData), {
+        ? `<div class="chart-card">${horizontalStackedBarChartSvg(weekChartData, buildCategorySeries(weekChartData), {
             formatValue: (v) => `${Math.round(v / 1000)}k`,
             itemsPerRow: 4,
           })}</div>`

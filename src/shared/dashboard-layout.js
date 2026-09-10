@@ -411,12 +411,22 @@ export function stackedBarChartSvg(
 
   const totals = days.map((d) => series.reduce((sum, s) => sum + (d.values[s.key] || 0), 0));
   const max = Math.max(1, ...totals);
-  const barWidth = width / days.length;
+
+  // Bar makin ramping & gap antar bar makin rapat dibanding sebelumnya (dulu tiap bar makan
+  // 70% dari slot-nya sendiri, gap 15% tiap sisi - gap & lebar bar saling melengkapi dari slot
+  // yang tetap, jadi nggak bisa dikecilin bareng tanpa nyisain ruang). Sisa ruang yang kebebas
+  // dari ngecilin dua-duanya ditaruh sebagai padding di kiri-kanan chart, bukan disebar jadi
+  // gap ekstra antar bar.
+  const slotPitch = width / days.length;
+  const barW = slotPitch * 0.6;
+  const gapEachSide = slotPitch * 0.07;
+  const pitch = barW + gapEachSide * 2;
+  const startX = (width - pitch * days.length) / 2;
 
   const bars = days
     .map((d, i) => {
-      const x = i * barWidth + barWidth * 0.15;
-      const w = barWidth * 0.7;
+      const x = startX + i * pitch + gapEachSide;
+      const w = barW;
       let yCursor = barBaseline;
       const segs = series
         .map((s) => {
@@ -430,25 +440,85 @@ export function stackedBarChartSvg(
         .join("");
       const total = totals[i];
       return `
-        ${total > 0 ? `<text x="${x + w / 2}" y="${Math.max(10, yCursor - 4)}" font-size="9" fill="#e2e8f0" text-anchor="middle">${formatValue(total)}</text>` : ""}
+        ${total > 0 ? `<text x="${x + w / 2}" y="${Math.max(10, yCursor - 4)}" font-size="10" fill="#e2e8f0" text-anchor="middle">${formatValue(total)}</text>` : ""}
         ${segs}
         <text x="${x + w / 2}" y="${dayLabelY}" font-size="10" fill="#94a3b8" text-anchor="middle">${d.label}</text>
       `;
     })
     .join("");
 
-  const legend = series
+  const legend = categoryLegendSvg(series, width, legendStartY, itemsPerRow);
+
+  return `<svg viewBox="0 0 ${width} ${height}" width="100%" height="${height}" role="img" aria-label="Stacked bar chart">${bars}${legend}</svg>`;
+}
+
+// legend dipakai bareng oleh stackedBarChartSvg (vertical) dan horizontalStackedBarChartSvg
+function categoryLegendSvg(series, width, startY, itemsPerRow) {
+  return series
     .map((s, i) => {
       const col = i % itemsPerRow;
       const row = Math.floor(i / itemsPerRow);
       const x = Math.round(4 + col * (width / itemsPerRow));
-      const y = legendStartY + row * 16;
+      const y = startY + row * 16;
       return `
         <rect x="${x}" y="${y - 8}" width="9" height="9" fill="${s.color}" rx="2" />
         <text x="${x + 13}" y="${y}" font-size="9" fill="#94a3b8">${escapeHtml(s.name)}</text>
       `;
     })
     .join("");
+}
 
-  return `<svg viewBox="0 0 ${width} ${height}" width="100%" height="${height}" role="img" aria-label="Stacked bar chart">${bars}${legend}</svg>`;
+// Varian horizontal - satu row per hari, bar makin ke kanan makin besar (bukan makin ke atas).
+// Dipilih buat dashboard Spending: label hari selalu horizontal (nggak kepepet kecil kayak di
+// versi vertical), dan ada ruang lebih buat angka total di ujung bar.
+// days: [{ label, values: { seriesKey: number } }], series: [{ key, name, color }]
+export function horizontalStackedBarChartSvg(
+  days,
+  series,
+  { formatValue = (v) => Math.round(v), itemsPerRow = 4 } = {}
+) {
+  const width = 640;
+  const rowH = 32;
+  const topPad = 6;
+  const labelW = 54;
+  const valueW = 52;
+  const plotWidth = width - labelW - valueW;
+  const barThickness = 16;
+
+  const legendRows = Math.max(1, Math.ceil(series.length / itemsPerRow));
+  const rowsEndY = topPad + days.length * rowH;
+  const legendStartY = rowsEndY + 18;
+  const height = legendStartY + legendRows * 16 + 6;
+
+  const totals = days.map((d) => series.reduce((sum, s) => sum + (d.values[s.key] || 0), 0));
+  const max = Math.max(1, ...totals);
+
+  const rows = days
+    .map((d, i) => {
+      const rowY = topPad + i * rowH;
+      const barY = rowY + (rowH - barThickness) / 2;
+      let xCursor = labelW;
+      const segs = series
+        .map((s) => {
+          const v = d.values[s.key] || 0;
+          if (!v) return "";
+          const segWidth = (v / max) * plotWidth;
+          const x = xCursor;
+          xCursor += segWidth;
+          return `<rect x="${x.toFixed(1)}" y="${barY}" width="${segWidth.toFixed(1)}" height="${barThickness}" fill="${s.color}" rx="2" />`;
+        })
+        .join("");
+      const total = totals[i];
+      const labelY = rowY + rowH / 2 + 4;
+      return `
+        <text x="${labelW - 8}" y="${labelY}" font-size="11" fill="#94a3b8" text-anchor="end">${escapeHtml(d.label)}</text>
+        ${segs}
+        ${total > 0 ? `<text x="${(xCursor + 6).toFixed(1)}" y="${labelY}" font-size="10" fill="#e2e8f0">${formatValue(total)}</text>` : ""}
+      `;
+    })
+    .join("");
+
+  const legend = categoryLegendSvg(series, width, legendStartY, itemsPerRow);
+
+  return `<svg viewBox="0 0 ${width} ${height}" width="100%" height="${height}" role="img" aria-label="Horizontal stacked bar chart">${rows}${legend}</svg>`;
 }

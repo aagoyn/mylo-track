@@ -21,6 +21,37 @@ function pickCountdownPhrase() {
   return COUNTDOWN_PHRASES[Math.floor(Math.random() * COUNTDOWN_PHRASES.length)];
 }
 
+// rotating wording buat ajakan clock-in/mark WFH/off, sama pola-nya kayak COUNTDOWN_PHRASES
+const MODE_PHRASES = {
+  WFO: ["📅 Scheduled WFO today", "Ready to clock in?", "Off to the office?", "Time to punch in", "Let's get to work"],
+  WFH: ["Working from home today?", "Comfy clothes, let's go", "WFH mode: on", "Home office, engage"],
+  OFF: ["Enjoy your day off!", "No work today?", "Take it easy today", "Well-deserved break?"],
+};
+
+function pickModePhrase(mode) {
+  const options = MODE_PHRASES[mode] || [];
+  return options[Math.floor(Math.random() * options.length)] || "";
+}
+
+function todayDefaultMode() {
+  const day = dayOfWeekWib();
+  if ([1, 2, 4].includes(day)) return "WFO";
+  if (day === 6 || day === 7) return "OFF";
+  return "WFH";
+}
+
+const MODE_ACTION = { WFO: "/hub/clocked/clock-in", WFH: "/hub/clocked/mark-day", OFF: "/hub/clocked/mark-day" };
+const MODE_BUTTON_LABEL = { WFO: "Clock In", WFH: "Mark WFH", OFF: "Mark Day Off" };
+
+// Tombol besar utama, dipakai bareng di kartu Hub & halaman /hub/clocked (state "belum ada log").
+function bigActionButtonHtml(mode, { stopPropagation = false } = {}) {
+  const hidden = mode !== "WFO" ? `<input type="hidden" name="mode" value="${mode}">` : "";
+  return `<form method="POST" action="${MODE_ACTION[mode]}" style="margin-top:6px;" ${stopPropagation ? `onclick="event.stopPropagation()"` : ""}>
+    ${hidden}
+    <button type="submit" class="btn-primary btn-wide-short">${iconLabel(MODE_ICON[mode], MODE_BUTTON_LABEL[mode])}</button>
+  </form>`;
+}
+
 function toWibTime(isoString) {
   const wib = new Date(new Date(isoString).getTime() + WIB_OFFSET_MS);
   return wib.toISOString().slice(11, 16);
@@ -82,33 +113,10 @@ function countdownScript(elId, btnId, targetMs) {
 
 export function clockedHubCardHtml(todayLog) {
   if (!todayLog) {
-    const day = dayOfWeekWib();
-    const isFixedWfoDay = [1, 2, 4].includes(day);
-    const isWeekend = day === 6 || day === 7;
-
-    if (isFixedWfoDay) {
-      return {
-        html: `<div class="card-sub">📅 Scheduled WFO today</div>
-               <form method="POST" action="/hub/clocked/clock-in" style="margin-top:6px;" onclick="event.stopPropagation()">
-                 <button type="submit" class="btn-primary btn-wide-short">${iconLabel(MODE_ICON.WFO, "Clock In")}</button>
-               </form>`,
-        script: "",
-      };
-    }
-    if (isWeekend) {
-      return {
-        html: `<form method="POST" action="/hub/clocked/mark-day" style="margin-top:6px;" onclick="event.stopPropagation()">
-                 <input type="hidden" name="mode" value="OFF">
-                 <button type="submit" class="btn-primary btn-wide-short">${iconLabel(MODE_ICON.OFF, "Mark Day Off")}</button>
-               </form>`,
-        script: "",
-      };
-    }
+    const mode = todayDefaultMode();
     return {
-      html: `<form method="POST" action="/hub/clocked/mark-day" style="margin-top:6px;" onclick="event.stopPropagation()">
-               <input type="hidden" name="mode" value="WFH">
-               <button type="submit" class="btn-primary btn-wide-short">${iconLabel(MODE_ICON.WFH, "Mark WFH")}</button>
-             </form>`,
+      html: `<div class="card-sub">${pickModePhrase(mode)}</div>
+             ${bigActionButtonHtml(mode, { stopPropagation: true })}`,
       script: "",
     };
   }
@@ -151,21 +159,23 @@ function overrideButton(mode, action, label) {
   </form>`;
 }
 
-// Cuma nampilin opsi yang BEDA dari mode hari ini - kalau semua 3 opsi ditampilin termasuk
-// yang lagi aktif (di-disable), user bisa nyangka tombolnya error/nggak ngerespon pas diklik.
-function overrideSectionHtml(currentMode) {
+// Cuma nampilin opsi yang BEDA dari excludeMode (mode hari ini yang lagi aktif, atau default
+// hari ini kalau belum ada log sama sekali - biar nggak dobel sama tombol besar di atasnya).
+// Kalau semua 3 opsi ditampilin termasuk yang lagi aktif (di-disable), user bisa nyangka
+// tombolnya error/nggak ngerespon pas diklik.
+function overrideSectionHtml(excludeMode, { label = "Change today to" } = {}) {
   const options = [
-    { mode: "WFO", action: "/hub/clocked/clock-in", label: iconLabel(MODE_ICON.WFO, "WFO") },
-    { mode: "WFH", action: "/hub/clocked/mark-day", label: iconLabel(MODE_ICON.WFH, "WFH") },
-    { mode: "OFF", action: "/hub/clocked/mark-day", label: iconLabel(MODE_ICON.OFF, "Off") },
-  ].filter((o) => o.mode !== currentMode);
+    { mode: "WFO", label: iconLabel(MODE_ICON.WFO, "WFO") },
+    { mode: "WFH", label: iconLabel(MODE_ICON.WFH, "WFH") },
+    { mode: "OFF", label: iconLabel(MODE_ICON.OFF, "Off") },
+  ].filter((o) => o.mode !== excludeMode);
 
   if (!options.length) return "";
 
   return `
-    <div class="card-sub" style="margin-top:14px; margin-bottom:6px; text-align:center;">Change today to</div>
+    <div class="card-sub" style="margin-top:14px; margin-bottom:6px; text-align:center;">${label}</div>
     <div class="button-row" style="justify-content:center; gap:8px;">
-      ${options.map((o) => overrideButton(o.mode, o.action, o.label)).join("")}
+      ${options.map((o) => overrideButton(o.mode, MODE_ACTION[o.mode], o.label)).join("")}
     </div>`;
 }
 
@@ -174,7 +184,13 @@ export function clockedFullCardHtml(todayLog) {
   let script = "";
 
   if (!todayLog) {
-    statusHtml = `<div class="empty-state" style="text-align:center;">Not logged yet today.</div>`;
+    const mode = todayDefaultMode();
+    statusHtml = `
+      <div style="text-align:center;">
+        <div class="card-sub" style="margin-bottom:2px;">${pickModePhrase(mode)}</div>
+        ${bigActionButtonHtml(mode)}
+      </div>`;
+    return { html: statusHtml + overrideSectionHtml(mode, { label: "Or, log today as" }), script };
   } else if (todayLog.work_mode !== "WFO") {
     statusHtml = `<div class="card-value" style="text-align:center;">${modeIconLabel(todayLog.work_mode)} today</div>`;
   } else if (todayLog.clock_out_at) {

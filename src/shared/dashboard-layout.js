@@ -40,7 +40,8 @@ export const DASHBOARD_CSS = `
   .form-card > summary::-webkit-details-marker { display: none; }
   .form-card > summary::before { content: "▸ "; color: #64748b; }
   .form-card[open] > summary::before { content: "▾ "; }
-  .form-card input[type="text"], .form-card input[type="number"] {
+  .form-card input[type="text"], .form-card input[type="number"],
+  .ai-suggestion-card input[type="text"], .ai-suggestion-card input[type="number"] {
     width: 100%; padding: 9px 10px; border-radius: 8px; border: 1px solid #334155;
     background: #0f172a; color: #e2e8f0; box-sizing: border-box; font-size: 14px; margin-bottom: 8px;
   }

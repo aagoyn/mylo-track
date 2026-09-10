@@ -499,7 +499,7 @@ export function suggestionCardHtml({ product, enriched, cancelHref, ajaxApprove 
         <button type="submit" class="btn-primary">Approve</button>
         ${
           ajaxApprove
-            ? `<button type="button" class="btn-secondary" onclick="this.closest('.ai-suggestion-card').remove()">Don't use this suggestion</button>`
+            ? `<button type="button" class="btn-secondary" onclick="window.__dismissSuggestionCard(this)">Don't use this suggestion</button>`
             : `<a class="btn-secondary" href="${cancelHref}">Don't use this suggestion</a>`
         }
       </div>
@@ -526,7 +526,8 @@ export function renderRoutineReviewPage({ cards, overallNotes, hasNoSuggestions 
       ${
         hasNoSuggestions
           ? `<div class="empty-state">Your current routine already looks reasonable — no changes suggested right now.</div>`
-          : `<div class="button-row" style="margin-bottom:16px; max-width:320px;">
+          : `<div id="review-complete-banner" class="flash flash-success" style="display:none;">✅ All done! Heading back to today's routine...</div>
+            <div class="button-row" style="margin-bottom:16px; max-width:320px;">
               <button type="button" id="approve-all-btn" class="btn-primary">✅ Approve all</button>
               <button type="button" id="reject-all-btn" class="btn-secondary">✖ Reject all</button>
             </div>

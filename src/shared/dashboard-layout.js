@@ -428,6 +428,19 @@ export function overlayFormScript(formIds, overlayId = "loading-overlay") {
 export function ajaxApproveFormScript() {
   return `<script>
     (function () {
+      function checkAllDone() {
+        if (document.querySelectorAll("form[data-ajax-approve]").length > 0) return;
+        const banner = document.getElementById("review-complete-banner");
+        if (!banner) return;
+        banner.style.display = "block";
+        setTimeout(function () { window.location.href = "/hub/skincare"; }, 1500);
+      }
+      window.__dismissSuggestionCard = function (btn) {
+        const card = btn.closest(".ai-suggestion-card");
+        if (card) card.remove();
+        checkAllDone();
+      };
+
       function approveForm(form) {
         const card = form.closest(".ai-suggestion-card") || form;
         const submitBtn = form.querySelector('button[type="submit"]');
@@ -448,6 +461,7 @@ export function ajaxApproveFormScript() {
           .then(function (result) {
             if (result.httpOk && result.data.ok) {
               card.innerHTML = '<span class="approved-badge">Approved</span>';
+              checkAllDone();
             } else {
               throw new Error((result.data && result.data.error) || "Failed to approve.");
             }
@@ -490,6 +504,7 @@ export function ajaxApproveFormScript() {
       if (rejectAllBtn) {
         rejectAllBtn.addEventListener("click", function () {
           document.querySelectorAll(".ai-suggestion-card").forEach(function (card) { card.remove(); });
+          checkAllDone();
         });
       }
     })();

@@ -22,10 +22,17 @@ tiap halaman punya favicon sendiri (file PNG di `public/icons/`, di-serve lewat
 
 **Dashboard web** — login sekali di `/login`, lanjut ke `/hub`:
 
-- `/hub` — Personal Hub: greeting, ringkasan hari ini (Calories/Spending/Mood — tiap card bisa
-  diklik ke dashboard terkait), jurnal hari ini, ringkasan wishlist, ringkasan Vault (sisa
-  monthly pool), recent activity gabungan dari semua fitur, dan navigasi ke semua
+- `/hub` — Personal Hub: greeting, ringkasan hari ini (Calories/Spending/Clocked! — tiap card
+  bisa diklik ke dashboard terkait), Journal & Mood hari ini, ringkasan wishlist, ringkasan
+  Vault (sisa monthly pool), recent activity gabungan dari semua fitur, dan navigasi ke semua
   tracker/mini-app
+- `/hub/clocked` — "Clocked!": tracker WFO/WFH/Day Off harian, satu entry per hari (di-lock
+  begitu diisi). Hari Senin/Selasa/Kamis (jadwal WFO tetap) kartu di Hub nawarin **Clock In**
+  langsung, Rabu/Jumat nawarin **Mark WFH**, weekend nawarin **Mark Day Off** — abis Clock In,
+  ada countdown live 9 jam sampai tombol **Clock Out** aktif (nyatet durasi kerja beneran).
+  Karena kadang ada WFO dadakan di luar jadwal (atau sebaliknya), halaman `/hub/clocked`
+  sendiri selalu nawarin ketiga opsi sekaligus buat override, history-nya nunjukin semua hari
+  (mode + jam masuk/pulang + durasi)
 - `/hub/mood` — Mood Tracker: input mood cepat (bisa berkali-kali sehari, tiap check-in
   kesimpen terpisah), kalender bulanan ala GitHub contribution graph (klik tanggal buat lihat
   detail check-in hari itu), ringkasan bulanan, current streak, riwayat mood
@@ -80,6 +87,10 @@ src/
   hub/
     router.js          route /hub (Personal Hub overview, agregasi dari semua fitur)
     dashboard.js         render HTML Hub overview
+    clocked/
+      router.js          route /hub/clocked + clock-in/clock-out/mark-day
+      supabase.js          query clockin_logs (satu row per hari, di-lock begitu diisi)
+      dashboard.js         render fragment card (dipakai di /hub & /hub/clocked) + halaman history
     mood/
       router.js          route /hub/mood (GET + POST)
       supabase.js          query mood_logs
@@ -139,7 +150,7 @@ npm install
    `mood_logs`, `journal_logs`, `wishlist_items`, `income_logs`, `savings_logs`,
    `bill_templates`, `bill_payments`, `misc_expense_logs` (Personal Hub), `skincare_products`,
    `skincare_routine_rules`, `skincare_relationships`, `skincare_rotation_groups`,
-   `skincare_daily_choices` (Skincare), `app_users` (akun).
+   `skincare_daily_choices` (Skincare), `clockin_logs` (Clocked!), `app_users` (akun).
 3. Buka **Storage**, bikin dua bucket: **`receipt-photos`** (foto struk) dan **`food-photos`**
    (foto makanan) — centang public read kalau mau URL foto langsung diakses browser.
 4. Buka **Settings → API**, catat `Project URL` dan `service_role` key (bukan `anon` key).
@@ -215,12 +226,12 @@ bisa dipakai di production begitu di-run, tidak perlu redeploy.
   Supabase Storage.
 - **Dashboard nggak nunjukin data** — pastiin `phone` di tabel `app_users` buat akun kamu
   sama persis dengan chat ID Telegram yang dipakai buat chat ke bot terkait.
-- **`/hub/mood`, `/hub/journal`, `/hub/wishlist`, `/hub/vault`, atau `/hub/skincare` error pas
-  load** — pastiin udah jalanin ulang `supabase/schema.sql` versi terbaru (nambah tabel
-  `mood_logs`, `journal_logs`, `wishlist_items`, `income_logs`, `savings_logs`,
-  `bill_templates`, `bill_payments`, `misc_expense_logs`, `skincare_products`,
+- **`/hub/mood`, `/hub/journal`, `/hub/wishlist`, `/hub/vault`, `/hub/skincare`, atau
+  `/hub/clocked` error pas load** — pastiin udah jalanin ulang `supabase/schema.sql` versi
+  terbaru (nambah tabel `mood_logs`, `journal_logs`, `wishlist_items`, `income_logs`,
+  `savings_logs`, `bill_templates`, `bill_payments`, `misc_expense_logs`, `skincare_products`,
   `skincare_routine_rules`, `skincare_relationships`, `skincare_rotation_groups`,
-  `skincare_daily_choices`) di project Supabase kamu.
+  `skincare_daily_choices`, `clockin_logs`) di project Supabase kamu.
 - **"Analyze with AI" / "Analyze my skincare routine" di Skincare error atau gagal** — pastiin
   `GEMINI_API_KEY` valid dan belum kena limit — pesan errornya biasanya udah nunjukin
   penyebabnya (lihat `shared/gemini-json.js`).

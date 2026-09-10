@@ -19,6 +19,7 @@ import {
 } from "./vault/supabase.js";
 import { getProducts } from "./skincare/supabase.js";
 import { getDayRoutine } from "./skincare/routine-engine.js";
+import { getTodayClockLog } from "./clocked/supabase.js";
 import { renderHubDashboard } from "./dashboard.js";
 
 const WIB_OFFSET_MS = 7 * 60 * 60 * 1000;
@@ -131,6 +132,7 @@ router.get("/hub", requireAuth, async (req, res) => {
     wishlistResult,
     vaultResult,
     skincareResult,
+    clockedResult,
   ] = await Promise.allSettled([
     (async () => {
       const { startISO, endISO } = getSpendingDayBoundsWib();
@@ -166,6 +168,7 @@ router.get("/hub", requireAuth, async (req, res) => {
       const [products, dayRoutine] = await Promise.all([getProducts(phone), getDayRoutine(phone, todayKey)]);
       return { hasProducts: products.length > 0, amSteps: dayRoutine.faceAM.steps.length, pmSteps: dayRoutine.facePM.steps.length };
     })(),
+    getTodayClockLog(phone),
   ]);
 
   const spendingTotalToday = spendingResult.status === "fulfilled" ? spendingResult.value.total : null;
@@ -199,6 +202,8 @@ router.get("/hub", requireAuth, async (req, res) => {
   const vaultSummary = vaultResult.status === "fulfilled" ? vaultResult.value : null;
 
   const skincareSummary = skincareResult.status === "fulfilled" ? skincareResult.value : null;
+
+  const clockedToday = clockedResult.status === "fulfilled" ? clockedResult.value : null;
 
   const recentActivity = [];
   if (recentSpendingResult.status === "fulfilled") {
@@ -257,6 +262,7 @@ router.get("/hub", requireAuth, async (req, res) => {
       wishlistSummary,
       vaultSummary,
       skincareSummary,
+      clockedToday,
       recentActivity: recentActivity.slice(0, 4).map((a) => ({ ...a, time: toWibTime(a.timestamp) })),
     })
   );

@@ -244,6 +244,24 @@ create table if not exists skincare_daily_choices (
 );
 alter table skincare_daily_choices enable row level security;
 
+-- "Clocked!" - WFO clock-in tracker. Satu row per hari (unique phone+work_date). work_mode
+-- default 'WFO' (diisi otomatis pas Clock In) - clock_in_at/clock_out_at nullable biar hari
+-- WFH/OFF juga bisa dicatat di history tanpa jam clock-in. clock_in_at di-lock begitu diisi,
+-- nggak bisa diubah lagi hari itu; clock_out_at baru keisi kalau user klik "Clock Out" (di-enable
+-- di UI setelah 9 jam dari clock_in_at, dicek lagi di server).
+create table if not exists clockin_logs (
+  id uuid primary key default gen_random_uuid(),
+  phone text not null,
+  work_date date not null,
+  work_mode text not null default 'WFO'
+    check (work_mode in ('WFO', 'WFH', 'OFF')),
+  clock_in_at timestamptz,
+  clock_out_at timestamptz,
+  created_at timestamptz not null default now(),
+  unique (phone, work_date)
+);
+alter table clockin_logs enable row level security;
+
 -- Tabel akun web, dipakai bareng oleh dashboard spending & kalori (satu login untuk keduanya).
 -- "phone" di sini merujuk ke chat id Telegram-nya (dipakai buat filter data & jadi
 -- allow-list Telegram sekaligus, untuk kedua bot).

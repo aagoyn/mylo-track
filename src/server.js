@@ -10,6 +10,7 @@ import { router as journalRouter } from "./hub/journal/router.js";
 import { router as wishlistRouter } from "./hub/wishlist/router.js";
 import { router as vaultRouter } from "./hub/vault/router.js";
 import { router as skincareRouter } from "./hub/skincare/router.js";
+import { router as clockedRouter } from "./hub/clocked/router.js";
 
 const PORT = process.env.PORT || 3000;
 
@@ -48,6 +49,7 @@ app.use(journalRouter);
 app.use(wishlistRouter);
 app.use(vaultRouter);
 app.use(skincareRouter);
+app.use(clockedRouter);
 app.use(spendingRouter);
 app.use(calorieRouter);
 

@@ -1,4 +1,5 @@
 import { DASHBOARD_CSS, escapeHtml, navHeader, faviconLink, iconLabel } from "../shared/dashboard-layout.js";
+import { clockedCardHtml } from "./clocked/dashboard.js";
 
 const MOOD_META = {
   terrible: { emoji: "😫", label: "Terrible" },
@@ -36,6 +37,7 @@ export function renderHubDashboard({
   wishlistSummary,
   vaultSummary,
   skincareSummary,
+  clockedToday,
   recentActivity,
 }) {
   const hasSpending = spendingToday && spendingToday.total > 0;
@@ -56,6 +58,8 @@ export function renderHubDashboard({
        ${moodToday.note ? `<div class="card-note">"${escapeHtml(moodToday.note)}"</div>` : ""}
        ${moodCheckinsToday > 1 ? `<div class="card-sub">${moodCheckinsToday} check-ins today</div>` : ""}`
     : `<div class="empty-state">Not logged<br><a href="/hub/mood">+ Log mood</a></div>`;
+
+  const { html: clockedCard, script: clockedScript } = clockedCardHtml(clockedToday);
 
   const recentRows = recentActivity.length
     ? recentActivity.map((a) => activityRow(a)).join("")
@@ -122,14 +126,18 @@ ${faviconLink("/icons/hub.png")}
         <div class="card-label">${iconLabel("/icons/spending.png", "Spending")}</div>
         ${spendingCard}
       </a>
-      <div class="card mood-today">
-        <div class="card-label">${iconLabel("/icons/mood.png", "Mood")}</div>
-        ${moodCard}
+      <div class="card">
+        <div class="card-label">⏰ Clocked!</div>
+        ${clockedCard}
       </div>
     </section>
 
     <h2>${iconLabel("/icons/journal.png", "Today")}</h2>
     <div class="card">${journalSection}</div>
+    <div class="card mood-today" style="margin-top:12px;">
+      <div class="card-label">${iconLabel("/icons/mood.png", "Mood")}</div>
+      ${moodCard}
+    </div>
 
     <h2>${iconLabel("/icons/skincare.png", "Skincare")}</h2>
     <div class="card">${skincareSection}</div>
@@ -155,12 +163,14 @@ ${faviconLink("/icons/hub.png")}
       <div class="hub-nav-links">
         <a class="hub-nav-item" href="/hub/mood">${iconLabel("/icons/mood.png", "Mood")}</a>
         <a class="hub-nav-item" href="/hub/journal">${iconLabel("/icons/journal.png", "Journal")}</a>
+        <a class="hub-nav-item" href="/hub/clocked">⏰ Clocked!</a>
         <a class="hub-nav-item" href="/hub/wishlist">${iconLabel("/icons/wishlist.png", "Wishlist")}</a>
         <a class="hub-nav-item" href="/hub/vault">${iconLabel("/icons/vault.png", "Vault")}</a>
         <a class="hub-nav-item" href="/hub/skincare">${iconLabel("/icons/skincare.png", "Skincare")}</a>
       </div>
     </div>
   </div>
+  ${clockedScript}
 </body>
 </html>`;
 }

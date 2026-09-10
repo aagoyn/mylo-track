@@ -108,6 +108,12 @@ export const DASHBOARD_CSS = `
     font-family: inherit;
   }
   textarea { resize: vertical; min-height: 90px; }
+  select {
+    appearance: none; -webkit-appearance: none; cursor: pointer; padding-right: 30px;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%2394a3b8' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right 10px center;
+  }
+  select:hover { border-color: #475569; }
 
   .journal-entry { background: #1e293b; border-radius: 12px; padding: 16px; white-space: pre-wrap; font-size: 14px; margin-bottom: 8px; }
   .journal-history-item { padding: 10px 0; border-bottom: 1px solid #334155; }
@@ -278,7 +284,7 @@ export const DASHBOARD_CSS = `
   .rule-card .rule-actions button.btn-danger-outline { border-color: #ef444488; color: #ef4444; }
   .rule-card .rule-actions button.btn-danger-outline:hover { background: #ef444422; border-color: #ef4444; }
 
-  .product-table-wrap { overflow-x: auto; }
+  .product-table-wrap, .table-wrap { overflow-x: auto; }
   .product-table-wrap td { vertical-align: top; }
   .product-name-cell { font-weight: 600; }
   .product-brand-cell { font-size: 12px; color: #94a3b8; margin-top: 2px; }

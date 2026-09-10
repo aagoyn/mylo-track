@@ -41,10 +41,12 @@ function periodCard(icon, text, { total, categories }) {
   return `
     <div>
       <h2>${iconLabel(icon, text)}</h2>
-      <table>
-        <thead><tr><th>🏷️ Category</th><th>💰 Total</th></tr></thead>
-        <tbody>${rows || `<tr><td colspan="2">No data yet.</td></tr>`}</tbody>
-      </table>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>🏷️ Category</th><th>💰 Total</th></tr></thead>
+          <tbody>${rows || `<tr><td colspan="2">No data yet.</td></tr>`}</tbody>
+        </table>
+      </div>
       <div class="card" style="margin-top: 8px;">
         <div class="card-label">Total ${text}</div>
         <div class="card-value">Rp${Math.round(total).toLocaleString("id-ID")}</div>
@@ -168,10 +170,12 @@ ${faviconLink("/icons/spending.png")}
     ${periodCard("/icons/month.png", "This Month", month)}
 
     <h2>${iconLabel("/icons/recent-transactions.png", "Recent Transactions")}</h2>
-    <table>
-      <thead><tr><th class="nowrap">🗓️ Date</th><th>📝 Description</th><th>🏷️ Category</th><th>💰 Amount</th></tr></thead>
-      <tbody>${transactionRows || `<tr><td colspan="4">No transactions yet.</td></tr>`}</tbody>
-    </table>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th class="nowrap">🗓️ Date</th><th>📝 Description</th><th>🏷️ Category</th><th>💰 Amount</th></tr></thead>
+        <tbody>${transactionRows || `<tr><td colspan="4">No transactions yet.</td></tr>`}</tbody>
+      </table>
+    </div>
   </div>
   ${progressFormScript([
     { formId: "expense-photo-form", submitId: "expense-photo-submit", progressId: "expense-photo-progress", loadingLabel: "Reading receipt..." },

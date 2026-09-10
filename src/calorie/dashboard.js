@@ -208,16 +208,20 @@ ${faviconLink("/icons/calorie.png")}
         ? `<div class="chart-card">${stackedBarChartSvg(weekChartData, MACRO_SERIES, { itemsPerRow: 6 })}</div>`
         : ""
     }
-    <table>
-      <thead><tr><th>📆 Day</th><th>🔥 Calories</th></tr></thead>
-      <tbody>${weekRows || `<tr><td colspan="2">No data yet.</td></tr>`}</tbody>
-    </table>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>📆 Day</th><th>🔥 Calories</th></tr></thead>
+        <tbody>${weekRows || `<tr><td colspan="2">No data yet.</td></tr>`}</tbody>
+      </table>
+    </div>
 
     <h2>${iconLabel("/icons/scales.png", "Weight")}</h2>
-    <table>
-      <thead><tr><th>🗓️ Date</th><th>⚖️ Weight</th></tr></thead>
-      <tbody>${weightRows || `<tr><td colspan="2">No data yet.</td></tr>`}</tbody>
-    </table>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>🗓️ Date</th><th>⚖️ Weight</th></tr></thead>
+        <tbody>${weightRows || `<tr><td colspan="2">No data yet.</td></tr>`}</tbody>
+      </table>
+    </div>
   </div>
   ${progressFormScript([
     { formId: "food-text-form", submitId: "food-text-submit", progressId: "food-text-progress", loadingLabel: "Analyzing..." },

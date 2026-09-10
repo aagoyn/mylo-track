@@ -157,9 +157,11 @@ ${faviconLink("/icons/mood.png")}
     ${dayDetail ? dayDetailHtml(dayDetail) : ""}
 
     <h2>This month</h2>
-    <table>
-      <tbody>${summaryRows}</tbody>
-    </table>
+    <div class="table-wrap">
+      <table>
+        <tbody>${summaryRows}</tbody>
+      </table>
+    </div>
     ${
       mostCommon
         ? `<div class="card" style="margin-top:8px;">

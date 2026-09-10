@@ -136,15 +136,13 @@ ${faviconLink("/icons/vault.png")}
     <div class="card">
       <div class="card-label">${iconLabel("/icons/vault.png", "Monthly Overview")}</div>
       <div class="card-value">${formatRupiah(monthlyRemaining)} left</div>
-      <table style="margin-top:10px;">
-        <tbody>
-          ${overviewLine("Income this month", monthlyIncome, "+")}
-          ${overviewLine("Savings (net)", monthlySavingsNet, "-")}
-          ${overviewLine("Weekly topups", monthlyTopupTotal, "-")}
-          ${overviewLine("Bills paid", monthlyBillsPaidTotal, "-")}
-          ${overviewLine("Other expenses", monthlyMiscExpenseTotal, "-")}
-        </tbody>
-      </table>
+      <div style="margin-top:10px;">
+        ${overviewLine("Income this month", monthlyIncome, "+")}
+        ${overviewLine("Savings (net)", monthlySavingsNet, "-")}
+        ${overviewLine("Weekly topups", monthlyTopupTotal, "-")}
+        ${overviewLine("Bills paid", monthlyBillsPaidTotal, "-")}
+        ${overviewLine("Other expenses", monthlyMiscExpenseTotal, "-")}
+      </div>
     </div>
 
     <h2>${iconLabel("/icons/income.png", "Income")}</h2>

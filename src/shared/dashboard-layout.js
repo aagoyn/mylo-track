@@ -144,6 +144,19 @@ export const DASHBOARD_CSS = `
     100% { left: 100%; }
   }
 
+  .loading-overlay {
+    display: none; position: fixed; inset: 0; background: rgba(15, 23, 42, .75);
+    z-index: 1000; align-items: center; justify-content: center; flex-direction: column; gap: 12px;
+  }
+  .loading-overlay.visible { display: flex; }
+  .loading-overlay-spinner {
+    width: 40px; height: 40px; border-radius: 50%;
+    border: 4px solid #334155; border-top-color: #6366f1;
+    animation: loading-overlay-spin .8s linear infinite;
+  }
+  .loading-overlay-text { font-size: 13px; color: #e2e8f0; }
+  @keyframes loading-overlay-spin { to { transform: rotate(360deg); } }
+
   label { display: block; font-size: 11px; color: #94a3b8; margin-bottom: 3px; }
 
   .log-item { background: #1e293b; border-radius: 12px; margin-bottom: 8px; overflow: hidden; }
@@ -352,6 +365,31 @@ export function progressFormScript(configs) {
       });
     }
     ${calls}
+  </script>`;
+}
+
+// Overlay full-page (backdrop + spinner ditengah, blokir klik ke elemen di belakangnya) buat
+// form yang tombolnya ada di dalam komponen yang bisa ke-hide sendiri (mis. dropdown yang
+// auto-close begitu diklik) - progressFormScript nggak kepake di situ karena progress bar-nya
+// ikut collapse/invisible barengan kontainernya. formIds: array id form yang mau di-wire.
+export function loadingOverlayHtml(id = "loading-overlay", text = "Loading...") {
+  return `<div class="loading-overlay" id="${id}">
+    <div class="loading-overlay-spinner"></div>
+    <div class="loading-overlay-text">${escapeHtml(text)}</div>
+  </div>`;
+}
+
+export function overlayFormScript(formIds, overlayId = "loading-overlay") {
+  if (!formIds.length) return "";
+  return `<script>
+    (function () {
+      const overlay = document.getElementById(${JSON.stringify(overlayId)});
+      if (!overlay) return;
+      ${JSON.stringify(formIds)}.forEach(function (formId) {
+        const form = document.getElementById(formId);
+        if (form) form.addEventListener("submit", function () { overlay.classList.add("visible"); });
+      });
+    })();
   </script>`;
 }
 

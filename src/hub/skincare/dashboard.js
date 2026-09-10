@@ -1,4 +1,4 @@
-import { DASHBOARD_CSS, escapeHtml, faviconLink, iconLabel, navHeader, progressFormScript } from "../../shared/dashboard-layout.js";
+import { DASHBOARD_CSS, escapeHtml, faviconLink, iconLabel, navHeader, progressFormScript, loadingOverlayHtml, overlayFormScript } from "../../shared/dashboard-layout.js";
 
 // duplikat kecil dari ./supabase.js (dipakai buat validasi di sana) - sengaja nggak di-import
 // dari situ biar dashboard.js (layer render doang) nggak ikut narik shared/supabase-client.js
@@ -70,7 +70,7 @@ function subnavHtml(active) {
 
 // active: "today" | "products" | "rules" | undefined (halaman lepas dari 3 tab utama, mis.
 // edit product / review saran AI - subnav tetep muncul tanpa tab yang di-highlight)
-function pageShell({ title, body, active, progressForms = [] }) {
+function pageShell({ title, body, active, progressForms = [], overlayFormIds = [] }) {
   return `<!doctype html>
 <html lang="en">
 <head>
@@ -86,6 +86,7 @@ ${faviconLink("/icons/skincare.png")}
     ${subnavHtml(active)}
     ${body}
   </div>
+  ${overlayFormIds.length ? loadingOverlayHtml("loading-overlay", "Analyzing with AI...") : ""}
   <script>
     // Satu delegated listener buat dua komponen dropdown custom di halaman ini:
     // - .category-dropdown (form Add/Edit Product) - <option> nggak bisa render <img>, jadi
@@ -126,6 +127,7 @@ ${faviconLink("/icons/skincare.png")}
     });
   </script>
   ${progressFormScript(progressForms)}
+  ${overlayFormScript(overlayFormIds)}
 </body>
 </html>`;
 }
@@ -335,7 +337,7 @@ function productRowHtml(product, rule) {
         <button type="button" class="actions-menu-trigger" aria-label="Actions">⋮</button>
         <div class="actions-menu-list">
           <a class="actions-menu-item" href="/hub/skincare/products/${product.id}/edit">✏️ Edit</a>
-          <form method="POST" action="/hub/skincare/analyze">
+          <form method="POST" action="/hub/skincare/analyze" id="analyze-form-${product.id}">
             <input type="hidden" name="product_id" value="${product.id}">
             <button type="submit" class="actions-menu-item">🤖 Analyze with AI</button>
           </form>
@@ -388,6 +390,7 @@ export function renderProductsPage({ products, rulesByProductId, flash }) {
     progressForms: [
       { formId: "add-product-form", submitId: "add-product-submit", progressId: "add-product-progress", loadingLabel: "Adding & analyzing with AI..." },
     ],
+    overlayFormIds: products.map((p) => `analyze-form-${p.id}`),
   });
 }
 

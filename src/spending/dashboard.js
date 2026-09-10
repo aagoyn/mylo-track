@@ -1,4 +1,4 @@
-import { DASHBOARD_CSS, escapeHtml, navHeader, stackedBarChartSvg, faviconLink, iconLabel, statBarHtml } from "../shared/dashboard-layout.js";
+import { DASHBOARD_CSS, escapeHtml, navHeader, stackedBarChartSvg, faviconLink, iconLabel, statBarHtml, progressFormScript } from "../shared/dashboard-layout.js";
 
 // flavor text buat "Budget Boss HP bar" - gamify budget mingguan biar lebih iseng dilihat
 function budgetFlavorText(pct, remaining, weeklyBudget) {
@@ -130,9 +130,12 @@ ${faviconLink("/icons/spending.png")}
       </div>
       <div class="form-card">
         <h3>${iconLabel("/icons/receipt.png", "Via Receipt Photo")}</h3>
-        <form method="POST" action="/dashboard/spending/expense-photo" enctype="multipart/form-data">
+        <form method="POST" action="/dashboard/spending/expense-photo" enctype="multipart/form-data" id="expense-photo-form">
           <input type="file" name="photo" accept="image/*" required>
-          <button type="submit">Save</button>
+          <button type="submit" id="expense-photo-submit">Save</button>
+          <div class="upload-progress" id="expense-photo-progress" hidden>
+            <div class="upload-progress-bar"></div>
+          </div>
         </form>
       </div>
     </div>
@@ -170,6 +173,9 @@ ${faviconLink("/icons/spending.png")}
       <tbody>${transactionRows || `<tr><td colspan="4">No transactions yet.</td></tr>`}</tbody>
     </table>
   </div>
+  ${progressFormScript([
+    { formId: "expense-photo-form", submitId: "expense-photo-submit", progressId: "expense-photo-progress", loadingLabel: "Reading receipt..." },
+  ])}
 </body>
 </html>`;
 }

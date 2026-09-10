@@ -1,4 +1,4 @@
-import { DASHBOARD_CSS, escapeHtml, faviconLink, iconLabel, navHeader } from "../../shared/dashboard-layout.js";
+import { DASHBOARD_CSS, escapeHtml, faviconLink, iconLabel, navHeader, progressFormScript } from "../../shared/dashboard-layout.js";
 
 // duplikat kecil dari ./supabase.js (dipakai buat validasi di sana) - sengaja nggak di-import
 // dari situ biar dashboard.js (layer render doang) nggak ikut narik shared/supabase-client.js
@@ -70,7 +70,7 @@ function subnavHtml(active) {
 
 // active: "today" | "products" | "rules" | undefined (halaman lepas dari 3 tab utama, mis.
 // edit product / review saran AI - subnav tetep muncul tanpa tab yang di-highlight)
-function pageShell({ title, body, active }) {
+function pageShell({ title, body, active, progressForms = [] }) {
   return `<!doctype html>
 <html lang="en">
 <head>
@@ -125,6 +125,7 @@ ${faviconLink("/icons/skincare.png")}
       for (var m = 0; m < openMenus.length; m++) openMenus[m].classList.remove("open");
     });
   </script>
+  ${progressFormScript(progressForms)}
 </body>
 </html>`;
 }
@@ -266,11 +267,17 @@ export function renderSkincareDashboard({ productsCount, dayRoutine, productById
       <h2>AI Assistant</h2>
       <div class="card">
         <p style="color:#94a3b8; font-size:13px; margin:0 0 10px;">Let AI look at your products and suggest how to organize them. Nothing changes until you approve.</p>
-        <form method="POST" action="/hub/skincare/review">
-          <button type="submit" class="btn-primary">✨ Analyze my skincare routine</button>
+        <form method="POST" action="/hub/skincare/review" id="review-form">
+          <button type="submit" class="btn-primary" id="review-submit">✨ Analyze my skincare routine</button>
+          <div class="upload-progress" id="review-progress" hidden>
+            <div class="upload-progress-bar"></div>
+          </div>
         </form>
       </div>
     `,
+    progressForms: [
+      { formId: "review-form", submitId: "review-submit", progressId: "review-progress", loadingLabel: "Analyzing your routine..." },
+    ],
   });
 }
 
@@ -361,9 +368,12 @@ export function renderProductsPage({ products, rulesByProductId, flash }) {
       ${flashHtml(flash)}
       <h2>Add Product</h2>
       <div class="form-card">
-        <form method="POST" action="/hub/skincare/products">
+        <form method="POST" action="/hub/skincare/products" id="add-product-form">
           ${productFormFields()}
-          <button type="submit">Add</button>
+          <button type="submit" id="add-product-submit">Add</button>
+          <div class="upload-progress" id="add-product-progress" hidden>
+            <div class="upload-progress-bar"></div>
+          </div>
         </form>
       </div>
 
@@ -375,6 +385,9 @@ export function renderProductsPage({ products, rulesByProductId, flash }) {
         </table>
       </div>
     `,
+    progressForms: [
+      { formId: "add-product-form", submitId: "add-product-submit", progressId: "add-product-progress", loadingLabel: "Adding & analyzing with AI..." },
+    ],
   });
 }
 

@@ -1,4 +1,4 @@
-import { DASHBOARD_CSS, escapeHtml, navHeader, stackedBarChartSvg, faviconLink, iconLabel } from "../shared/dashboard-layout.js";
+import { DASHBOARD_CSS, escapeHtml, navHeader, stackedBarChartSvg, faviconLink, iconLabel, progressFormScript } from "../shared/dashboard-layout.js";
 
 const MACRO_SERIES = [
   { key: "protein", name: "Protein", color: "#f97316" },
@@ -143,9 +143,12 @@ ${faviconLink("/icons/calorie.png")}
     <div class="forms">
       <div class="form-card">
         <h3>${iconLabel("/icons/via-text.png", "Via Text")}</h3>
-        <form method="POST" action="/dashboard/calorie/food-text">
+        <form method="POST" action="/dashboard/calorie/food-text" id="food-text-form">
           <input type="text" name="description" placeholder="e.g. fried rice 1 serving" required>
-          <button type="submit">Save</button>
+          <button type="submit" id="food-text-submit">Save</button>
+          <div class="upload-progress" id="food-text-progress" hidden>
+            <div class="upload-progress-bar"></div>
+          </div>
         </form>
       </div>
       <div class="form-card">
@@ -216,27 +219,16 @@ ${faviconLink("/icons/calorie.png")}
       <tbody>${weightRows || `<tr><td colspan="2">No data yet.</td></tr>`}</tbody>
     </table>
   </div>
-  <script>
-    // JS minimal, cuma buat kasih feedback visual pas foto/deskripsi lagi dianalisis Gemini
-    // (bisa beberapa detik) - sisa halaman ini tetap murni server-rendered, no-JS.
-    function wireProgress(formId, submitId, progressId, loadingLabel) {
-      const form = document.getElementById(formId);
-      if (!form) return;
-      form.addEventListener("submit", function () {
-        const submit = document.getElementById(submitId);
-        submit.disabled = true;
-        submit.textContent = loadingLabel;
-        document.getElementById(progressId).hidden = false;
-      });
-    }
-    wireProgress("food-photo-form", "food-photo-submit", "food-photo-progress", "Analyzing...");
-    ${todayLogEntries
-      .map(
-        (entry) =>
-          `wireProgress("food-reanalyze-form-${entry.id}", "food-reanalyze-submit-${entry.id}", "food-reanalyze-progress-${entry.id}", "Re-analyzing...");`
-      )
-      .join("\n    ")}
-  </script>
+  ${progressFormScript([
+    { formId: "food-text-form", submitId: "food-text-submit", progressId: "food-text-progress", loadingLabel: "Analyzing..." },
+    { formId: "food-photo-form", submitId: "food-photo-submit", progressId: "food-photo-progress", loadingLabel: "Analyzing..." },
+    ...todayLogEntries.map((entry) => ({
+      formId: `food-reanalyze-form-${entry.id}`,
+      submitId: `food-reanalyze-submit-${entry.id}`,
+      progressId: `food-reanalyze-progress-${entry.id}`,
+      loadingLabel: "Re-analyzing...",
+    })),
+  ])}
 </body>
 </html>`;
 }

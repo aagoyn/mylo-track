@@ -329,6 +329,32 @@ export function navHeader({ icon, title, links = [] }) {
     </header>`;
 }
 
+// script kecil buat kasih feedback visual pas form kirim foto/teks lagi diproses AI (bisa
+// beberapa detik) - disable submit button, ganti teksnya, tampilin progress bar. configs:
+// [{ formId, submitId, progressId, loadingLabel }]. Sisa halaman tetap murni server-rendered.
+export function progressFormScript(configs) {
+  const calls = configs
+    .map(
+      ({ formId, submitId, progressId, loadingLabel }) =>
+        `wireProgress(${JSON.stringify(formId)}, ${JSON.stringify(submitId)}, ${JSON.stringify(progressId)}, ${JSON.stringify(loadingLabel)});`
+    )
+    .join("\n    ");
+
+  return `<script>
+    function wireProgress(formId, submitId, progressId, loadingLabel) {
+      const form = document.getElementById(formId);
+      if (!form) return;
+      form.addEventListener("submit", function () {
+        const submit = document.getElementById(submitId);
+        submit.disabled = true;
+        submit.textContent = loadingLabel;
+        document.getElementById(progressId).hidden = false;
+      });
+    }
+    ${calls}
+  </script>`;
+}
+
 // stacked bar chart simpel via inline SVG, nggak butuh library chart eksternal.
 // days: [{ label, values: { seriesKey: number } }], series: [{ key, name, color }]
 export function stackedBarChartSvg(

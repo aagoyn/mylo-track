@@ -73,11 +73,18 @@ async function tryGroqFallback(contents) {
       body: JSON.stringify({
         model: GROQ_FALLBACK_MODEL,
         messages: [{ role: "user", content: toPlainTextPrompt(contents) }],
+        // gpt-oss "mikir" (reasoning) dulu sebelum keluar JSON-nya - reasoning_effort "low"
+        // biar nggak kebanyakan mikir dan abisin token budget sebelum sempet keluar konten
+        // aslinya (pernah kejadian: reasoning kepanjangan, content-nya jadi kosong/kepotong).
+        reasoning_effort: "low",
+        max_completion_tokens: 4096,
       }),
     });
     if (!response.ok) throw new Error(`Groq API error (${response.status}): ${await response.text()}`);
     const data = await response.json();
-    return parseJsonFromText(data.choices?.[0]?.message?.content || "");
+    const content = data.choices?.[0]?.message?.content;
+    if (!content) throw new Error(`Groq nggak ngasih konten (finish_reason: ${data.choices?.[0]?.finish_reason}).`);
+    return parseJsonFromText(content);
   } catch (groqErr) {
     console.error("Fallback Groq juga gagal:", groqErr);
     return null;

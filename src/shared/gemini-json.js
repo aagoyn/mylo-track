@@ -73,7 +73,6 @@ async function tryGroqFallback(contents) {
       body: JSON.stringify({
         model: GROQ_FALLBACK_MODEL,
         messages: [{ role: "user", content: toPlainTextPrompt(contents) }],
-        response_format: { type: "json_object" },
       }),
     });
     if (!response.ok) throw new Error(`Groq API error (${response.status}): ${await response.text()}`);

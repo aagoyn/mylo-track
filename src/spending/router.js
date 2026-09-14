@@ -14,7 +14,6 @@ import {
   deleteLastExpenseLog,
   updateLastCategory,
   getAggregatedExpenses,
-  setWeeklyBudget,
   getWeeklyBudget,
   searchExpenseLogs,
   getRecentExpenseLogs,
@@ -247,12 +246,10 @@ async function handleTopup(chatId, normalizedText) {
   }
   if (isK) amount *= 1000;
 
-  const currentBudget = await getWeeklyBudget(chatId);
-  const newBudget = currentBudget + amount;
-  await setWeeklyBudget(chatId, newBudget);
   const { balanceAfter } = await saveExpenseLogsBatch(chatId, [
     { description: "Weekly Topup", category: "Topup", amount, type: "Income" },
   ]);
+  const newBudget = await getWeeklyBudget(chatId);
 
   await sendText(
     chatId,
@@ -501,8 +498,6 @@ router.post("/dashboard/spending/topup", requireAuth, async (req, res) => {
   if (isNaN(amount) || amount < 0) return res.redirect("/dashboard/spending?err=Nominal tidak valid.");
 
   try {
-    const currentBudget = await getWeeklyBudget(req.user.phone);
-    await setWeeklyBudget(req.user.phone, currentBudget + amount);
     await saveExpenseLogsBatch(req.user.phone, [
       { description: "Weekly Topup", category: "Topup", amount, type: "Income" },
     ]);

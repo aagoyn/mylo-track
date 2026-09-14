@@ -29,11 +29,6 @@ alter table expense_logs enable row level security;
 alter table expense_settings enable row level security;
 alter table expense_logs add column if not exists image_url text;
 
--- minggu (Senin WIB) yang "dimiliki" oleh weekly_budget saat ini - dipakai buat rollover:
--- begitu getWeeklyBudget() ketemu minggu baru, sisa (atau minus kalau overspend) minggu
--- budget_week_start ini jadi budget awal minggu berjalan, bukan numpuk terus tanpa reset
-alter table expense_settings add column if not exists budget_week_start timestamptz;
-
 -- bucket buat simpan foto struk (jalankan lewat Supabase dashboard > Storage, bukan SQL Editor)
 -- nama bucket: receipt-photos (set public read kalau mau image_url langsung diakses browser)
 

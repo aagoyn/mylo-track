@@ -34,24 +34,17 @@ export function getDayBoundsWib() {
   };
 }
 
-// Senin 00:00:00 WIB dari minggu yang berisi instant epochMs manapun (bukan cuma "sekarang") -
-// dipakai buat rollover budget biar bisa cari tau instant di masa lalu ada di minggu mana
-function weekStartWibForInstant(epochMs) {
-  const wib = new Date(epochMs + WIB_OFFSET_MS);
-  const y = wib.getUTCFullYear();
-  const m = wib.getUTCMonth();
-  const d = wib.getUTCDate();
-  const dayOfWeek = wib.getUTCDay() || 7; // Senin=1 ... Minggu=7
-  const monday = d - dayOfWeek + 1;
-  return wibPartsToIso(y, m, monday, 0, 0, 0);
-}
-
 // minggu kalender Senin-Minggu, biar konsisten sama versi Google Apps Script sebelumnya
 export function getWeekBoundsWib() {
-  const startISO = weekStartWibForInstant(Date.now());
+  const now = wibNow();
+  const y = now.getUTCFullYear();
+  const m = now.getUTCMonth();
+  const d = now.getUTCDate();
+  const dayOfWeek = now.getUTCDay() || 7; // Senin=1 ... Minggu=7
+  const monday = d - dayOfWeek + 1;
   return {
-    startISO,
-    endISO: weekEndFromStartIso(startISO),
+    startISO: wibPartsToIso(y, m, monday, 0, 0, 0),
+    endISO: wibPartsToIso(y, m, monday + 6, 23, 59, 59),
   };
 }
 
@@ -185,59 +178,18 @@ export async function searchExpenseLogs(phone, keyword, limit = 10) {
   return data;
 }
 
-function addDaysIso(iso, days) {
-  return new Date(new Date(iso).getTime() + days * 24 * 60 * 60 * 1000).toISOString();
-}
-
-// startISO adalah Senin 00:00:00 WIB (lihat getWeekBoundsWib) - akhir minggunya selalu
-// persis 7 hari - 1 detik kemudian, offset WIB-nya udah ke-cancel karena start & end sama-sama WIB
-function weekEndFromStartIso(startISO) {
-  return new Date(new Date(startISO).getTime() + 7 * 24 * 60 * 60 * 1000 - 1000).toISOString();
-}
-
-async function stampWeeklyBudget(phone, amount, weekStartISO) {
-  const { error } = await supabase
-    .from("expense_settings")
-    .upsert({ phone, weekly_budget: amount, budget_week_start: weekStartISO, updated_at: new Date().toISOString() });
-  if (error) throw error;
-}
-
-// rollover: kalau budget_week_start yang tersimpan bukan minggu berjalan, budget minggu
-// (atau minggu-minggu) sebelumnya "ditutup buku" - sisanya (bisa minus kalau overspend)
-// jadi budget awal minggu berjalan, bukan numpuk terus tanpa reset tiap Senin
+// Weekly budget selalu diturunin langsung dari ledger (Running Balance + yang udah kepake
+// minggu ini), bukan disimpan & di-rollover manual di kolom terpisah - "Weekly Topup" adalah
+// satu-satunya jenis Income yang pernah di-insert (lihat handleTopup & POST .../topup), jadi
+// Running Balance itu sendiri SAMA PERSIS dengan budget yang udah bener kalau di-rollover
+// minggu demi minggu sejak awal - dengan derivasi ini nggak ada state anchor yang bisa basi/korup
 export async function getWeeklyBudget(phone) {
-  const { data, error } = await supabase
-    .from("expense_settings")
-    .select("weekly_budget, budget_week_start, updated_at")
-    .eq("phone", phone)
-    .maybeSingle();
-  if (error) throw error;
-  if (!data) return 0;
-
-  const { startISO: currentWeekStart } = getWeekBoundsWib();
-  let budget = Number(data.weekly_budget) || 0;
-  // row lama dari sebelum kolom budget_week_start ada - belum tau budget ini "milik" minggu
-  // mana, jadi anggap dari minggu terakhir kali di-set (updated_at) biar minggu-minggu yang
-  // kelewat ikut di-rollover, bukan langsung diakui utuh sebagai budget minggu berjalan
-  let weekStart = data.budget_week_start || weekStartWibForInstant(new Date(data.updated_at).getTime());
-
-  // dibandingin sebagai timestamp, bukan string - Postgres balikin timestamptz dengan format
-  // ("+00:00") beda dari toISOString() JS (".000Z") walau detik yang sama persis
-  let rolled = false;
-  while (new Date(weekStart).getTime() !== new Date(currentWeekStart).getTime()) {
-    const { total: spent } = await getAggregatedExpenses(phone, weekStart, weekEndFromStartIso(weekStart));
-    budget -= spent;
-    weekStart = addDaysIso(weekStart, 7);
-    rolled = true;
-  }
-
-  if (rolled) await stampWeeklyBudget(phone, budget, currentWeekStart);
-  return budget;
-}
-
-export async function setWeeklyBudget(phone, amount) {
-  const { startISO: currentWeekStart } = getWeekBoundsWib();
-  await stampWeeklyBudget(phone, amount, currentWeekStart);
+  const { startISO, endISO } = getWeekBoundsWib();
+  const [balance, { total: spentThisWeek }] = await Promise.all([
+    getLastBalance(phone),
+    getAggregatedExpenses(phone, startISO, endISO),
+  ]);
+  return balance + spentThisWeek;
 }
 
 // total topup (transfer ke GoPay) dalam rentang tanggal - dipakai Vault buat ngitung berapa

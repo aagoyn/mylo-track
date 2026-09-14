@@ -34,17 +34,24 @@ export function getDayBoundsWib() {
   };
 }
 
+// Senin 00:00:00 WIB dari minggu yang berisi instant epochMs manapun (bukan cuma "sekarang") -
+// dipakai buat rollover budget biar bisa cari tau instant di masa lalu ada di minggu mana
+function weekStartWibForInstant(epochMs) {
+  const wib = new Date(epochMs + WIB_OFFSET_MS);
+  const y = wib.getUTCFullYear();
+  const m = wib.getUTCMonth();
+  const d = wib.getUTCDate();
+  const dayOfWeek = wib.getUTCDay() || 7; // Senin=1 ... Minggu=7
+  const monday = d - dayOfWeek + 1;
+  return wibPartsToIso(y, m, monday, 0, 0, 0);
+}
+
 // minggu kalender Senin-Minggu, biar konsisten sama versi Google Apps Script sebelumnya
 export function getWeekBoundsWib() {
-  const now = wibNow();
-  const y = now.getUTCFullYear();
-  const m = now.getUTCMonth();
-  const d = now.getUTCDate();
-  const dayOfWeek = now.getUTCDay() || 7; // Senin=1 ... Minggu=7
-  const monday = d - dayOfWeek + 1;
+  const startISO = weekStartWibForInstant(Date.now());
   return {
-    startISO: wibPartsToIso(y, m, monday, 0, 0, 0),
-    endISO: wibPartsToIso(y, m, monday + 6, 23, 59, 59),
+    startISO,
+    endISO: weekEndFromStartIso(startISO),
   };
 }
 
@@ -201,7 +208,7 @@ async function stampWeeklyBudget(phone, amount, weekStartISO) {
 export async function getWeeklyBudget(phone) {
   const { data, error } = await supabase
     .from("expense_settings")
-    .select("weekly_budget, budget_week_start")
+    .select("weekly_budget, budget_week_start, updated_at")
     .eq("phone", phone)
     .maybeSingle();
   if (error) throw error;
@@ -209,13 +216,10 @@ export async function getWeeklyBudget(phone) {
 
   const { startISO: currentWeekStart } = getWeekBoundsWib();
   let budget = Number(data.weekly_budget) || 0;
-  let weekStart = data.budget_week_start;
-
-  if (!weekStart) {
-    // row lama dari sebelum kolom ini ada - anggap budget yang tersimpan milik minggu ini
-    await stampWeeklyBudget(phone, budget, currentWeekStart);
-    return budget;
-  }
+  // row lama dari sebelum kolom budget_week_start ada - belum tau budget ini "milik" minggu
+  // mana, jadi anggap dari minggu terakhir kali di-set (updated_at) biar minggu-minggu yang
+  // kelewat ikut di-rollover, bukan langsung diakui utuh sebagai budget minggu berjalan
+  let weekStart = data.budget_week_start || weekStartWibForInstant(new Date(data.updated_at).getTime());
 
   // dibandingin sebagai timestamp, bukan string - Postgres balikin timestamptz dengan format
   // ("+00:00") beda dari toISOString() JS (".000Z") walau detik yang sama persis

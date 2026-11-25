@@ -1,14 +1,6 @@
 import { DASHBOARD_CSS, escapeHtml, navHeader, faviconLink, iconLabel } from "../shared/dashboard-layout.js";
 import { clockedHubCardHtml } from "./clocked/dashboard.js";
 
-const MOOD_META = {
-  terrible: { emoji: "😫", label: "Terrible" },
-  bad: { emoji: "😕", label: "Bad" },
-  okay: { emoji: "😐", label: "Okay" },
-  good: { emoji: "🙂", label: "Good" },
-  great: { emoji: "😍", label: "Great" },
-};
-
 function formatRupiah(amount) {
   return `Rp${Math.round(amount).toLocaleString("id-ID")}`;
 }
@@ -31,12 +23,7 @@ export function renderHubDashboard({
   username,
   spendingToday,
   calorieToday,
-  moodToday,
-  moodCheckinsToday,
-  journalToday,
-  wishlistSummary,
   vaultSummary,
-  skincareSummary,
   clockedToday,
   recentActivity,
 }) {
@@ -53,47 +40,17 @@ export function renderHubDashboard({
        <div class="card-sub">${spendingToday.count} transaction${spendingToday.count === 1 ? "" : "s"} today</div>`
     : `<div class="empty-state">No spending yet<br>+ Log spending</div>`;
 
-  const moodCard = moodToday
-    ? `<div class="card-value">${MOOD_META[moodToday.mood]?.emoji || "😐"} ${MOOD_META[moodToday.mood]?.label || moodToday.mood}</div>
-       ${moodToday.note ? `<div class="card-note">"${escapeHtml(moodToday.note)}"</div>` : ""}
-       ${moodCheckinsToday > 1 ? `<div class="card-sub">${moodCheckinsToday} check-ins today</div>` : ""}`
-    : `<div class="empty-state">Not logged<br><a href="/hub/mood">+ Log mood</a></div>`;
-
   const { html: clockedCard, script: clockedScript } = clockedHubCardHtml(clockedToday);
 
   const recentRows = recentActivity.length
     ? recentActivity.map((a) => activityRow(a)).join("")
     : `<div class="empty-state">No activity yet today.</div>`;
 
-  const journalSection = journalToday
-    ? `<div class="journal-entry">${escapeHtml(journalToday.content)}</div>
-       <a class="nav-link" href="/hub/journal?edit=1">Edit today's note</a>`
-    : `<div class="empty-state">How was your day?</div>
-       <a class="nav-link" href="/hub/journal">Write something...</a>`;
-
-  const wishlistSection = wishlistSummary
-    ? wishlistSummary.count > 0
-      ? `<div class="card-sub">${wishlistSummary.count} item${wishlistSummary.count === 1 ? "" : "s"}${wishlistSummary.highPriorityCount ? ` · ${wishlistSummary.highPriorityCount} high priority` : ""}</div>
-         <div class="empty-state" style="margin-top:6px;">${wishlistSummary.previewTitles.map(escapeHtml).join(" · ")}</div>
-         <a class="nav-link" href="/hub/wishlist">View wishlist</a>`
-      : `<div class="empty-state">Nothing on your wishlist yet.</div>
-         <a class="nav-link" href="/hub/wishlist">Add something</a>`
-    : `<div class="empty-state">Couldn't load wishlist.</div>`;
-
   const vaultSection = vaultSummary
     ? `<div class="card-value">${formatRupiah(vaultSummary.monthlyRemaining)} left</div>
        <div class="card-sub">Monthly pool · ${vaultSummary.unpaidBillsCount} unpaid Bill${vaultSummary.unpaidBillsCount === 1 ? "" : "s"}</div>
        <a class="nav-link" href="/hub/vault">View vault</a>`
     : `<div class="empty-state">Couldn't load vault.</div>`;
-
-  const skincareSection = skincareSummary
-    ? skincareSummary.hasProducts
-      ? `<div class="card-sub">Morning · ${skincareSummary.amSteps} step${skincareSummary.amSteps === 1 ? "" : "s"}</div>
-         <div class="card-sub">Tonight · ${skincareSummary.pmSteps} step${skincareSummary.pmSteps === 1 ? "" : "s"}</div>
-         <a class="nav-link" href="/hub/skincare">Open Skincare</a>`
-      : `<div class="empty-state">No products yet.</div>
-         <a class="nav-link" href="/hub/skincare">Add your products</a>`
-    : `<div class="empty-state">Couldn't load skincare.</div>`;
 
   return `<!doctype html>
 <html lang="en">
@@ -132,25 +89,8 @@ ${faviconLink("/icons/hub.png")}
       </div>
     </section>
 
-    <div class="grid-2-always">
-      <div style="display:flex; flex-direction:column;">
-        <h2>${iconLabel("/icons/journal.png", "Today")}</h2>
-        <div class="card" style="flex:1;">${journalSection}</div>
-      </div>
-      <div style="display:flex; flex-direction:column;">
-        <h2>${iconLabel("/icons/mood.png", "Mood")}</h2>
-        <div class="card mood-today" style="flex:1;">${moodCard}</div>
-      </div>
-    </div>
-
-    <h2>${iconLabel("/icons/skincare.png", "Skincare")}</h2>
-    <div class="card">${skincareSection}</div>
-
     <h2>${iconLabel("/icons/vault.png", "Vault")}</h2>
     <div class="card">${vaultSection}</div>
-
-    <h2>${iconLabel("/icons/wishlist.png", "Things I Want")}</h2>
-    <div class="card">${wishlistSection}</div>
 
     <h2>Recent</h2>
     <div class="activity-list">${recentRows}</div>

@@ -6,9 +6,8 @@ import {
   getRecentExpenseLogs,
 } from "../spending/supabase.js";
 import { getTodayCalories, getTodayMacros, getTodayFoodLogs } from "../calorie/supabase.js";
-import { getTodayMoodLogs, getRecentMoodLogs } from "./mood/supabase.js";
+import { getRecentMoodLogs } from "./mood/supabase.js";
 import { getJournalEntry, todayDateKeyWib } from "./journal/supabase.js";
-import { getWishlistItems } from "./wishlist/supabase.js";
 import { getTopupTotal } from "../spending/supabase.js";
 import {
   getMonthlyIncomeTotal,
@@ -17,8 +16,6 @@ import {
   getMonthlyMiscExpenseTotal,
   getBillTemplates,
 } from "./vault/supabase.js";
-import { getProducts } from "./skincare/supabase.js";
-import { getDayRoutine } from "./skincare/routine-engine.js";
 import { getTodayClockLog } from "./clocked/supabase.js";
 import { renderHubDashboard } from "./dashboard.js";
 
@@ -124,14 +121,11 @@ router.get("/hub", requireAuth, async (req, res) => {
   const [
     spendingResult,
     calorieResult,
-    moodResult,
     recentSpendingResult,
     recentCalorieResult,
     recentMoodResult,
     journalResult,
-    wishlistResult,
     vaultResult,
-    skincareResult,
     clockedResult,
   ] = await Promise.allSettled([
     (async () => {
@@ -139,12 +133,10 @@ router.get("/hub", requireAuth, async (req, res) => {
       return getAggregatedExpenses(phone, startISO, endISO);
     })(),
     Promise.all([getTodayCalories(phone), getTodayMacros(phone)]),
-    getTodayMoodLogs(phone),
     getRecentExpenseLogs(phone, 20),
     getTodayFoodLogs(phone),
     getRecentMoodLogs(phone, 10),
     getJournalEntry(phone, todayDateKeyWib()),
-    getWishlistItems(phone),
     (async () => {
       const { startISO, endISO } = currentMonthBoundsWib();
       const [monthlyIncome, monthlySavingsNet, monthlyTopupTotal, billPayments, monthlyMiscExpenseTotal, billTemplates] =
@@ -164,10 +156,6 @@ router.get("/hub", requireAuth, async (req, res) => {
         unpaidBillsCount,
       };
     })(),
-    (async () => {
-      const [products, dayRoutine] = await Promise.all([getProducts(phone), getDayRoutine(phone, todayKey)]);
-      return { hasProducts: products.length > 0, amSteps: dayRoutine.faceAM.steps.length, pmSteps: dayRoutine.facePM.steps.length };
-    })(),
     getTodayClockLog(phone),
   ]);
 
@@ -184,24 +172,9 @@ router.get("/hub", requireAuth, async (req, res) => {
       ? { calories: calorieResult.value[0], protein_g: calorieResult.value[1].protein_g }
       : null;
 
-  const todayMoodLogs = moodResult.status === "fulfilled" ? moodResult.value : [];
-  const moodToday = todayMoodLogs.length ? todayMoodLogs[todayMoodLogs.length - 1] : null;
-  const moodCheckinsToday = todayMoodLogs.length;
-
   const journalToday = journalResult.status === "fulfilled" ? journalResult.value : null;
 
-  const wishlistItems = wishlistResult.status === "fulfilled" ? wishlistResult.value : null;
-  const wishlistSummary = wishlistItems
-    ? {
-        count: wishlistItems.length,
-        highPriorityCount: wishlistItems.filter((i) => i.priority === "High").length,
-        previewTitles: wishlistItems.slice(0, 3).map((i) => i.title),
-      }
-    : null;
-
   const vaultSummary = vaultResult.status === "fulfilled" ? vaultResult.value : null;
-
-  const skincareSummary = skincareResult.status === "fulfilled" ? skincareResult.value : null;
 
   const clockedToday = clockedResult.status === "fulfilled" ? clockedResult.value : null;
 
@@ -256,12 +229,7 @@ router.get("/hub", requireAuth, async (req, res) => {
       username: req.user.username,
       spendingToday,
       calorieToday,
-      moodToday,
-      moodCheckinsToday,
-      journalToday,
-      wishlistSummary,
       vaultSummary,
-      skincareSummary,
       clockedToday,
       recentActivity: recentActivity.slice(0, 4).map((a) => ({ ...a, time: toWibTime(a.timestamp) })),
     })

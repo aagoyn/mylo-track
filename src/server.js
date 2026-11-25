@@ -11,6 +11,7 @@ import { router as wishlistRouter } from "./hub/wishlist/router.js";
 import { router as vaultRouter } from "./hub/vault/router.js";
 import { router as skincareRouter } from "./hub/skincare/router.js";
 import { router as clockedRouter } from "./hub/clocked/router.js";
+import { router as grindRouter } from "./hub/grind/router.js";
 import { router as pushRouter } from "./shared/push-router.js";
 import { startPushScheduler } from "./shared/push-scheduler.js";
 
@@ -57,6 +58,7 @@ app.use(wishlistRouter);
 app.use(vaultRouter);
 app.use(skincareRouter);
 app.use(clockedRouter);
+app.use(grindRouter);
 app.use(pushRouter);
 app.use(spendingRouter);
 app.use(calorieRouter);

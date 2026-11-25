@@ -1,5 +1,6 @@
 import { DASHBOARD_CSS, escapeHtml, navHeader, faviconLink, iconLabel, themeToggleHtml } from "../shared/dashboard-layout.js";
 import { clockedHubCardHtml } from "./clocked/dashboard.js";
+import { grindHubCardHtml } from "./grind/dashboard.js";
 
 function formatRupiah(amount) {
   return `Rp${Math.round(amount).toLocaleString("id-ID")}`;
@@ -25,6 +26,7 @@ export function renderHubDashboard({
   calorieToday,
   vaultSummary,
   clockedToday,
+  grindToday,
   recentActivity,
 }) {
   const hasSpending = spendingToday && spendingToday.total > 0;
@@ -41,6 +43,7 @@ export function renderHubDashboard({
     : `<div class="empty-state">No spending yet<br>+ Log spending</div>`;
 
   const { html: clockedCard, script: clockedScript } = clockedHubCardHtml(clockedToday);
+  const grindCard = grindHubCardHtml(grindToday);
 
   const recentRows = recentActivity.length
     ? recentActivity.map((a) => activityRow(a)).join("")
@@ -93,6 +96,9 @@ ${faviconLink("/icons/hub.png")}
     <h2>${iconLabel("/icons/vault.png", "Vault")}</h2>
     <div class="card">${vaultSection}</div>
 
+    <h2>${iconLabel("/icons/grind-icon.png", "Grind")}</h2>
+    <div class="card">${grindCard}</div>
+
     <h2>Recent</h2>
     <div class="activity-list">${recentRows}</div>
 
@@ -101,6 +107,7 @@ ${faviconLink("/icons/hub.png")}
       <div class="hub-nav-links">
         <a class="hub-nav-item" href="/dashboard/calorie">${iconLabel("/icons/calorie.png", "Calories")}</a>
         <a class="hub-nav-item" href="/dashboard/spending">${iconLabel("/icons/spending.png", "Spending")}</a>
+        <a class="hub-nav-item" href="/hub/grind">${iconLabel("/icons/grind-icon.png", "Grind")}</a>
       </div>
     </div>
     <div class="hub-nav-group">

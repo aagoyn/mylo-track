@@ -17,6 +17,7 @@ import {
   getBillTemplates,
 } from "./vault/supabase.js";
 import { getTodayClockLog } from "./clocked/supabase.js";
+import { getPlanByDate, getSessionsByDate, getUpcomingRace, todayDateKeyWib as grindTodayDateKeyWib } from "./grind/supabase.js";
 import { renderHubDashboard } from "./dashboard.js";
 
 const WIB_OFFSET_MS = 7 * 60 * 60 * 1000;
@@ -127,6 +128,7 @@ router.get("/hub", requireAuth, async (req, res) => {
     journalResult,
     vaultResult,
     clockedResult,
+    grindResult,
   ] = await Promise.allSettled([
     (async () => {
       const { startISO, endISO } = getSpendingDayBoundsWib();
@@ -157,6 +159,15 @@ router.get("/hub", requireAuth, async (req, res) => {
       };
     })(),
     getTodayClockLog(phone),
+    (async () => {
+      const dateKey = grindTodayDateKeyWib();
+      const [todayPlan, todaySessions, upcomingRace] = await Promise.all([
+        getPlanByDate(phone, dateKey),
+        getSessionsByDate(phone, dateKey),
+        getUpcomingRace(phone, dateKey),
+      ]);
+      return { todayPlan, todaySessions, upcomingRace };
+    })(),
   ]);
 
   const spendingTotalToday = spendingResult.status === "fulfilled" ? spendingResult.value.total : null;
@@ -177,6 +188,11 @@ router.get("/hub", requireAuth, async (req, res) => {
   const vaultSummary = vaultResult.status === "fulfilled" ? vaultResult.value : null;
 
   const clockedToday = clockedResult.status === "fulfilled" ? clockedResult.value : null;
+
+  const grindToday =
+    grindResult.status === "fulfilled"
+      ? grindResult.value
+      : { todayPlan: null, todaySessions: [], upcomingRace: null };
 
   const recentActivity = [];
   if (recentSpendingResult.status === "fulfilled") {
@@ -231,6 +247,7 @@ router.get("/hub", requireAuth, async (req, res) => {
       calorieToday,
       vaultSummary,
       clockedToday,
+      grindToday,
       recentActivity: recentActivity.slice(0, 4).map((a) => ({ ...a, time: toWibTime(a.timestamp) })),
     })
   );

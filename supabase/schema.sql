@@ -306,3 +306,59 @@ create table if not exists push_subscriptions (
   created_at timestamptz not null default now()
 );
 alter table push_subscriptions enable row level security;
+
+-- "Grind" - Multi-Sport & Race Training Plan Tracker (Run/Badminton/Gym/Rest). grind_plans =
+-- jadwal terstruktur & race calendar (1 row per tanggal, di-upsert lewat import TSV atau
+-- Complete/Skip manual). grind_sessions = log latihan aktual, boleh >1 per tanggal (AM/PM) buat
+-- double session. plan_id nullable - sesi yang dicatat spontan (bukan nyelesain plan hari itu)
+-- nggak nyambung ke plan manapun.
+create table if not exists grind_plans (
+  id bigserial primary key,
+  phone text not null,
+  plan_date date not null,
+  week_num int,
+  phase text,
+  session_type text not null,
+  race_name text,
+  target_distance_km numeric(5,2),
+  target_pace text,
+  target_hr text,
+  instructions text,
+  status text not null default 'PENDING',
+  unique (phone, plan_date)
+);
+alter table grind_plans enable row level security;
+
+create table if not exists grind_sessions (
+  id bigserial primary key,
+  phone text not null,
+  plan_id bigint references grind_plans(id) on delete set null,
+  session_date date not null default current_date,
+  session_time text not null default 'AM',
+  type text not null,
+  sub_type text,
+  duration_min int,
+  distance_km numeric(5,2),
+  avg_pace text,
+  avg_hr int,
+  notes text,
+  created_at timestamptz default now()
+);
+alter table grind_sessions enable row level security;
+
+-- Nandain record historis yang dibuat otomatis oleh importTrainingPlan (bukan dicatat manual
+-- lewat form) - 'IMPORT' atau null (manual). Dipakai buat cek anti-duplikasi pas re-import TSV
+-- yang sama: kalau tanggal itu udah ada log source='IMPORT', jangan bikin baru lagi.
+alter table grind_sessions add column if not exists source text;
+
+-- Detail gerakan & beban, khusus session type GYM. on delete cascade - set GYM dihapus,
+-- detail gerakannya ikut kehapus (nggak ada gunanya nyangkut sendirian).
+create table if not exists grind_gym_sets (
+  id bigserial primary key,
+  session_id bigint not null references grind_sessions(id) on delete cascade,
+  exercise_name text not null,
+  set_order int not null,
+  weight_kg numeric(5,2),
+  reps int
+);
+alter table grind_gym_sets enable row level security;

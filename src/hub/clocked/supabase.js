@@ -2,7 +2,7 @@ import { supabase } from "../../shared/supabase-client.js";
 
 const WIB_OFFSET_MS = 7 * 60 * 60 * 1000;
 export const CLOCK_OUT_AFTER_MS = 9 * 60 * 60 * 1000;
-const SELECT_FIELDS = "id, work_date, work_mode, clock_in_at, clock_out_at";
+const SELECT_FIELDS = "id, work_date, work_mode, clock_in_at, clock_out_at, clockout_reminder_sent_at";
 
 export function todayDateKeyWib() {
   const wib = new Date(Date.now() + WIB_OFFSET_MS);
@@ -79,6 +79,14 @@ export async function clockOut(phone) {
     .single();
   if (error) throw error;
   return data;
+}
+
+export async function markClockoutReminderSent(id) {
+  const { error } = await supabase
+    .from("clockin_logs")
+    .update({ clockout_reminder_sent_at: new Date().toISOString() })
+    .eq("id", id);
+  if (error) throw error;
 }
 
 export async function getRecentClockLogs(phone, limit = 20) {

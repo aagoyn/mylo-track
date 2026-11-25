@@ -273,3 +273,21 @@ create table if not exists app_users (
   created_at timestamptz not null default now()
 );
 alter table app_users enable row level security;
+
+-- Reminder "udah 9 jam, saatnya Clock Out" cuma boleh kekirim sekali per hari per log, kalau
+-- enggak bakal nembak ulang tiap menit selama user belum clock-out. Nullable, keisi begitu
+-- reminder-nya kekirim.
+alter table clockin_logs add column if not exists clockout_reminder_sent_at timestamptz;
+
+-- Web Push (VAPID) subscription per device/browser, dipakai buat reminder Clock In pagi &
+-- Clock Out setelah 9 jam. Satu phone (user) bisa punya lebih dari satu subscription kalau
+-- login dari beberapa device - makanya endpoint (bukan phone) yang jadi unique key.
+create table if not exists push_subscriptions (
+  id uuid primary key default gen_random_uuid(),
+  phone text not null,
+  endpoint text not null unique,
+  p256dh text not null,
+  auth text not null,
+  created_at timestamptz not null default now()
+);
+alter table push_subscriptions enable row level security;

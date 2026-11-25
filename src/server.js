@@ -11,6 +11,8 @@ import { router as wishlistRouter } from "./hub/wishlist/router.js";
 import { router as vaultRouter } from "./hub/vault/router.js";
 import { router as skincareRouter } from "./hub/skincare/router.js";
 import { router as clockedRouter } from "./hub/clocked/router.js";
+import { router as pushRouter } from "./shared/push-router.js";
+import { startPushScheduler } from "./shared/push-scheduler.js";
 
 const PORT = process.env.PORT || 3000;
 
@@ -20,6 +22,11 @@ app.use(express.urlencoded({ extended: false }));
 app.use(express.static("public"));
 
 app.get("/", (req, res) => res.send("ok"));
+
+// Keep-alive ping (mis. cron-job.org) buat Render free tier biar server nggak sleep. Sengaja
+// nggak query Supabase sama sekali dan ditaruh sebelum semua route lain - cukup balikin 200 OK
+// instan tanpa auth/DB, biar ping-nya ringan dan nggak ikut bikin Supabase kebebanan.
+app.get("/health", (req, res) => res.status(200).send("ok"));
 
 app.get("/login", (req, res) => {
   res.send(loginPageHtml());
@@ -50,6 +57,7 @@ app.use(wishlistRouter);
 app.use(vaultRouter);
 app.use(skincareRouter);
 app.use(clockedRouter);
+app.use(pushRouter);
 app.use(spendingRouter);
 app.use(calorieRouter);
 
@@ -61,4 +69,5 @@ app.listen(PORT, () => {
   registerCalorieCommands().catch((err) =>
     console.error("Gagal set command menu Telegram (calorie):", err)
   );
+  startPushScheduler();
 });

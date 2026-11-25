@@ -137,7 +137,10 @@ export const DASHBOARD_CSS = `
     width: 100%; padding: 9px 10px; border-radius: 8px; border: 1px solid var(--border);
     background: var(--bg); color: var(--text); box-sizing: border-box; font-size: 14px; margin-bottom: 8px;
   }
-  .form-card input[type="file"] { width: 100%; font-size: 12px; color: var(--text-muted); margin-bottom: 8px; }
+  .form-card input[type="file"] {
+    width: 100%; padding: 9px 10px; border-radius: 8px; border: 1px solid var(--border);
+    background: var(--bg); box-sizing: border-box; font-size: 12px; color: var(--text-muted); margin-bottom: 8px;
+  }
   .form-card button {
     width: 100%; padding: 9px 10px; border-radius: 8px; border: none;
     background: var(--accent); color: white; font-size: 13px; cursor: pointer;
@@ -452,9 +455,17 @@ export function statBarHtml(pct) {
   return `<div class="stat-bar"><div class="stat-bar-fill ${tier}" style="width:${clamped}%"></div></div>`;
 }
 
-// path ke file PNG di public/icons (di-serve static lewat express.static di server.js)
+// path ke file PNG di public/icons (di-serve static lewat express.static di server.js).
+// Sekalian nyangkut semua head tag + script buat PWA (manifest, theme-color, apple-touch-icon,
+// service worker registration) - dipanggil di tiap halaman jadi paling gampang numpang di sini
+// daripada nambahin tag/script yang sama di 10 file render terpisah.
 export function faviconLink(iconPath) {
-  return `<link rel="icon" type="image/png" href="${iconPath}">`;
+  return `<link rel="icon" type="image/png" href="${iconPath}">
+<link rel="manifest" href="/manifest.json">
+<link rel="apple-touch-icon" href="/icons/hub.png">
+<meta name="theme-color" media="(prefers-color-scheme: light)" content="#927d6e">
+<meta name="theme-color" media="(prefers-color-scheme: dark)" content="#c49a76">
+<script>if ("serviceWorker" in navigator) navigator.serviceWorker.register("/sw.js");</script>`;
 }
 
 // header dashboard dengan nav-link ke dashboard "pasangan" (same-origin sekarang, bukan cross-app URL lagi)

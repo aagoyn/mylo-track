@@ -1,0 +1,13 @@
+{
+  "name": "Mylo Track",
+  "short_name": "Mylo",
+  "start_url": "/hub",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#f7f4ef",
+  "theme_color": "#927d6e",
+  "icons": [
+    { "src": "/icons/hub.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/hub.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

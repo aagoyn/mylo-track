@@ -253,6 +253,14 @@ ${faviconLink("/icons/clocked.png")}
 
     ${flash ? `<div class="flash flash-${flash.type}">${escapeHtml(flash.text)}</div>` : ""}
 
+    <div class="card" style="margin-bottom:12px; display:flex; align-items:center; justify-content:space-between; gap:12px;">
+      <div>
+        <div class="card-label">🔔 Reminder Clock In/Out</div>
+        <div class="card-sub" id="push-status">Mengecek status notifikasi...</div>
+      </div>
+      <button type="button" class="btn-secondary btn-sm" id="push-toggle-btn" disabled>...</button>
+    </div>
+
     <div class="card">${cardHtml}</div>
 
     <h2>History</h2>
@@ -264,6 +272,97 @@ ${faviconLink("/icons/clocked.png")}
     </div>
   </div>
   ${script}
+  ${pushToggleScript()}
 </body>
 </html>`;
+}
+
+// Tombol aktifin/matiin reminder push (Clock In pagi & Clock Out 9 jam). Subscription browser
+// disimpan via /push/subscribe-/push/unsubscribe (lihat src/shared/push-router.js), reminder-nya
+// sendiri dikirim dari server oleh src/shared/push-scheduler.js.
+function pushToggleScript() {
+  return `<script>
+    (function () {
+      function urlBase64ToUint8Array(base64String) {
+        const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
+        const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
+        const rawData = atob(base64);
+        const outputArray = new Uint8Array(rawData.length);
+        for (let i = 0; i < rawData.length; i++) outputArray[i] = rawData.charCodeAt(i);
+        return outputArray;
+      }
+
+      const statusEl = document.getElementById("push-status");
+      const btn = document.getElementById("push-toggle-btn");
+
+      if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
+        statusEl.textContent = "Browser ini nggak support push notification.";
+        return;
+      }
+
+      function render(subscribed) {
+        statusEl.textContent = subscribed ? "Reminder aktif di device ini." : "Reminder belum aktif di device ini.";
+        btn.textContent = subscribed ? "Matikan" : "Aktifkan";
+      }
+
+      navigator.serviceWorker.ready.then(function (reg) {
+        let currentSub = null;
+        reg.pushManager.getSubscription().then(function (sub) {
+          currentSub = sub;
+          render(!!sub);
+          btn.disabled = false;
+        });
+
+        btn.addEventListener("click", function () {
+          btn.disabled = true;
+          if (currentSub) {
+            const endpoint = currentSub.endpoint;
+            currentSub.unsubscribe()
+              .then(function () {
+                return fetch("/push/unsubscribe", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ endpoint: endpoint }),
+                });
+              })
+              .then(function () {
+                currentSub = null;
+                render(false);
+                btn.disabled = false;
+              });
+            return;
+          }
+
+          Notification.requestPermission()
+            .then(function (permission) {
+              if (permission !== "granted") throw new Error("Izin notifikasi ditolak.");
+              return fetch("/push/public-key").then(function (r) { return r.json(); });
+            })
+            .then(function (data) {
+              return reg.pushManager.subscribe({
+                userVisibleOnly: true,
+                applicationServerKey: urlBase64ToUint8Array(data.publicKey),
+              });
+            })
+            .then(function (sub) {
+              currentSub = sub;
+              return fetch("/push/subscribe", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(sub),
+              });
+            })
+            .then(function () {
+              render(true);
+              btn.disabled = false;
+            })
+            .catch(function (err) {
+              console.error(err);
+              statusEl.textContent = "Gagal aktifin reminder (izin notifikasi ditolak?).";
+              btn.disabled = false;
+            });
+        });
+      });
+    })();
+  </script>`;
 }

@@ -53,12 +53,41 @@ function daysUntil(dateKey) {
   return Math.round((target - today) / 86400000);
 }
 
+// Target Pace/HR yang di-import dari sheet kadang nempel sama catatan panjang dalam kurung
+// (mis. "119-139 bpm (Zona 2 - pakai Metode Run/Walk kalau susah turun)") - di ringkasan plan
+// cuma angka intinya yang relevan, catatan lengkapnya tetep utuh di plan.instructions (lihat
+// todayPlanAndLoggerHtml/scheduleDayHtml yang nampilin instructions terpisah).
+function stripParenthetical(str) {
+  return str ? str.replace(/\s*\([^)]*\)/g, "").trim() : str;
+}
+
 function planSummaryLine(plan) {
   const parts = [];
   if (plan.target_distance_km) parts.push(`${plan.target_distance_km}km`);
-  if (plan.target_pace) parts.push(plan.target_pace);
-  if (plan.target_hr) parts.push(plan.target_hr);
+  if (plan.target_pace) parts.push(stripParenthetical(plan.target_pace));
+  if (plan.target_hr) parts.push(stripParenthetical(plan.target_hr));
   return parts.join(" · ");
+}
+
+// Judul pendek buat Race Countdown Banner - "RACE DAY: UI ULTRA 7K. Ini race kecil..." jadi
+// cuma "UI ULTRA 7K" (kalimat pertama sebelum titik, minus prefix "RACE DAY:").
+function raceShortTitle(raceName) {
+  if (!raceName) return "Race Day";
+  const firstSentence = raceName.split(".")[0];
+  const stripped = firstSentence.replace(/^RACE DAY:\s*/i, "").trim();
+  return stripped || "Race Day";
+}
+
+function raceWhenLabel(diff) {
+  if (diff === 0) return "today";
+  if (diff === 1) return "tomorrow";
+  if (diff < 0) return `${Math.abs(diff)}d ago`;
+  return `in ${diff} days`;
+}
+
+function shortDateLabel(dateKey) {
+  const d = new Date(`${dateKey}T00:00:00Z`);
+  return `${MONTHS[d.getUTCMonth()]} ${d.getUTCDate()}`;
 }
 
 // Swim dicatat dalam meter (bukan km kayak Run) - distance_km di DB tetap kesimpen dalam km
@@ -81,6 +110,17 @@ function sessionFacts(s) {
   return facts;
 }
 
+// Dipakai Hub buat masukin sesi Grind yang udah dilog hari ini ke list "Recent"
+// (sebelumnya cuma Spending/Calorie/Mood/Journal yang nongol di situ).
+export function grindActivityRow(s) {
+  return {
+    icon: TYPE_ICON[s.type] || "🏃",
+    title: s.sub_type || s.type,
+    subtitle: sessionFacts(s).join(" · ") || "Session logged",
+    timestamp: s.created_at,
+  };
+}
+
 function sessionLineHtml(s) {
   const facts = sessionFacts(s);
   return `<div class="card-sub">${TYPE_ICON[s.type] || "•"} ${s.session_time} ${escapeHtml(s.sub_type || s.type)}${facts.length ? " — " + facts.join(" · ") : ""}</div>`;
@@ -91,41 +131,60 @@ function sessionLineHtml(s) {
 export function raceBannerHtml(upcomingRace) {
   if (!upcomingRace) return "";
   const diff = daysUntil(upcomingRace.plan_date);
-  const when = diff === 0 ? "today!" : diff === 1 ? "tomorrow" : `${diff} hari lagi`;
-  const phaseLabel = upcomingRace.phase ? ` · Week ${upcomingRace.week_num || "?"} ${upcomingRace.phase} Phase` : "";
+  const phaseLabel = upcomingRace.phase ? ` · Week ${upcomingRace.week_num || "?"} ${upcomingRace.phase}` : "";
   return `<div class="card" style="margin-bottom:12px; background:var(--accent-deep); border-color:var(--accent);">
-    <div class="card-value">🏁 ${escapeHtml(upcomingRace.race_name || "Race Day")} — ${when}</div>
-    <div class="card-sub">${dateLabel(upcomingRace.plan_date)}${phaseLabel}</div>
+    <div class="card-value card-value-compact">🏁 ${escapeHtml(raceShortTitle(upcomingRace.race_name))} · ${raceWhenLabel(diff)} (${shortDateLabel(upcomingRace.plan_date)})${phaseLabel}</div>
   </div>`;
 }
 
 // ---------- Hub card (ringkas, dipakai di /hub) ----------
 
+// Quick-add dipangkas ke 4 olahraga yang aktif dibiasain (Run/Badminton/Gym/Rest) biar grid-nya
+// 2x2 yang bersih & tombolnya gampang di-tap di HP - Swim & Tennis masih bisa dicatat lewat
+// "Complete Plan" kalau plan hari itu jenisnya SWIM/TENNIS (lihat sportForSessionType di
+// router.js), cuma nggak dapet tile ad-hoc sendiri lagi.
 const QUICK_ADD_SPORTS = [
   { form: "run", icon: "/icons/running.png", label: "Run" },
-  { form: "swim", icon: "/icons/swim.png", label: "Swim" },
   { form: "badminton", icon: "/icons/shuttlecock.png", label: "Badminton" },
-  { form: "tennis", icon: "/icons/tennis.png", label: "Tennis" },
   { form: "gym", icon: "/icons/dumbbell.png", label: "Gym" },
 ];
 
-function quickAddRowHtml() {
+function restTileHtml() {
+  return `<form method="POST" action="/hub/grind/sessions/rest" style="margin:0;">
+      <button type="submit" class="sport-tile"><span class="sport-tile-emoji">😴</span>Rest</button>
+    </form>`;
+}
+
+// Dipakai di card Grind /hub - tiap tile navigate ke /hub/grind (forms-nya cuma ada di sana).
+function quickAddTilesHub() {
   const tiles = QUICK_ADD_SPORTS.map(
-    (s) => `<a class="sport-tile" href="/hub/grind?form=${s.form}#log-forms"><img src="${s.icon}" alt="">${s.label}</a>`
+    (s) => `<a class="sport-tile" href="/hub/grind?form=${s.form}#today-logger"><img src="${s.icon}" alt="">${s.label}</a>`
   ).join("");
 
   return `<div class="card-sub" style="margin:10px 0 6px;">Or log a session</div>
   <div class="sport-tile-grid">
     ${tiles}
-    <form method="POST" action="/hub/grind/sessions/rest" style="margin:0;">
-      <button type="submit" class="sport-tile"><span class="sport-tile-emoji">😴</span>Rest</button>
-    </form>
+    ${restTileHtml()}
+  </div>`;
+}
+
+// Dipakai di /hub/grind sendiri - tiap tile nge-trigger buka form yang pas di tempat (lihat
+// quickAddScript), bukan navigate ke section lain.
+function quickAddTilesGrindPage() {
+  const tiles = QUICK_ADD_SPORTS.map(
+    (s) => `<button type="button" class="sport-tile" data-target="form-${s.form}"><img src="${s.icon}" alt="">${s.label}</button>`
+  ).join("");
+
+  return `<div class="card-sub" style="margin:10px 0 6px;">Or log a session</div>
+  <div class="sport-tile-grid" id="today-logger">
+    ${tiles}
+    ${restTileHtml()}
   </div>`;
 }
 
 export function grindHubCardHtml({ todayPlan, todaySessions, upcomingRace }) {
   const raceLine = upcomingRace
-    ? `<div class="card-sub">🏁 ${escapeHtml(upcomingRace.race_name || "Race Day")} in ${daysUntil(upcomingRace.plan_date)} hari</div>`
+    ? `<div class="card-sub">🏁 ${escapeHtml(raceShortTitle(upcomingRace.race_name))} · ${raceWhenLabel(daysUntil(upcomingRace.plan_date))}</div>`
     : "";
 
   let planBlock;
@@ -142,7 +201,7 @@ export function grindHubCardHtml({ todayPlan, todaySessions, upcomingRace }) {
           ? `<form method="POST" action="/hub/grind/plan/${todayPlan.id}/complete-rest" style="margin:0;">
                <button type="submit" class="btn-primary btn-sm">✓ Complete</button>
              </form>`
-          : `<a class="btn-primary btn-sm" href="/hub/grind?complete=${todayPlan.id}#log-forms">✓ Complete Plan</a>`;
+          : `<a class="btn-primary btn-sm" href="/hub/grind?complete=${todayPlan.id}#today-logger">✓ Complete Plan</a>`;
       planBlock += `<div class="button-row" style="margin-top:8px;">
         ${completeBtn}
         <form method="POST" action="/hub/grind/plan/${todayPlan.id}/skip" style="margin:0;">
@@ -156,57 +215,42 @@ export function grindHubCardHtml({ todayPlan, todaySessions, upcomingRace }) {
 
   const sessionsBlock = todaySessions.length ? todaySessions.map(sessionLineHtml).join("") : "";
 
-  return `${raceLine}${planBlock}${sessionsBlock}${quickAddRowHtml()}
-    <a class="nav-link" href="/hub/grind" style="display:inline-block; margin-top:8px;">Open Grind</a>`;
+  return `${raceLine}${planBlock}${sessionsBlock}${quickAddTilesHub()}`;
 }
 
-// ---------- Today's Plan card (full page) ----------
+// ---------- Import / Paste Training Plan (modal, dipicu tombol di header) ----------
 
-function todayCardHtml(todayPlan, todaySessions) {
-  let body;
-  if (!todayPlan) {
-    body = `<div class="empty-state">No plan scheduled for today.</div>`;
-  } else {
-    const summary = planSummaryLine(todayPlan);
-    body = `<div class="card-value">${SESSION_TYPE_BADGE[todayPlan.session_type] || todayPlan.session_type}</div>
-      ${summary ? `<div class="card-sub">${escapeHtml(summary)}</div>` : ""}
-      ${todayPlan.instructions ? `<div class="card-sub" style="margin-top:6px;">${escapeHtml(todayPlan.instructions)}</div>` : ""}`;
-
-    if (todayPlan.status === "PENDING") {
-      const completeBtn =
-        todayPlan.session_type === "REST"
-          ? `<form method="POST" action="/hub/grind/plan/${todayPlan.id}/complete-rest" style="margin:0;">
-               <button type="submit" class="btn-primary btn-sm">✓ Complete</button>
-             </form>`
-          : `<a class="btn-primary btn-sm" href="/hub/grind?complete=${todayPlan.id}#log-forms">✓ Complete Plan</a>`;
-      body += `<div class="button-row" style="margin-top:10px;">
-        ${completeBtn}
-        <form method="POST" action="/hub/grind/plan/${todayPlan.id}/skip" style="margin:0;">
-          <button type="submit" class="btn-secondary btn-sm">Skip</button>
-        </form>
-      </div>`;
-    } else {
-      body += `<div class="card-sub" style="margin-top:6px;">${todayPlan.status === "DONE" ? "✅ Done" : "⏭ Skipped"}</div>`;
-    }
-  }
-
-  const sessions = todaySessions.length
-    ? `<div style="margin-top:10px; border-top:1px solid var(--border); padding-top:10px;">${todaySessions.map(sessionLineHtml).join("")}</div>`
-    : "";
-
-  return `<h2>Today</h2><div class="card">${body}${sessions}</div>${quickAddRowHtml()}`;
+function importPlanButtonHtml() {
+  return `<button type="button" class="btn-secondary btn-sm" id="import-plan-btn">+ Import Plan</button>`;
 }
 
-// ---------- Import / Paste Training Plan ----------
+function importModalHtml() {
+  return `<dialog class="modal-dialog" id="import-plan-modal">
+    <div class="modal-dialog-body">
+      <div class="modal-dialog-header">
+        <h3>📋 Import / Paste Training Plan</h3>
+        <button type="button" class="modal-close-btn" id="import-plan-close">✕</button>
+      </div>
+      <form method="POST" action="/hub/grind/import">
+        <textarea name="tsv" rows="8" placeholder="Paste dari Google Sheets/Excel (tab-separated): Tanggal | Hari | Minggu Ke- | Fase | Jenis Sesi | Jarak Target (km) | Target Pace | Target HR | Deskripsi/Instruksi | Status | Jarak Aktual (km) | Avg Pace Aktual" required></textarea>
+        <button type="submit">Import</button>
+      </form>
+    </div>
+  </dialog>`;
+}
 
-function importSectionHtml(flash) {
-  return `<details class="form-card" style="margin-top:16px;">
-    <summary>📋 Import / Paste Training Plan</summary>
-    <form method="POST" action="/hub/grind/import">
-      <textarea name="tsv" rows="8" placeholder="Paste dari Google Sheets/Excel (tab-separated): Tanggal | Hari | Minggu Ke- | Fase | Jenis Sesi | Jarak Target (km) | Target Pace | Target HR | Deskripsi/Instruksi | Status | Jarak Aktual (km) | Avg Pace Aktual" required></textarea>
-      <button type="submit">Import</button>
-    </form>
-  </details>`;
+function importModalScript() {
+  return `<script>
+    (function () {
+      var btn = document.getElementById("import-plan-btn");
+      var modal = document.getElementById("import-plan-modal");
+      var close = document.getElementById("import-plan-close");
+      if (!btn || !modal) return;
+      btn.addEventListener("click", function () { modal.showModal(); });
+      if (close) close.addEventListener("click", function () { modal.close(); });
+      modal.addEventListener("click", function (e) { if (e.target === modal) modal.close(); });
+    })();
+  </script>`;
 }
 
 // ---------- Log Run/Badminton/Gym forms ----------
@@ -361,16 +405,73 @@ function gymFormHtml({ open, prefill, defaultTime, recoveryHint }) {
   </details>`;
 }
 
-function logFormsHtml({ openForm, prefill, defaultTime, recoveryHint }) {
+// ---------- Today's Plan + Interactive Quick Logger (gabungan, biar nggak perlu scroll ke
+// section terpisah buat nge-log - lihat quickAddScript buat wiring klik tile -> buka form) ----------
+
+function todayPlanAndLoggerHtml({ todayPlan, todaySessions, openForm, prefill, defaultTime, recoveryHint }) {
+  let body;
+  if (!todayPlan) {
+    body = `<div class="empty-state">No plan scheduled for today.</div>`;
+  } else {
+    const summary = planSummaryLine(todayPlan);
+    body = `<div class="card-value">${SESSION_TYPE_BADGE[todayPlan.session_type] || todayPlan.session_type}</div>
+      ${summary ? `<div class="card-sub">${escapeHtml(summary)}</div>` : ""}
+      ${todayPlan.instructions ? `<div class="card-sub" style="margin-top:6px;">${escapeHtml(todayPlan.instructions)}</div>` : ""}`;
+
+    if (todayPlan.status === "PENDING") {
+      const completeBtn =
+        todayPlan.session_type === "REST"
+          ? `<form method="POST" action="/hub/grind/plan/${todayPlan.id}/complete-rest" style="margin:0;">
+               <button type="submit" class="btn-primary btn-sm">✓ Complete</button>
+             </form>`
+          : `<a class="btn-primary btn-sm" href="/hub/grind?complete=${todayPlan.id}#today-logger">✓ Complete Plan</a>`;
+      body += `<div class="button-row" style="margin-top:10px;">
+        ${completeBtn}
+        <form method="POST" action="/hub/grind/plan/${todayPlan.id}/skip" style="margin:0;">
+          <button type="submit" class="btn-secondary btn-sm">Skip</button>
+        </form>
+      </div>`;
+    } else {
+      body += `<div class="card-sub" style="margin-top:6px;">${todayPlan.status === "DONE" ? "✅ Done" : "⏭ Skipped"}</div>`;
+    }
+  }
+
+  const sessions = todaySessions.length
+    ? `<div style="margin-top:10px; border-top:1px solid var(--border); padding-top:10px;">${todaySessions.map(sessionLineHtml).join("")}</div>`
+    : "";
+
+  // Swim/Tennis nggak punya tile di quickAddTilesGrindPage lagi, tapi form-nya tetep dirender
+  // (disembunyiin lewat <details> tertutup) biar "Complete Plan" masih bisa kebuka kalau plan
+  // hari itu jenisnya SWIM/TENNIS (lihat sportForSessionType di router.js).
   const prefillFor = (key) => (openForm === key ? prefill : null);
-  return `<h2 id="log-forms">Log Session</h2>
-  <div class="forms">
+  const formsHtml = `<div class="forms" style="margin-top:12px;">
     ${runFormHtml({ open: openForm === "run", prefill: prefillFor("run"), defaultTime })}
-    ${swimFormHtml({ open: openForm === "swim", prefill: prefillFor("swim"), defaultTime })}
     ${badmintonFormHtml({ open: openForm === "badminton", prefill: prefillFor("badminton"), defaultTime })}
-    ${tennisFormHtml({ open: openForm === "tennis", prefill: prefillFor("tennis"), defaultTime })}
     ${gymFormHtml({ open: openForm === "gym", prefill: prefillFor("gym"), defaultTime, recoveryHint })}
+    ${swimFormHtml({ open: openForm === "swim", prefill: prefillFor("swim"), defaultTime })}
+    ${tennisFormHtml({ open: openForm === "tennis", prefill: prefillFor("tennis"), defaultTime })}
   </div>`;
+
+  return `<h2>Today</h2><div class="card">${body}${sessions}${quickAddTilesGrindPage()}</div>${formsHtml}`;
+}
+
+// Klik tile Run/Badminton/Gym -> buka <details class="form-card"> yang sesuai persis di bawah
+// tile-nya (nggak navigate/reload) & tutup form lain yang lagi kebuka, biar cuma 1 form aktif
+// dalam satu waktu kayak accordion.
+function quickAddScript() {
+  return `<script>
+    document.querySelectorAll('.sport-tile[data-target]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        document.querySelectorAll('.form-card[id^="form-"]').forEach(function (d) {
+          if (d.id !== btn.dataset.target) d.open = false;
+        });
+        var target = document.getElementById(btn.dataset.target);
+        if (!target) return;
+        target.open = true;
+        target.scrollIntoView({ behavior: "smooth", block: "start" });
+      });
+    });
+  </script>`;
 }
 
 // ---------- Weekly Plan vs Actual ----------
@@ -412,7 +513,7 @@ function scheduleDayHtml(plan, todayKey) {
           ${
             plan.session_type === "REST"
               ? `<form method="POST" action="/hub/grind/plan/${plan.id}/complete-rest" style="margin:0;"><button type="submit" class="btn-primary btn-sm">✓ Complete</button></form>`
-              : `<a class="btn-primary btn-sm" href="/hub/grind?complete=${plan.id}#log-forms">✓ Complete</a>`
+              : `<a class="btn-primary btn-sm" href="/hub/grind?complete=${plan.id}#today-logger">✓ Complete</a>`
           }
           <form method="POST" action="/hub/grind/plan/${plan.id}/skip" style="margin:0;"><button type="submit" class="btn-secondary btn-sm">Skip</button></form>
         </div>`
@@ -467,14 +568,19 @@ function scheduleViewerHtml({ weekPlans, nextWeekPlans, todayKey }) {
   return `<h2>Schedule</h2>
   <div class="card-sub" style="margin:-4px 0 8px;">This Week</div>
   ${thisWeek}
-  <div class="card-sub" style="margin:16px 0 8px;">Next Week</div>
-  ${nextWeek}`;
+  <details class="schedule-next-week">
+    <summary>Next Week (${nextWeekPlans.length})</summary>
+    <div class="schedule-next-week-body">${nextWeek}</div>
+  </details>`;
 }
 
 // ---------- Sport Summary (bulan ini) ----------
 
+// Swim & Tennis dikeluarin dari Sport Summary (fokus ke 3 olahraga yang aktif dilacak rutin -
+// lihat QUICK_ADD_SPORTS) tapi monthSummary (grind/supabase.js) tetep ngitung semuanya, jadi data
+// swim/tennis bulan ini nggak hilang, cuma nggak ditampilin sebagai kartu di sini.
 function sportSummaryHtml(monthSummary) {
-  const { run, swim, badminton, tennis, gym } = monthSummary;
+  const { run, badminton, gym } = monthSummary;
   return `<h2>Sport Summary (This Month)</h2>
   <div class="cards">
     <div class="card">
@@ -483,19 +589,9 @@ function sportSummaryHtml(monthSummary) {
       <div class="card-sub">${run.count} sesi${run.avgPace ? ` · avg ${run.avgPace}/km` : ""}${run.avgHr ? ` · avg ${run.avgHr}bpm` : ""}</div>
     </div>
     <div class="card">
-      <div class="card-label">${iconLabel("/icons/swim.png", "Swim")}</div>
-      <div class="card-value card-value-compact">${swim.totalKm.toFixed(1)}km</div>
-      <div class="card-sub">${swim.count} sesi</div>
-    </div>
-    <div class="card">
       <div class="card-label">${iconLabel("/icons/shuttlecock.png", "Badminton")}</div>
       <div class="card-value card-value-compact">${badminton.count} sesi</div>
       <div class="card-sub">${badminton.totalHours}h total</div>
-    </div>
-    <div class="card">
-      <div class="card-label">${iconLabel("/icons/tennis.png", "Tennis")}</div>
-      <div class="card-value card-value-compact">${tennis.count} sesi</div>
-      <div class="card-sub">${tennis.totalHours}h total</div>
     </div>
     <div class="card">
       <div class="card-label">${iconLabel("/icons/dumbbell.png", "Gym")}</div>
@@ -569,11 +665,33 @@ function historyRowHtml(s) {
   </details>`;
 }
 
+const HISTORY_VISIBLE_COUNT = 7;
+
 function historyLogHtml(historyLogs) {
-  const rows = historyLogs.length
-    ? historyLogs.map(historyRowHtml).join("")
-    : `<div class="empty-state">Belum ada histori latihan.</div>`;
-  return `<h2>History</h2>${rows}`;
+  if (!historyLogs.length) return `<h2>History</h2><div class="empty-state">Belum ada histori latihan.</div>`;
+
+  const visibleRows = historyLogs.slice(0, HISTORY_VISIBLE_COUNT).map(historyRowHtml).join("");
+  const restLogs = historyLogs.slice(HISTORY_VISIBLE_COUNT);
+  const restRows = restLogs.length
+    ? `<div id="history-rest" hidden>${restLogs.map(historyRowHtml).join("")}</div>
+       <button type="button" class="btn-secondary btn-sm" id="history-show-all" style="width:100%; margin-top:4px;">Show All (${restLogs.length} more)</button>`
+    : "";
+
+  return `<h2>History</h2>${visibleRows}${restRows}`;
+}
+
+function historyShowAllScript() {
+  return `<script>
+    (function () {
+      var btn = document.getElementById("history-show-all");
+      var rest = document.getElementById("history-rest");
+      if (!btn || !rest) return;
+      btn.addEventListener("click", function () {
+        rest.hidden = false;
+        btn.hidden = true;
+      });
+    })();
+  </script>`;
 }
 
 // ---------- Client scripts ----------
@@ -803,21 +921,28 @@ ${faviconLink("/icons/grind-icon.png")}
 </head>
 <body>
   <div class="container">
-    ${navHeader({ icon: "/icons/grind-icon.png", title: "Grind", links: [{ href: "/hub", label: "Home" }] })}
+    ${navHeader({
+      icon: "/icons/grind-icon.png",
+      title: "Grind",
+      links: [{ href: "/hub", label: "Home" }],
+      extra: importPlanButtonHtml(),
+    })}
 
     ${flash ? `<div class="flash flash-${flash.type}">${escapeHtml(flash.text)}</div>` : ""}
 
     ${raceBannerHtml(upcomingRace)}
-    ${todayCardHtml(todayPlan, todaySessions)}
-    ${importSectionHtml(flash)}
-    ${logFormsHtml({ openForm, prefill, defaultTime, recoveryHint })}
+    ${todayPlanAndLoggerHtml({ todayPlan, todaySessions, openForm, prefill, defaultTime, recoveryHint })}
     ${weeklyProgressHtml({ weekPlans, weekSessions, weekTargetKm })}
     ${scheduleViewerHtml({ weekPlans, nextWeekPlans, todayKey })}
     ${sportSummaryHtml(monthSummary)}
     ${historyLogHtml(historyLogs)}
   </div>
+  ${importModalHtml()}
   ${pacecalcScript()}
   ${gymFormScript()}
+  ${quickAddScript()}
+  ${importModalScript()}
+  ${historyShowAllScript()}
 </body>
 </html>`;
 }

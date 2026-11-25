@@ -74,6 +74,15 @@ export function mapImportStatus(raw) {
   return STATUS_MAP[String(raw || "").trim().toLowerCase()] || "PENDING";
 }
 
+// Tebak AM/PM sesi historis dari kolom Deskripsi/Instruksi pas bulk import (kolom TSV nggak
+// punya kolom jam sendiri) - "malam"/"after office" nunjukin latihan sore/malam (PM), selain itu
+// ("pagi", "Long Run", atau nggak disebutkan sama sekali) dianggap AM.
+export function detectSessionTimeFromInstructions(instructions) {
+  const text = String(instructions || "").toLowerCase();
+  if (text.includes("malam") || text.includes("after office")) return "PM";
+  return "AM";
+}
+
 // Kolom (tab-separated, sesuai urutan yang di-paste user dari Google Sheets/Excel):
 // Tanggal | Hari | Minggu Ke- | Fase | Jenis Sesi | Jarak Target (km) | Target Pace |
 // Target HR | Deskripsi/Instruksi | Status | Jarak Aktual (km) | Avg Pace Aktual

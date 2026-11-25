@@ -4,6 +4,12 @@ function formatRupiah(amount) {
   return `Rp${Math.round(amount).toLocaleString("id-ID")}`;
 }
 
+// Beda sama formatRupiah biasa - tanda minus ditaruh di depan "Rp", bukan nyempil di antara "Rp"
+// dan angkanya ("Rp-202.000" kebaca aneh, "-Rp202.000" kebaca normal kayak konvensi mata uang).
+function formatRupiahSigned(amount) {
+  return `${amount < 0 ? "-" : ""}${formatRupiah(Math.abs(amount))}`;
+}
+
 function overviewLine(label, value, sign) {
   return `<div class="mood-history-item"><div>${label}</div><div>${sign}${formatRupiah(Math.abs(value))}</div></div>`;
 }
@@ -135,7 +141,7 @@ ${faviconLink("/icons/vault.png")}
 
     <div class="card">
       <div class="card-label">${iconLabel("/icons/vault.png", "Monthly Overview")}</div>
-      <div class="card-value">${formatRupiah(monthlyRemaining)} left</div>
+      <div class="card-value ${monthlyRemaining < 0 ? "text-danger-soft" : ""}">${formatRupiahSigned(monthlyRemaining)} left</div>
       <div style="margin-top:10px;">
         ${overviewLine("Income this month", monthlyIncome, "+")}
         ${overviewLine("Savings (net)", monthlySavingsNet, "-")}

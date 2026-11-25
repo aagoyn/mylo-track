@@ -2,10 +2,12 @@ import express from "express";
 import { requireAuth } from "../shared/auth.js";
 import {
   getDayBoundsWib as getSpendingDayBoundsWib,
+  getWeekBoundsWib as getSpendingWeekBoundsWib,
   getAggregatedExpenses,
   getRecentExpenseLogs,
+  getWeeklyBudget,
 } from "../spending/supabase.js";
-import { getTodayCalories, getTodayMacros, getTodayFoodLogs } from "../calorie/supabase.js";
+import { getTodayFoodLogs } from "../calorie/supabase.js";
 import { getRecentMoodLogs } from "./mood/supabase.js";
 import { getJournalEntry, todayDateKeyWib } from "./journal/supabase.js";
 import { getTopupTotal } from "../spending/supabase.js";
@@ -18,6 +20,7 @@ import {
 } from "./vault/supabase.js";
 import { getTodayClockLog } from "./clocked/supabase.js";
 import { getPlanByDate, getSessionsByDate, getUpcomingRace, todayDateKeyWib as grindTodayDateKeyWib } from "./grind/supabase.js";
+import { grindActivityRow } from "./grind/dashboard.js";
 import { renderHubDashboard } from "./dashboard.js";
 
 const WIB_OFFSET_MS = 7 * 60 * 60 * 1000;
@@ -121,7 +124,7 @@ router.get("/hub", requireAuth, async (req, res) => {
 
   const [
     spendingResult,
-    calorieResult,
+    weeklyBudgetResult,
     recentSpendingResult,
     recentCalorieResult,
     recentMoodResult,
@@ -134,7 +137,14 @@ router.get("/hub", requireAuth, async (req, res) => {
       const { startISO, endISO } = getSpendingDayBoundsWib();
       return getAggregatedExpenses(phone, startISO, endISO);
     })(),
-    Promise.all([getTodayCalories(phone), getTodayMacros(phone)]),
+    (async () => {
+      const { startISO, endISO } = getSpendingWeekBoundsWib();
+      const [budget, { total: spentThisWeek }] = await Promise.all([
+        getWeeklyBudget(phone),
+        getAggregatedExpenses(phone, startISO, endISO),
+      ]);
+      return { budget, spentThisWeek };
+    })(),
     getRecentExpenseLogs(phone, 20),
     getTodayFoodLogs(phone),
     getRecentMoodLogs(phone, 10),
@@ -175,13 +185,21 @@ router.get("/hub", requireAuth, async (req, res) => {
     recentSpendingResult.status === "fulfilled"
       ? recentSpendingResult.value.filter((r) => toWibDateKey(r.created_at) === todayKey).length
       : 0;
-  const spendingToday =
-    spendingTotalToday != null ? { total: spendingTotalToday, count: spendingCountToday } : null;
 
-  const calorieToday =
-    calorieResult.status === "fulfilled"
-      ? { calories: calorieResult.value[0], protein_g: calorieResult.value[1].protein_g }
-      : null;
+  // Safe-to-Spend Today: sisa budget mingguan (lihat getWeeklyBudget, derived dari ledger -
+  // remaining = budget - spentThisWeek) dibagi rata ke sisa hari minggu ini (termasuk hari ini),
+  // sama persis formula "Xd left this week" di /dashboard/spending - lihat spending/router.js.
+  let safeToSpendPerDay = null;
+  if (weeklyBudgetResult.status === "fulfilled") {
+    const { budget, spentThisWeek } = weeklyBudgetResult.value;
+    const remaining = budget - spentThisWeek;
+    const dayOfWeek = now.getUTCDay() || 7; // Senin=1 ... Minggu=7
+    const daysLeftInWeek = 8 - dayOfWeek; // termasuk hari ini
+    if (budget && remaining > 0 && daysLeftInWeek > 0) safeToSpendPerDay = remaining / daysLeftInWeek;
+  }
+
+  const spendingToday =
+    spendingTotalToday != null ? { total: spendingTotalToday, count: spendingCountToday, safeToSpendPerDay } : null;
 
   const journalToday = journalResult.status === "fulfilled" ? journalResult.value : null;
 
@@ -236,6 +254,9 @@ router.get("/hub", requireAuth, async (req, res) => {
       timestamp: journalToday.updated_at,
     });
   }
+  for (const s of grindToday.todaySessions) {
+    recentActivity.push(grindActivityRow(s));
+  }
   recentActivity.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
 
   res.send(
@@ -244,7 +265,6 @@ router.get("/hub", requireAuth, async (req, res) => {
       dateLabel: formatDateLabelEn(now),
       username: req.user.username,
       spendingToday,
-      calorieToday,
       vaultSummary,
       clockedToday,
       grindToday,

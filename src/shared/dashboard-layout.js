@@ -148,8 +148,7 @@ export const DASHBOARD_CSS = `
   }
   .form-card button:hover, .inline-toggle-body button:hover { background: var(--accent-hover); }
 
-  .sport-tile-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(72px, 1fr)); gap: 8px; }
-  @media (max-width: 480px) { .sport-tile-grid { grid-template-columns: repeat(3, 1fr); } }
+  .sport-tile-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
   .sport-tile {
     display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px;
     width: 100%; box-sizing: border-box; padding: 12px 6px; border-radius: 14px; border: 1px solid var(--border);
@@ -186,9 +185,14 @@ export const DASHBOARD_CSS = `
   .activity-subtitle { font-size: 12px; color: var(--text-muted); }
   .activity-time { font-size: 12px; color: var(--text-dim); white-space: nowrap; }
   .hub-nav-group { margin-bottom: 20px; }
-  .hub-nav-links { display: flex; flex-direction: column; gap: 6px; }
+  .hub-nav-links { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
   a.hub-nav-item { display: block; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 10px 14px; color: var(--text); text-decoration: none; font-size: 14px; }
   a.hub-nav-item:hover { background: var(--surface-hover); }
+
+  .section-header { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 32px 0 8px; }
+  .section-header h2 { margin: 0; }
+  .text-success { color: var(--success); }
+  .text-danger-soft { color: var(--danger-light); }
 
   .mood-picker { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
   .mood-picker input[type="radio"] { position: absolute; opacity: 0; width: 1px; height: 1px; }
@@ -288,12 +292,12 @@ export const DASHBOARD_CSS = `
   label { display: block; font-size: 11px; color: var(--text-muted); margin-bottom: 3px; }
 
   .log-item { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; margin-bottom: 8px; overflow: hidden; }
-  .log-item summary { display: flex; align-items: center; gap: 10px; padding: 10px 14px; cursor: pointer; list-style: none; }
+  .log-item summary { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 10px; padding: 10px 14px; cursor: pointer; list-style: none; }
   .log-item summary::-webkit-details-marker { display: none; }
   .log-item summary::before { content: "▸"; color: var(--text-dim); font-size: 18px; flex-shrink: 0; transition: transform 0.15s ease; }
   .log-item[open] summary::before { transform: rotate(90deg); }
   .log-time { font-size: 12px; color: var(--text-dim); white-space: nowrap; }
-  .log-name { flex: 1; min-width: 0; overflow-wrap: break-word; font-size: 13px; }
+  .log-name { flex: 1; min-width: 110px; overflow-wrap: break-word; font-size: 13px; }
   .log-calories { font-size: 13px; color: var(--text-muted); white-space: nowrap; }
   .log-detail-body { padding: 4px 14px 14px; border-top: 1px solid var(--border); }
   .log-item-row { padding: 10px 0; border-bottom: 1px solid var(--border); }
@@ -348,6 +352,27 @@ export const DASHBOARD_CSS = `
   .inline-toggle > summary::before { content: "▸ "; }
   .inline-toggle[open] > summary::before { content: "▾ "; }
   .inline-toggle-body { margin-top: 8px; display: flex; flex-direction: column; gap: 8px; }
+
+  .schedule-next-week { margin-top: 16px; }
+  .schedule-next-week > summary {
+    cursor: pointer; font-size: 12px; color: var(--text-dim); text-transform: uppercase;
+    letter-spacing: .05em; list-style: none;
+  }
+  .schedule-next-week > summary::-webkit-details-marker { display: none; }
+  .schedule-next-week > summary::before { content: "▸ "; }
+  .schedule-next-week[open] > summary::before { content: "▾ "; }
+  .schedule-next-week-body { margin-top: 8px; }
+
+  dialog.modal-dialog {
+    border: none; border-radius: 14px; padding: 0; background: var(--surface); color: var(--text);
+    max-width: 480px; width: 92vw; box-shadow: 0 12px 40px rgba(0,0,0,.25);
+  }
+  dialog.modal-dialog::backdrop { background: rgba(41,37,36,.55); }
+  .modal-dialog-body { padding: 18px; }
+  .modal-dialog-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+  .modal-dialog-header h3 { margin: 0; font-size: 15px; }
+  .modal-close-btn { border: none; background: transparent; color: var(--text-muted); font-size: 20px; line-height: 1; cursor: pointer; padding: 4px; }
+  .modal-close-btn:hover { color: var(--text); }
 
   .routine-block { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; margin-bottom: 12px; }
   .routine-block h3 { margin: 0 0 10px; font-size: 14px; }
@@ -499,13 +524,14 @@ export function faviconLink(iconPath) {
 
 // header dashboard dengan nav-link ke dashboard "pasangan" (same-origin sekarang, bukan cross-app URL lagi)
 // icon: path ke PNG di public/icons (sama yang dipakai buat faviconLink halaman itu)
-export function navHeader({ icon, title, links = [] }) {
+export function navHeader({ icon, title, links = [], extra = "" }) {
   const linksHtml = links
     .map((l) => `<a class="nav-link" href="${l.href}">${l.label}</a>`)
     .join("");
   return `<header>
       <h1><img class="header-icon" src="${icon}" alt="">${title}</h1>
       <div class="nav-links">
+        ${extra}
         ${linksHtml}
         ${themeToggleHtml()}
         <a class="logout" href="/logout">Log out</a>

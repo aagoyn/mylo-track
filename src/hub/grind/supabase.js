@@ -1,5 +1,5 @@
 import { supabase } from "../../shared/supabase-client.js";
-import { parseTrainingPlanTsv, paceToSeconds, secondsToPace } from "./parse.js";
+import { parseTrainingPlanTsv, paceToSeconds, secondsToPace, detectSessionTimeFromInstructions } from "./parse.js";
 
 const WIB_OFFSET_MS = 7 * 60 * 60 * 1000;
 
@@ -514,7 +514,7 @@ export async function importTrainingPlan(phone, tsvText) {
       phone,
       plan_id: plan.id,
       session_date: row.planDate,
-      session_time: "AM",
+      session_time: detectSessionTimeFromInstructions(row.instructions),
       type: planSessionTypeToType(row.sessionType),
       sub_type: PLAN_TYPE_TO_SUBTYPE[row.sessionType] || null,
       distance_km: row.actualDistanceKm,

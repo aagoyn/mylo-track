@@ -1,4 +1,4 @@
-import { DASHBOARD_CSS, escapeHtml, navHeader, faviconLink, iconLabel } from "../../shared/dashboard-layout.js";
+import { DASHBOARD_CSS, escapeHtml, navHeader, faviconLink, iconLabel, bottomNavHtml } from "../../shared/dashboard-layout.js";
 
 function formatRupiah(amount) {
   return `Rp${Math.round(amount).toLocaleString("id-ID")}`;
@@ -135,7 +135,7 @@ ${faviconLink("/icons/vault.png")}
 </head>
 <body>
   <div class="container">
-    ${navHeader({ icon: "/icons/vault.png", title: "Vault", links: [{ href: "/hub", label: "Home" }] })}
+    ${navHeader({ icon: "/icons/vault.png", title: "Vault" })}
 
     ${flash ? `<div class="flash flash-${flash.type}">${escapeHtml(flash.text)}</div>` : ""}
 
@@ -213,6 +213,7 @@ ${faviconLink("/icons/vault.png")}
     </details>
     <div class="activity-list" style="margin-top:8px;">${expenseRows}</div>
   </div>
+  ${bottomNavHtml("/hub/vault")}
 </body>
 </html>`;
 }

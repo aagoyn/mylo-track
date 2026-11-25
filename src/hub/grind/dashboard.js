@@ -1171,7 +1171,6 @@ ${faviconLink("/icons/grind-icon.png")}
     ${navHeader({
       icon: "/icons/grind-icon.png",
       title: "Grind",
-      links: [{ href: "/hub", label: "Home" }],
     })}
 
     ${flash ? `<div class="flash flash-${flash.type}">${escapeHtml(flash.text)}</div>` : ""}

@@ -1,4 +1,4 @@
-import { DASHBOARD_CSS, escapeHtml, faviconLink, iconLabel, navHeader, progressFormScript, loadingOverlayHtml, overlayFormScript, ajaxApproveFormScript } from "../../shared/dashboard-layout.js";
+import { DASHBOARD_CSS, escapeHtml, faviconLink, iconLabel, navHeader, progressFormScript, loadingOverlayHtml, overlayFormScript, ajaxApproveFormScript, bottomNavHtml } from "../../shared/dashboard-layout.js";
 
 // duplikat kecil dari ./supabase.js (dipakai buat validasi di sana) - sengaja nggak di-import
 // dari situ biar dashboard.js (layer render doang) nggak ikut narik shared/supabase-client.js
@@ -82,10 +82,11 @@ ${faviconLink("/icons/skincare.png")}
 </head>
 <body>
   <div class="container">
-    ${navHeader({ icon: "/icons/skincare.png", title: "Skincare", links: [{ href: "/hub", label: "Home" }] })}
+    ${navHeader({ icon: "/icons/skincare.png", title: "Skincare" })}
     ${subnavHtml(active)}
     ${body}
   </div>
+  ${bottomNavHtml("/hub/skincare")}
   ${overlayFormIds.length ? loadingOverlayHtml("loading-overlay", "Analyzing with AI...") : ""}
   <script>
     // Satu delegated listener buat dua komponen dropdown custom di halaman ini:

@@ -133,7 +133,7 @@ export const DASHBOARD_CSS = `
     font-variant-numeric: tabular-nums;
     background-color: var(--bg); background-image: var(--gradient-mesh); background-attachment: fixed;
   }
-  .container { max-width: 720px; margin: 0 auto; }
+  .container { max-width: 720px; margin: 0 auto; padding-bottom: calc(92px + env(safe-area-inset-bottom)); }
   header { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px 16px; margin-bottom: 24px; }
   h1 { font-size: 20px; margin: 0; display: flex; align-items: center; gap: 8px; }
   .header-icon { width: 28px; height: 28px; object-fit: contain; border-radius: 6px; flex-shrink: 0; }

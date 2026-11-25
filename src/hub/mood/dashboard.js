@@ -1,4 +1,4 @@
-import { DASHBOARD_CSS, escapeHtml, navHeader, faviconLink, iconLabel } from "../../shared/dashboard-layout.js";
+import { DASHBOARD_CSS, escapeHtml, navHeader, faviconLink, iconLabel, bottomNavHtml } from "../../shared/dashboard-layout.js";
 
 const MOOD_META = {
   terrible: { emoji: "😫", label: "Terrible" },
@@ -117,7 +117,7 @@ ${faviconLink("/icons/mood.png")}
 </head>
 <body>
   <div class="container">
-    ${navHeader({ icon: "/icons/mood.png", title: "Mood Tracker", links: [{ href: "/hub", label: "Home" }] })}
+    ${navHeader({ icon: "/icons/mood.png", title: "Mood Tracker" })}
 
     ${flash ? `<div class="flash flash-${flash.type}">${escapeHtml(flash.text)}</div>` : ""}
 
@@ -185,6 +185,7 @@ ${faviconLink("/icons/mood.png")}
     <h2>Mood history</h2>
     <div class="activity-list">${historyRows}</div>
   </div>
+  ${bottomNavHtml("/hub/mood")}
 </body>
 </html>`;
 }

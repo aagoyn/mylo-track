@@ -1,4 +1,4 @@
-import { DASHBOARD_CSS, escapeHtml, navHeader, faviconLink, iconLabel } from "../../shared/dashboard-layout.js";
+import { DASHBOARD_CSS, escapeHtml, navHeader, faviconLink, iconLabel, bottomNavHtml } from "../../shared/dashboard-layout.js";
 
 const MONTHS_EN = [
   "Jan", "Feb", "Mar", "Apr", "May", "Jun",
@@ -47,7 +47,7 @@ ${faviconLink("/icons/journal.png")}
 </head>
 <body>
   <div class="container">
-    ${navHeader({ icon: "/icons/journal.png", title: "Journal", links: [{ href: "/hub", label: "Home" }] })}
+    ${navHeader({ icon: "/icons/journal.png", title: "Journal" })}
 
     ${flash ? `<div class="flash flash-${flash.type}">${escapeHtml(flash.text)}</div>` : ""}
 
@@ -58,6 +58,7 @@ ${faviconLink("/icons/journal.png")}
     <h2>History</h2>
     <div>${historyRows}</div>
   </div>
+  ${bottomNavHtml("/hub/journal")}
 </body>
 </html>`;
 }

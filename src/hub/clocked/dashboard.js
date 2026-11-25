@@ -1,4 +1,4 @@
-import { DASHBOARD_CSS, escapeHtml, navHeader, faviconLink, iconLabel } from "../../shared/dashboard-layout.js";
+import { DASHBOARD_CSS, escapeHtml, navHeader, faviconLink, iconLabel, bottomNavHtml } from "../../shared/dashboard-layout.js";
 
 const WIB_OFFSET_MS = 7 * 60 * 60 * 1000;
 const CLOCK_OUT_AFTER_MS = 9 * 60 * 60 * 1000;
@@ -255,7 +255,7 @@ ${faviconLink("/icons/clocked.png")}
 </head>
 <body>
   <div class="container">
-    ${navHeader({ icon: "/icons/clocked.png", title: "Clocked!", links: [{ href: "/hub", label: "Home" }] })}
+    ${navHeader({ icon: "/icons/clocked.png", title: "Clocked!" })}
 
     ${flash ? `<div class="flash flash-${flash.type}">${escapeHtml(flash.text)}</div>` : ""}
 
@@ -277,6 +277,7 @@ ${faviconLink("/icons/clocked.png")}
       </table>
     </div>
   </div>
+  ${bottomNavHtml("/hub/clocked")}
   ${script}
   ${pushToggleScript()}
 </body>

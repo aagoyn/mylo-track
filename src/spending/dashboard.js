@@ -165,8 +165,7 @@ ${faviconLink("/icons/spending.png")}
   <div class="container">
     <header class="hub-header">
       <div class="hub-topbar">
-        <a class="nav-link" href="/hub">← Hub</a>
-        <div class="hub-topbar-actions">
+        <div class="hub-topbar-actions" style="margin-left:auto;">
           <input type="month" class="month-input" value="${monthKey}" onchange="location.href='/dashboard/spending?month=' + this.value">
           ${themeToggleHtml()}
         </div>

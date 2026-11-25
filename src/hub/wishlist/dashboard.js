@@ -1,4 +1,4 @@
-import { DASHBOARD_CSS, escapeHtml, navHeader, faviconLink } from "../../shared/dashboard-layout.js";
+import { DASHBOARD_CSS, escapeHtml, navHeader, faviconLink, bottomNavHtml } from "../../shared/dashboard-layout.js";
 
 // duplikat kecil dari daftar value di ./supabase.js (dipakai buat validasi di sana) - sengaja
 // nggak di-import dari situ biar dashboard.js (layer render doang) nggak ikut narik
@@ -70,7 +70,7 @@ ${faviconLink("/icons/wishlist.png")}
 </head>
 <body>
   <div class="container">
-    ${navHeader({ icon: "/icons/wishlist.png", title: "Things I Want", links: [{ href: "/hub", label: "Home" }] })}
+    ${navHeader({ icon: "/icons/wishlist.png", title: "Things I Want" })}
 
     ${flash ? `<div class="flash flash-${flash.type}">${escapeHtml(flash.text)}</div>` : ""}
 
@@ -90,6 +90,7 @@ ${faviconLink("/icons/wishlist.png")}
     <h2>Things I Want</h2>
     <div class="wishlist-list">${itemRows}</div>
   </div>
+  ${bottomNavHtml("/hub/wishlist")}
 </body>
 </html>`;
 }

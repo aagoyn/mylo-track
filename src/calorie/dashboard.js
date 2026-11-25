@@ -1,4 +1,4 @@
-import { DASHBOARD_CSS, escapeHtml, navHeader, stackedBarChartSvg, faviconLink, iconLabel, progressFormScript } from "../shared/dashboard-layout.js";
+import { DASHBOARD_CSS, escapeHtml, navHeader, stackedBarChartSvg, faviconLink, iconLabel, progressFormScript, bottomNavHtml } from "../shared/dashboard-layout.js";
 
 const MACRO_SERIES = [
   { key: "protein", name: "Protein", color: "#f97316" },
@@ -120,9 +120,7 @@ ${faviconLink("/icons/calorie.png")}
     ${navHeader({
       icon: "/icons/calorie.png",
       title: "Calorie Tracker",
-      links: [{ href: "/hub", label: "Home" }],
     })}
-    <nav class="subnav"><a href="/dashboard/spending">${iconLabel("/icons/spending.png", "Spending")}</a></nav>
 
     ${flash ? `<div class="flash flash-${flash.type}">${escapeHtml(flash.text)}</div>` : ""}
 
@@ -223,6 +221,7 @@ ${faviconLink("/icons/calorie.png")}
       </table>
     </div>
   </div>
+  ${bottomNavHtml("/dashboard/calorie")}
   ${progressFormScript([
     { formId: "food-text-form", submitId: "food-text-submit", progressId: "food-text-progress", loadingLabel: "Analyzing..." },
     { formId: "food-photo-form", submitId: "food-photo-submit", progressId: "food-photo-progress", loadingLabel: "Analyzing..." },

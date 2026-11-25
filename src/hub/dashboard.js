@@ -1,4 +1,4 @@
-import { DASHBOARD_CSS, escapeHtml, navHeader, faviconLink, iconLabel } from "../shared/dashboard-layout.js";
+import { DASHBOARD_CSS, escapeHtml, navHeader, faviconLink, iconLabel, themeToggleHtml } from "../shared/dashboard-layout.js";
 import { clockedHubCardHtml } from "./clocked/dashboard.js";
 
 function formatRupiah(amount) {
@@ -70,6 +70,7 @@ ${faviconLink("/icons/hub.png")}
         <p class="hub-sub">Here's your day so far, ${escapeHtml(username)}.</p>
       </div>
       <div class="nav-links">
+        ${themeToggleHtml()}
         <a class="logout" href="/logout">Log out</a>
       </div>
     </header>

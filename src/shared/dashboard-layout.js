@@ -24,6 +24,61 @@ export const DASHBOARD_CSS = `
     --warning: #b45309;
     --warning-hover: #92400e;
   }
+  /* Warm Graphite (dark theme) - follows OS preference by default, overridden by the manual toggle */
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #211f1d;
+      --surface: #2b2927;
+      --surface-hover: #353230;
+      --border: #413d39;
+      --border-hover: #544f49;
+      --text: #f2ede7;
+      --text-muted: #a89c8e;
+      --text-dim: #786b5f;
+      --accent: #c49a76;
+      --accent-hover: #d9b08c;
+      --accent-light: #d9b08c;
+      --accent-deep: #413427;
+      --danger: #f87171;
+      --danger-light: #fca5a5;
+      --danger-dark: #b91c1c;
+      --danger-bg: #450a0a;
+      --danger-text: #fecaca;
+      --success: #4ade80;
+      --success-dark: #16a34a;
+      --success-bg: #14532d;
+      --success-text: #bbf7d0;
+      --warning: #fbbf24;
+      --warning-hover: #f59e0b;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #211f1d;
+    --surface: #2b2927;
+    --surface-hover: #353230;
+    --border: #413d39;
+    --border-hover: #544f49;
+    --text: #f2ede7;
+    --text-muted: #a89c8e;
+    --text-dim: #786b5f;
+    --accent: #c49a76;
+    --accent-hover: #d9b08c;
+    --accent-light: #d9b08c;
+    --accent-deep: #413427;
+    --danger: #f87171;
+    --danger-light: #fca5a5;
+    --danger-dark: #b91c1c;
+    --danger-bg: #450a0a;
+    --danger-text: #fecaca;
+    --success: #4ade80;
+    --success-dark: #16a34a;
+    --success-bg: #14532d;
+    --success-text: #bbf7d0;
+    --warning: #fbbf24;
+    --warning-hover: #f59e0b;
+  }
+  .theme-toggle { border: none; background: transparent; padding: 0; cursor: pointer; line-height: 0; flex-shrink: 0; }
+  .theme-toggle img { width: 40px; height: 22px; display: block; }
   * { box-sizing: border-box; }
   body { font-family: system-ui, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 24px 16px 48px; }
   .container { max-width: 720px; margin: 0 auto; }
@@ -401,9 +456,38 @@ export function navHeader({ icon, title, links = [] }) {
       <h1><img class="header-icon" src="${icon}" alt="">${title}</h1>
       <div class="nav-links">
         ${linksHtml}
+        ${themeToggleHtml()}
         <a class="logout" href="/logout">Log out</a>
       </div>
     </header>`;
+}
+
+// Tombol toggle light/dark (icon switch-on.png / switch-off.png di public/icons). Preferensi
+// disimpan di localStorage dan dipakai ulang lintas halaman - tiap halaman full-reload (bukan
+// SPA) jadi script-nya ikut nempel di markup ini biar cukup sekali taruh di navHeader/header.
+export function themeToggleHtml() {
+  return `<button type="button" class="theme-toggle" id="theme-toggle" aria-label="Toggle dark mode">
+    <img id="theme-toggle-icon" src="/icons/switch-off.png" alt="">
+  </button>
+  <script>
+    (function () {
+      var root = document.documentElement;
+      var btn = document.getElementById("theme-toggle");
+      var icon = document.getElementById("theme-toggle-icon");
+      function apply(theme) {
+        root.setAttribute("data-theme", theme);
+        icon.src = theme === "dark" ? "/icons/switch-on.png" : "/icons/switch-off.png";
+      }
+      var saved = localStorage.getItem("theme");
+      var theme = saved || (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+      apply(theme);
+      btn.addEventListener("click", function () {
+        theme = theme === "dark" ? "light" : "dark";
+        localStorage.setItem("theme", theme);
+        apply(theme);
+      });
+    })();
+  </script>`;
 }
 
 // script kecil buat kasih feedback visual pas form kirim foto/teks lagi diproses AI (bisa

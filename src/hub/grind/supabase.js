@@ -108,10 +108,11 @@ export async function markPlanStatus(phone, planId, status) {
   if (error) throw error;
 }
 
-export async function updatePlan(phone, id, { targetDistanceKm, targetPace, targetHr, instructions }) {
+export async function updatePlan(phone, id, { sessionType, targetDistanceKm, targetPace, targetHr, instructions }) {
   const { error } = await supabase
     .from("grind_plans")
     .update({
+      session_type: sessionType,
       target_distance_km: targetDistanceKm ?? null,
       target_pace: targetPace || null,
       target_hr: targetHr || null,
@@ -119,6 +120,28 @@ export async function updatePlan(phone, id, { targetDistanceKm, targetPace, targ
     })
     .eq("phone", phone)
     .eq("id", id);
+  if (error) throw error;
+}
+
+const DEFAULT_WEEKLY_RUN_TARGET_KM = 21;
+
+export async function getWeeklyRunTargetKm(phone) {
+  const { data, error } = await supabase
+    .from("grind_settings")
+    .select("weekly_run_target_km")
+    .eq("phone", phone)
+    .maybeSingle();
+  if (error) throw error;
+  return data ? Number(data.weekly_run_target_km) : DEFAULT_WEEKLY_RUN_TARGET_KM;
+}
+
+export async function setWeeklyRunTargetKm(phone, km) {
+  const { error } = await supabase
+    .from("grind_settings")
+    .upsert(
+      { phone, weekly_run_target_km: km, updated_at: new Date().toISOString() },
+      { onConflict: "phone" }
+    );
   if (error) throw error;
 }
 

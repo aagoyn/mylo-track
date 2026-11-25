@@ -362,3 +362,12 @@ create table if not exists grind_gym_sets (
   reps int
 );
 alter table grind_gym_sets enable row level security;
+
+-- Pengaturan per-user buat Grind - sejauh ini cuma target lari mingguan (default 21km kalau
+-- belum pernah diset, lihat getWeeklyRunTargetKm di grind/supabase.js).
+create table if not exists grind_settings (
+  phone text primary key,
+  weekly_run_target_km numeric(5,2) not null default 21,
+  updated_at timestamptz not null default now()
+);
+alter table grind_settings enable row level security;

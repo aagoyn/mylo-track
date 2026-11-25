@@ -28,6 +28,20 @@ const BADMINTON_SUBTYPES = ["Fun", "Sparring", "Competitive"];
 const GYM_SUBTYPES = ["Push", "Pull", "Legs", "Upper", "Full Body"];
 const TENNIS_SUBTYPES = ["Fun", "Sparring", "Competitive", "Coaching"];
 
+// Opsi "ubah jenis sesi" di Edit plan (Schedule) - value-nya harus sama persis sama session_type
+// yang dikenali sportForSessionType/SESSION_TYPE_BADGE di router.js & dashboard.js.
+const SESSION_TYPE_OPTIONS = [
+  { value: "EASY", label: "Easy Run" },
+  { value: "QUALITY", label: "Quality (Tempo)" },
+  { value: "LONG RUN", label: "Long Run" },
+  { value: "RACE DAY", label: "Race Day" },
+  { value: "SWIM", label: "Swim" },
+  { value: "BADMINTON", label: "Badminton" },
+  { value: "TENNIS", label: "Tennis" },
+  { value: "GYM", label: "Gym" },
+  { value: "REST", label: "Rest" },
+];
+
 function dateLabel(dateKey) {
   const d = new Date(`${dateKey}T00:00:00Z`);
   return `${WEEKDAYS[d.getUTCDay()]}, ${d.getUTCDate()} ${MONTHS[d.getUTCMonth()]}`;
@@ -47,12 +61,28 @@ function planSummaryLine(plan) {
   return parts.join(" · ");
 }
 
-function sessionLineHtml(s) {
+// Swim dicatat dalam meter (bukan km kayak Run) - distance_km di DB tetap kesimpen dalam km
+// (konsisten 1 kolom buat semua sport jarak), cuma dikonversi ke meter pas ditampilkan/diisi di
+// form. Pace-nya juga ngikut konvensi renang: per 100m, bukan per km.
+function formatSessionDistance(s) {
+  return s.type === "SWIM" ? `${Math.round(s.distance_km * 1000)}m` : `${s.distance_km}km`;
+}
+
+function formatSessionPace(s) {
+  return s.type === "SWIM" ? `${s.avg_pace}/100m` : `${s.avg_pace}/km`;
+}
+
+function sessionFacts(s) {
   const facts = [];
-  if (s.distance_km) facts.push(`${s.distance_km}km`);
-  if (s.avg_pace) facts.push(`${s.avg_pace}/km`);
+  if (s.distance_km) facts.push(formatSessionDistance(s));
+  if (s.avg_pace) facts.push(formatSessionPace(s));
   if (s.duration_min) facts.push(`${s.duration_min}min`);
   if (s.avg_hr) facts.push(`${s.avg_hr}bpm`);
+  return facts;
+}
+
+function sessionLineHtml(s) {
+  const facts = sessionFacts(s);
   return `<div class="card-sub">${TYPE_ICON[s.type] || "•"} ${s.session_time} ${escapeHtml(s.sub_type || s.type)}${facts.length ? " — " + facts.join(" · ") : ""}</div>`;
 }
 
@@ -202,20 +232,28 @@ function sportFormSummaryHtml(iconPath, label) {
 
 // Dipakai Run & Swim - sama-sama jarak + durasi + pace (hybrid auto-calc/manual, lihat
 // pacecalcScript). key = prefix id DOM ("run"/"swim"), dipakai jamak biar skrip bisa wire
-// beberapa form sejenis dengan 1 fungsi generik.
-function distanceSportFormHtml({ key, iconPath, label, action, subtypes, open, prefill, defaultTime }) {
-  const distanceVal = prefill?.distanceKm ?? "";
+// beberapa form sejenis dengan 1 fungsi generik. unit "km" (Run) atau "m" (Swim, dicatat dalam
+// meter sesuai kebiasaan renang) - distance_km di DB tetap km, konversi meter<->km ditangani di
+// sini (tampilan) dan di router (submit), lihat formatSessionDistance/registerDistanceSportRoute.
+function distanceSportFormHtml({ key, iconPath, label, action, subtypes, open, prefill, defaultTime, unit = "km" }) {
+  const isSwim = unit === "m";
+  const distanceVal = isSwim
+    ? prefill?.distanceKm != null
+      ? Math.round(prefill.distanceKm * 1000)
+      : ""
+    : (prefill?.distanceKm ?? "");
+
   return `<details class="form-card" id="form-${key}" ${open ? "open" : ""}>
     ${sportFormSummaryHtml(iconPath, label)}
     <form method="POST" action="${action}">
       ${hiddenPlanId(prefill)}
       ${sessionTimeRadios("session_time", defaultTime)}
       ${subtypes?.length ? `<label>Jenis</label><select name="sub_type">${subtypeOptions(subtypes, prefill?.subType)}</select>` : ""}
-      <label>Jarak (km)</label>
-      <input type="number" step="0.01" name="distance_km" id="${key}-distance" value="${distanceVal}">
+      <label>Jarak (${isSwim ? "meter" : "km"})</label>
+      <input type="number" step="${isSwim ? "1" : "0.01"}" name="distance_km" id="${key}-distance" value="${distanceVal}">
       <label>Durasi (menit)</label>
       <input type="number" name="duration_min" id="${key}-duration">
-      <label>Avg Pace (MM:SS/km)</label>
+      <label>Avg Pace (MM:SS/${isSwim ? "100m" : "km"})</label>
       <input type="text" name="avg_pace" id="${key}-pace" placeholder="auto dari jarak & durasi, atau isi manual">
       <label>Avg HR (bpm)</label>
       <input type="number" name="avg_hr">
@@ -236,7 +274,7 @@ function runFormHtml({ open, prefill, defaultTime }) {
 function swimFormHtml({ open, prefill, defaultTime }) {
   return distanceSportFormHtml({
     key: "swim", iconPath: "/icons/swim.png", label: "Swim", action: "/hub/grind/sessions/swim",
-    subtypes: null, open, prefill, defaultTime,
+    subtypes: null, open, prefill, defaultTime, unit: "m",
   });
 }
 
@@ -347,6 +385,16 @@ function weeklyProgressHtml({ weekPlans, weekSessions, weekTargetKm }) {
     <div class="card-label">Target ${weekTargetKm.toFixed(1)}km · Actual ${actualKm.toFixed(1)}km</div>
     <div class="stat-bar"><div class="stat-bar-fill ${pct >= 100 ? "tier-high" : pct >= 50 ? "tier-mid" : "tier-low"}" style="width:${Math.min(100, pct)}%"></div></div>
     <div class="card-sub">${activeDays} hari aktif minggu ini · ${weekPlans.length} sesi terjadwal</div>
+    <details class="inline-toggle">
+      <summary>Ubah target mingguan</summary>
+      <div class="inline-toggle-body">
+        <form method="POST" action="/hub/grind/settings/weekly-target">
+          <label>Target lari per minggu (km)</label>
+          <input type="number" step="0.1" name="weekly_run_target_km" value="${weekTargetKm}">
+          <button type="submit">Simpan</button>
+        </form>
+      </div>
+    </details>
   </div>`;
 }
 
@@ -390,6 +438,8 @@ function scheduleDayHtml(plan, todayKey) {
         <summary>Edit plan</summary>
         <div class="inline-toggle-body">
           <form method="POST" action="/hub/grind/plan/${plan.id}/update">
+            <label>Jenis Sesi</label>
+            <select name="session_type">${SESSION_TYPE_OPTIONS.map((o) => `<option value="${o.value}" ${o.value === plan.session_type ? "selected" : ""}>${o.label}</option>`).join("")}</select>
             <label>Jarak Target (km)</label>
             <input type="number" step="0.01" name="target_distance_km" value="${plan.target_distance_km ?? ""}">
             <label>Target Pace</label>
@@ -457,12 +507,16 @@ function sportSummaryHtml(monthSummary) {
 
 // ---------- History Log ----------
 
+// Field jarak/pace cuma relevan buat sport yang ngukur jarak (Run & Swim) - Badminton/Tennis/Gym/
+// Rest nggak pernah punya nilai ini, jadi disembunyiin dari form Edit biar nggak nampilin field
+// yang selalu kosong.
+const DISTANCE_SPORT_TYPES = ["RUN", "SWIM"];
+
 function historyRowHtml(s) {
-  const facts = [];
-  if (s.distance_km) facts.push(`${s.distance_km}km`);
-  if (s.avg_pace) facts.push(`${s.avg_pace}/km`);
-  if (s.duration_min) facts.push(`${s.duration_min}min`);
-  if (s.avg_hr) facts.push(`${s.avg_hr}bpm`);
+  const facts = sessionFacts(s);
+  const isDistanceSport = DISTANCE_SPORT_TYPES.includes(s.type);
+  const isSwim = s.type === "SWIM";
+  const distanceValue = isSwim && s.distance_km != null ? Math.round(s.distance_km * 1000) : (s.distance_km ?? "");
 
   const setsHtml = s.gymSets.length
     ? `<div class="log-item-row">${s.gymSets
@@ -483,14 +537,23 @@ function historyRowHtml(s) {
         <summary>Edit</summary>
         <div class="inline-toggle-body">
           <form method="POST" action="/hub/grind/sessions/${s.id}/update">
+            <input type="hidden" name="type" value="${s.type}">
             <label>Tanggal</label>
             <input type="date" name="session_date" value="${s.session_date}">
-            <label>Jarak (km)</label>
-            <input type="number" step="0.01" name="distance_km" value="${s.distance_km ?? ""}">
+            ${
+              isDistanceSport
+                ? `<label>Jarak (${isSwim ? "meter" : "km"})</label>
+            <input type="number" step="${isSwim ? "1" : "0.01"}" name="distance_km" value="${distanceValue}">`
+                : ""
+            }
             <label>Durasi (menit)</label>
             <input type="number" name="duration_min" value="${s.duration_min ?? ""}">
-            <label>Avg Pace</label>
-            <input type="text" name="avg_pace" value="${escapeHtml(s.avg_pace || "")}">
+            ${
+              isDistanceSport
+                ? `<label>Avg Pace (MM:SS/${isSwim ? "100m" : "km"})</label>
+            <input type="text" name="avg_pace" value="${escapeHtml(s.avg_pace || "")}">`
+                : ""
+            }
             <label>Avg HR</label>
             <input type="number" name="avg_hr" value="${s.avg_hr ?? ""}">
             <label>Catatan</label>
@@ -520,9 +583,13 @@ function historyLogHtml(historyLogs) {
 // Bidirectional: cukup isi 2 dari 3 (jarak, durasi, pace), yang ketiga keisi otomatis. Field
 // yang udah diedit manual langsung (durationManual/paceManual) dilindungi dari auto-overwrite -
 // begitu user ngetik manual di salah satu, field itu berhenti ikut dihitung ulang otomatis.
+// segment: Run pace itu per 1km (distance field udah dalam km), Swim pace per 100m (distance
+// field dalam meter) - lihat distanceSportFormHtml unit "km"/"m".
 function pacecalcScript() {
   return `<script>
-    ["run", "swim"].forEach(function (key) {
+    var GRIND_PACE_SEGMENT = { run: 1, swim: 100 };
+    Object.keys(GRIND_PACE_SEGMENT).forEach(function (key) {
+      var segment = GRIND_PACE_SEGMENT[key];
       var dist = document.getElementById(key + "-distance");
       var dur = document.getElementById(key + "-duration");
       var pace = document.getElementById(key + "-pace");
@@ -546,14 +613,14 @@ function pacecalcScript() {
         var d = parseFloat(dist.value);
         var m = parseFloat(dur.value);
         if (!d || !m) return;
-        pace.value = secondsToPaceStr((m * 60) / d);
+        pace.value = secondsToPaceStr((m * 60 * segment) / d);
       }
       function calcDurationFromPace() {
         if (durationManual) return;
         var d = parseFloat(dist.value);
         var paceSec = paceStrToSeconds(pace.value);
         if (!d || !paceSec) return;
-        dur.value = Math.round((d * paceSec) / 60);
+        dur.value = Math.round((d / segment) * paceSec / 60);
       }
 
       dist.addEventListener("input", function () {

@@ -24,13 +24,16 @@ import {
   getRecentSessions,
   getMonthSummary,
   importTrainingPlan,
+  getWeeklyRunTargetKm,
+  setWeeklyRunTargetKm,
 } from "./supabase.js";
 import { renderGrindPage } from "./dashboard.js";
 
 const WIB_OFFSET_MS = 7 * 60 * 60 * 1000;
-// Target lari mingguan tetap 21km, bukan dijumlah dari target_distance_km tiap plan Run minggu
-// ini - jadwal yang padat/longgar nggak ikut nggeser angka targetnya, cuma Actual yang gerak.
-const WEEKLY_RUN_TARGET_KM = 21;
+
+// Sama persis sama SESSION_TYPE_OPTIONS di dashboard.js (dropdown "Jenis Sesi" di Edit plan) -
+// validasi di sini biar nggak ada nilai session_type sembarangan yang kesimpen.
+const VALID_SESSION_TYPES = ["EASY", "QUALITY", "LONG RUN", "RACE DAY", "SWIM", "BADMINTON", "TENNIS", "GYM", "REST"];
 
 function redirectWithError(res, message) {
   res.redirect(`/hub/grind?err=${encodeURIComponent(message)}`);
@@ -79,6 +82,7 @@ router.get("/hub/grind", requireAuth, async (req, res) => {
       monthSummary,
       historyLogs,
       recentSessions,
+      weekTargetKm,
     ] = await Promise.all([
       getPlanByDate(phone, todayKey),
       getSessionsByDate(phone, todayKey),
@@ -89,9 +93,8 @@ router.get("/hub/grind", requireAuth, async (req, res) => {
       getMonthSummary(phone, monthStart, monthEnd),
       getRecentSessions(phone, 30),
       getSessionsSince(phone, sinceISO),
+      getWeeklyRunTargetKm(phone),
     ]);
-
-    const weekTargetKm = WEEKLY_RUN_TARGET_KM;
 
     let openForm = req.query.form || null;
     let prefill = null;
@@ -199,8 +202,13 @@ router.post("/hub/grind/plan/:id/move-to-today", requireAuth, async (req, res) =
 
 router.post("/hub/grind/plan/:id/update", requireAuth, async (req, res) => {
   const targetDistanceKmRaw = (req.body.target_distance_km || "").trim();
+  if (!VALID_SESSION_TYPES.includes(req.body.session_type)) {
+    return redirectWithError(res, "Jenis sesi tidak valid.");
+  }
+
   try {
     await updatePlan(req.user.phone, req.params.id, {
+      sessionType: req.body.session_type,
       targetDistanceKm: targetDistanceKmRaw ? parseFloat(targetDistanceKmRaw) : null,
       targetPace: (req.body.target_pace || "").trim(),
       targetHr: (req.body.target_hr || "").trim(),
@@ -213,14 +221,32 @@ router.post("/hub/grind/plan/:id/update", requireAuth, async (req, res) => {
   }
 });
 
+router.post("/hub/grind/settings/weekly-target", requireAuth, async (req, res) => {
+  const km = parseFloat((req.body.weekly_run_target_km || "").trim());
+  if (isNaN(km) || km <= 0) {
+    return redirectWithError(res, "Target mingguan tidak valid.");
+  }
+
+  try {
+    await setWeeklyRunTargetKm(req.user.phone, km);
+    res.redirect("/hub/grind?ok=1");
+  } catch (err) {
+    console.error(err);
+    redirectWithError(res, `Gagal update target mingguan: ${err.message}`);
+  }
+});
+
 // Handler generik buat sport jarak (Run/Swim) & sport durasi (Badminton/Tennis) - bedanya cuma
 // field mana yang dipakai, sisanya sama persis (lihat distanceSportFormHtml/durationSportFormHtml
 // di dashboard.js).
+// Swim dicatat dalam meter di form (lihat distanceSportFormHtml unit "m"), tapi kolom DB tetap
+// distance_km buat semua sport jarak - konversi meter->km di sini sebelum createSession.
 function registerDistanceSportRoute(path, type) {
   router.post(path, requireAuth, async (req, res) => {
-    const distanceKmRaw = (req.body.distance_km || "").trim();
+    const distanceRaw = (req.body.distance_km || "").trim();
     const durationMinRaw = (req.body.duration_min || "").trim();
     const avgHrRaw = (req.body.avg_hr || "").trim();
+    const distanceKm = distanceRaw ? (type === "SWIM" ? parseFloat(distanceRaw) / 1000 : parseFloat(distanceRaw)) : null;
 
     try {
       await createSession(req.user.phone, {
@@ -229,7 +255,7 @@ function registerDistanceSportRoute(path, type) {
         sessionTime: req.body.session_time === "PM" ? "PM" : "AM",
         type,
         subType: req.body.sub_type,
-        distanceKm: distanceKmRaw ? parseFloat(distanceKmRaw) : null,
+        distanceKm,
         durationMin: durationMinRaw ? parseInt(durationMinRaw, 10) : null,
         avgPace: (req.body.avg_pace || "").trim(),
         avgHr: avgHrRaw ? parseInt(avgHrRaw, 10) : null,
@@ -328,14 +354,16 @@ router.post("/hub/grind/sessions/rest", requireAuth, async (req, res) => {
 });
 
 router.post("/hub/grind/sessions/:id/update", requireAuth, async (req, res) => {
-  const distanceKmRaw = (req.body.distance_km || "").trim();
+  const distanceRaw = (req.body.distance_km || "").trim();
   const durationMinRaw = (req.body.duration_min || "").trim();
   const avgHrRaw = (req.body.avg_hr || "").trim();
+  // hidden field (historyRowHtml) biar tau cara konversi jarak - lihat registerDistanceSportRoute
+  const distanceKm = distanceRaw ? (req.body.type === "SWIM" ? parseFloat(distanceRaw) / 1000 : parseFloat(distanceRaw)) : null;
 
   try {
     await updateSession(req.user.phone, req.params.id, {
       sessionDate: (req.body.session_date || "").trim(),
-      distanceKm: distanceKmRaw ? parseFloat(distanceKmRaw) : null,
+      distanceKm,
       durationMin: durationMinRaw ? parseInt(durationMinRaw, 10) : null,
       avgPace: (req.body.avg_pace || "").trim(),
       avgHr: avgHrRaw ? parseInt(avgHrRaw, 10) : null,

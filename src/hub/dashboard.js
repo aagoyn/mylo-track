@@ -93,11 +93,11 @@ ${faviconLink("/icons/hub.png")}
       </div>
     </section>
 
-    <h2>${iconLabel("/icons/vault.png", "Vault")}</h2>
-    <div class="card">${vaultSection}</div>
-
     <h2>${iconLabel("/icons/grind-icon.png", "Grind")}</h2>
     <div class="card">${grindCard}</div>
+
+    <h2>${iconLabel("/icons/vault.png", "Vault")}</h2>
+    <div class="card">${vaultSection}</div>
 
     <h2>Recent</h2>
     <div class="activity-list">${recentRows}</div>

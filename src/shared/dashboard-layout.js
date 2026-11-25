@@ -149,6 +149,7 @@ export const DASHBOARD_CSS = `
   .form-card button:hover, .inline-toggle-body button:hover { background: var(--accent-hover); }
 
   .sport-tile-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(72px, 1fr)); gap: 8px; }
+  @media (max-width: 480px) { .sport-tile-grid { grid-template-columns: repeat(3, 1fr); } }
   .sport-tile {
     display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px;
     width: 100%; box-sizing: border-box; padding: 12px 6px; border-radius: 14px; border: 1px solid var(--border);
@@ -316,8 +317,12 @@ export const DASHBOARD_CSS = `
   .stat-bar-fill.tier-empty { background: linear-gradient(90deg, #fca5a5, #fecaca); }
 
   .button-row { display: flex; gap: 8px; }
-  .button-row button, .button-row .btn-secondary, .button-row .btn-warning { width: 100%; }
-  .btn-primary { padding: 9px 10px; border-radius: 8px; border: none; background: var(--accent); color: white; font-size: 13px; cursor: pointer; }
+  .button-row button, .button-row .btn-secondary, .button-row .btn-warning, .button-row .btn-primary { width: 100%; }
+  .btn-primary {
+    display: flex; align-items: center; justify-content: center; gap: 6px; box-sizing: border-box;
+    padding: 9px 10px; border-radius: 8px; border: none;
+    background: var(--accent); color: white; font-size: 13px; font-weight: 600; text-decoration: none; text-align: center; cursor: pointer;
+  }
   .btn-primary:hover:not(:disabled) { background: var(--accent-hover); }
   .btn-secondary {
     display: flex; align-items: center; justify-content: center; box-sizing: border-box;

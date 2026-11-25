@@ -396,10 +396,10 @@ function categoryPillHtml(r) {
 }
 
 // List item Recent Transactions (bukan <table> lagi) - nominal selalu utuh/nggak kepotong di HP
-// (lihat .txn-item di shared/dashboard-layout.js). data-search dipakai filter client-side
-// (txnFilterScript di dashboard.js).
+// (lihat .txn-item di shared/dashboard-layout.js). Filter client-side (txnFilterScript di
+// dashboard.js) baca langsung dari .txn-title, jadi nggak butuh data-attribute terpisah di sini.
 function transactionItemHtml(r) {
-  return `<div class="txn-item" data-search="${escapeHtml(r.description.toLowerCase())}">
+  return `<div class="txn-item">
     <div class="txn-main">
       <div class="txn-title">${escapeHtml(r.description)}</div>
       <div class="txn-date">${formatDateLabelWib(r.created_at)}</div>

@@ -1,4 +1,4 @@
-import { DASHBOARD_CSS, escapeHtml, navHeader, faviconLink, svgIcon, svgIconLabel, iconBadgeHtml } from "../../shared/dashboard-layout.js";
+import { DASHBOARD_CSS, escapeHtml, navHeader, faviconLink, svgIcon, svgIconLabel, iconBadgeHtml, bottomNavHtml } from "../../shared/dashboard-layout.js";
 
 const WIB_OFFSET_MS = 7 * 60 * 60 * 1000;
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -210,7 +210,7 @@ const QUICK_ADD_SPORTS_FULL = [
 
 function restTileHtml({ stopPropagation = false } = {}) {
   return `<form method="POST" action="/hub/grind/sessions/rest" style="margin:0;" ${stopPropagation ? `onclick="event.stopPropagation()"` : ""}>
-      <button type="submit" class="sport-tile sport-btn">${iconBadgeHtml(svgIcon("moon", { size: 20 }))}Rest</button>
+      <button type="submit" class="sport-tile sport-btn">${iconBadgeHtml(svgIcon("moon", { size: 20 }))}<span class="sport-tile-label">Rest</span></button>
     </form>`;
 }
 
@@ -220,7 +220,7 @@ function restTileHtml({ stopPropagation = false } = {}) {
 function quickAddTilesHub() {
   const tiles = QUICK_ADD_SPORTS_HUB.map(
     (s) =>
-      `<a class="sport-tile sport-btn" href="/hub/grind?form=${s.form}#today-logger" onclick="event.stopPropagation()">${iconBadgeHtml(svgIcon(s.svg, { size: 20 }))}${s.label}</a>`
+      `<a class="sport-tile sport-btn" href="/hub/grind?form=${s.form}#today-logger" onclick="event.stopPropagation()">${iconBadgeHtml(svgIcon(s.svg, { size: 20 }))}<span class="sport-tile-label">${s.label}</span></a>`
   ).join("");
 
   return `<div class="card-sub" style="margin:10px 0 6px;">Or log a session</div>
@@ -235,7 +235,7 @@ function quickAddTilesHub() {
 function quickAddTilesGrindPage() {
   const tiles = QUICK_ADD_SPORTS_FULL.map(
     (s) =>
-      `<button type="button" class="sport-tile sport-btn" data-target="form-${s.form}">${iconBadgeHtml(svgIcon(s.svg, { size: 20 }))}${s.label}</button>`
+      `<button type="button" class="sport-tile sport-btn" data-target="form-${s.form}">${iconBadgeHtml(svgIcon(s.svg, { size: 20 }))}<span class="sport-tile-label">${s.label}</span></button>`
   ).join("");
 
   return `<div class="card-sub" style="margin:10px 0 6px;">Or log a session</div>
@@ -285,11 +285,11 @@ export function grindHubCardHtml({ todayPlan, todaySessions, upcomingRace }) {
 const GRIND_PAGE_CSS = `
   /* Ruang kosong ekstra di bawah biar konten terakhir (History dst) nggak ketutupan FAB
      "+ Plan" yang posisinya fixed melayang di pojok kanan bawah. */
-  .container { padding-bottom: calc(88px + env(safe-area-inset-bottom)); }
+  .container { padding-bottom: calc(144px + env(safe-area-inset-bottom)); }
 
   /* Warna/blur FAB (gradasi + kaca) datang dari .fab-btn (shared) - di sini cuma posisi/ukuran. */
   .grind-fab {
-    position: fixed; bottom: calc(20px + env(safe-area-inset-bottom)); right: 20px; z-index: 40;
+    position: fixed; bottom: calc(84px + env(safe-area-inset-bottom)); right: 20px; z-index: 40;
     display: inline-flex; align-items: center; justify-content: center;
     padding: 14px 22px; border-radius: 999px;
     color: #fff; font-size: 15px; font-weight: 700; cursor: pointer; font-family: inherit;
@@ -301,7 +301,7 @@ function importPlanFabHtml() {
 }
 
 function importModalHtml() {
-  return `<dialog class="modal-dialog" id="import-plan-modal">
+  return `<dialog class="modal-dialog glass-card" id="import-plan-modal">
     <div class="modal-dialog-body">
       <div class="modal-dialog-header">
         <h3>📋 Import / Paste Training Plan</h3>
@@ -1182,6 +1182,7 @@ ${faviconLink("/icons/grind-icon.png")}
     ${sportSummaryHtml(monthSummary)}
     ${historyLogHtml(historyLogs)}
   </div>
+  ${bottomNavHtml("/hub/grind")}
   ${importPlanFabHtml()}
   ${importModalHtml()}
   ${pacecalcScript()}

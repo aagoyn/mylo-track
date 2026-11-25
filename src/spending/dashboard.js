@@ -8,6 +8,7 @@ import {
   svgIconLabel,
   statBarHtml,
   progressFormScript,
+  bottomNavHtml,
 } from "../shared/dashboard-layout.js";
 
 function formatRupiah(amount) {
@@ -39,9 +40,14 @@ function buildCategorySeries(days) {
 // CSS khusus halaman ini (month input, dkk) - BUKAN di shared/dashboard-layout.js biar nggak
 // nular ke halaman lain, sama pola-nya kayak HUB_PAGE_CSS/GRIND_PAGE_CSS di /hub & /hub/grind.
 const SPENDING_PAGE_CSS = `
+  .container { padding-bottom: calc(92px + env(safe-area-inset-bottom)); }
   .month-input {
     border: 1px solid var(--border); background: var(--surface); color: var(--text);
     border-radius: 999px; padding: 6px 12px; font-size: 13px; font-family: inherit; cursor: pointer;
+  }
+  .log-expense-date {
+    border: 1px solid var(--border); background: var(--bg); color: var(--text);
+    border-radius: 8px; padding: 6px 8px; font-size: 12px; font-family: inherit; cursor: pointer; flex-shrink: 0;
   }
 `;
 
@@ -91,16 +97,21 @@ function segmentedTabsScript() {
 }
 
 // Filter lokal (client-side, bukan request baru ke server) buat nyari transaksi yang udah
-// ke-render di Recent Transactions - cukup buat 15 item terakhir yang emang ditampilin.
+// ke-render di Recent Transactions - cukup buat 15 item terakhir yang emang ditampilin. Baca
+// langsung dari teks nama transaksi yang udah ditampilin (.txn-title), bukan dari data-attribute
+// terpisah, biar nggak ada 2 sumber data yang bisa beda (dan nggak kena masalah escaping kalau
+// deskripsinya ada tanda kutip).
 function txnFilterScript() {
   return `<script>
     (function () {
       var input = document.getElementById("txn-filter-input");
       if (!input) return;
+      var items = document.querySelectorAll(".txn-item");
       input.addEventListener("input", function () {
         var q = input.value.trim().toLowerCase();
-        document.querySelectorAll(".txn-item").forEach(function (item) {
-          var text = (item.dataset.search || "");
+        items.forEach(function (item) {
+          var titleEl = item.querySelector(".txn-title");
+          var text = titleEl ? titleEl.textContent.toLowerCase() : "";
           item.hidden = q.length > 0 && text.indexOf(q) === -1;
         });
       });
@@ -196,11 +207,12 @@ ${faviconLink("/icons/spending.png")}
 
     <h2>${svgIconLabel("wallet", "Log Expense")}</h2>
     <div class="card glass-card">
-      <form method="POST" action="/dashboard/spending/expense-text">
-        <label>What did you spend on?</label>
+      <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:10px;">
+        <div class="card-label" style="margin-bottom:0;">What did you spend on?</div>
+        <input type="date" class="log-expense-date" name="date" form="log-expense-form" value="${todayDateKey}" max="${todayDateKey}" aria-label="Date">
+      </div>
+      <form method="POST" action="/dashboard/spending/expense-text" id="log-expense-form">
         <input type="text" name="text" placeholder="e.g. kopi 25k, parkir 5k" required>
-        <label>Date</label>
-        <input type="date" name="date" value="${todayDateKey}" max="${todayDateKey}">
         <button type="submit">Save</button>
       </form>
       <details class="inline-toggle" style="margin-top:10px;">
@@ -247,7 +259,9 @@ ${faviconLink("/icons/spending.png")}
     <div class="txn-list">${transactionItemsHtml || `<div class="empty-state">No transactions yet.</div>`}</div>
   </div>
 
-  <dialog class="modal-dialog" id="weekly-budget-dialog">
+  ${bottomNavHtml("/dashboard/spending")}
+
+  <dialog class="modal-dialog glass-card" id="weekly-budget-dialog">
     <div class="modal-dialog-body">
       <div class="modal-dialog-header">
         <h3>${svgIconLabel("edit", "Set / Update Weekly Budget")}</h3>

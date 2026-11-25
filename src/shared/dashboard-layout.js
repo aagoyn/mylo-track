@@ -29,11 +29,11 @@ export const DASHBOARD_CSS = `
       radial-gradient(at 10% 5%, rgba(235, 213, 188, 0.55) 0px, transparent 50%),
       radial-gradient(at 90% 15%, rgba(216, 226, 214, 0.45) 0px, transparent 48%),
       radial-gradient(at 50% 95%, rgba(238, 222, 203, 0.5) 0px, transparent 55%);
-    --glass-bg: rgba(255, 255, 255, 0.58);
-    --glass-border: rgba(255, 255, 255, 0.8);
-    --glass-shadow: 0 4px 20px -2px rgba(72, 58, 44, 0.08), inset 0 1px 0 0 rgba(255, 255, 255, 0.9);
-    --glass-list-bg: rgba(255, 255, 255, 0.48);
-    --glass-list-border: rgba(72, 58, 44, 0.08);
+    --glass-bg: rgba(255, 255, 255, 0.4);
+    --glass-border: rgba(255, 255, 255, 0.85);
+    --glass-shadow: 0 4px 24px -2px rgba(72, 58, 44, 0.1), inset 0 1px 0 0 rgba(255, 255, 255, 0.95);
+    --glass-list-bg: rgba(255, 255, 255, 0.32);
+    --glass-list-border: rgba(72, 58, 44, 0.09);
     --fab-gradient: linear-gradient(135deg, #8C735B 0%, #6F5944 100%);
     --danger-tint-bg: #fbeae6;
   }
@@ -185,11 +185,12 @@ export const DASHBOARD_CSS = `
   .form-card[open] > summary::before { content: "▾ "; }
   .form-card input[type="text"], .form-card input[type="number"], .form-card input[type="date"],
   .ai-suggestion-card input[type="text"], .ai-suggestion-card input[type="number"],
-  .inline-toggle-body input[type="text"], .inline-toggle-body input[type="number"], .inline-toggle-body input[type="date"] {
+  .inline-toggle-body input[type="text"], .inline-toggle-body input[type="number"], .inline-toggle-body input[type="date"],
+  .glass-card form input[type="text"], .glass-card form input[type="number"], .glass-card form input[type="date"] {
     width: 100%; padding: 9px 10px; border-radius: 8px; border: 1px solid var(--border);
     background: var(--bg); color: var(--text); box-sizing: border-box; font-size: 14px; margin-bottom: 8px;
   }
-  .form-card input[type="file"] {
+  .form-card input[type="file"], .glass-card form input[type="file"] {
     width: 100%; padding: 9px 10px; border-radius: 8px; border: 1px solid var(--border);
     background: var(--bg); box-sizing: border-box; font-size: 12px; color: var(--text-muted); margin-bottom: 8px;
   }
@@ -198,17 +199,34 @@ export const DASHBOARD_CSS = `
     background: var(--accent); color: white; font-size: 13px; cursor: pointer;
   }
   .form-card button:hover, .inline-toggle-body button:hover { background: var(--accent-hover); }
+  /* Form polos di dalam .glass-card (Log Expense, Set Weekly Budget, dst) sebelumnya nggak
+     ke-cover sama rule .form-card di atas (beda class), jadi input/button-nya nongol plain HTML
+     default. Discoped ke "form" descendant (bukan .glass-card button langsung) biar nggak nabrak
+     tombol lain yang udah dipresisi-styling sendiri di dalam glass-card (.icon-btn, .segmented-tab,
+     dst - itu semua di LUAR <form>). */
+  .glass-card form button {
+    width: 100%; padding: 9px 10px; border-radius: 8px; border: none;
+    background: var(--fab-gradient); color: #fff; font-size: 13px; font-weight: 600; cursor: pointer;
+  }
+  .glass-card form button:hover { filter: brightness(1.08); }
 
-  .sport-tile-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
-  .sport-tile-grid.sport-tile-grid-3 { grid-template-columns: repeat(3, 1fr); }
+  /* minmax(0, 1fr) (bukan bare 1fr) - kolom boleh nyusut di bawah konten tile-nya, jadi grid
+     nggak pernah maksa lebih lebar dari card (lihat juga .sport-tile min-width:0 & label
+     ellipsis di bawah - pola sama kayak perbaikan overflow set-row Gym sebelumnya). */
+  .sport-tile-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  .sport-tile-grid.sport-tile-grid-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  @media (max-width: 400px) {
+    .sport-tile-grid.sport-tile-grid-3 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  }
   .sport-tile {
-    display: flex; flex-direction: row; align-items: center; gap: 10px;
-    width: 100%; box-sizing: border-box; padding: 10px 14px; border-radius: 14px; border: 1px solid var(--border);
+    display: flex; flex-direction: row; align-items: center; gap: 6px; min-width: 0;
+    width: 100%; box-sizing: border-box; padding: 10px 8px; border-radius: 14px; border: 1px solid var(--border);
     background: var(--surface); color: var(--text); text-decoration: none; font-size: 13px; font-weight: 500;
     text-align: left; cursor: pointer; font-family: inherit;
   }
   .sport-tile:hover { background: var(--surface-hover); border-color: var(--border-hover); }
-  .sport-tile .icon-badge { width: 36px; height: 36px; border-radius: 10px; }
+  .sport-tile .icon-badge { width: 36px; height: 36px; border-radius: 10px; flex-shrink: 0; }
+  .sport-tile-label { min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 
   .form-card > summary.sport-form-summary {
     display: flex; align-items: center; gap: 10px; font-size: 14px; font-weight: 600; color: var(--text);
@@ -440,9 +458,26 @@ export const DASHBOARD_CSS = `
   .card.card-accent {
     background: var(--accent); border-color: var(--accent); color: #fff;
   }
+  .card.card-accent .card-label { color: rgba(255,255,255,.9); }
   .card.card-accent .card-sub { color: rgba(255,255,255,.78); }
   .card.card-accent .text-success, .card.card-accent .text-danger-soft { color: #fff; }
   .card.card-accent .card-action-link { color: #fff; }
+  /* Dark mode --accent jadi tan TERANG (bukan cokelat gelap kayak light mode), jadi teks putih
+     malah kontrasnya jelek di atasnya - dibalik ke teks gelap di varian dark. */
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) .card.card-accent { color: #2b2119; }
+    :root:not([data-theme="light"]) .card.card-accent .card-label { color: rgba(43,33,25,.85); }
+    :root:not([data-theme="light"]) .card.card-accent .card-sub,
+    :root:not([data-theme="light"]) .card.card-accent .text-success,
+    :root:not([data-theme="light"]) .card.card-accent .text-danger-soft,
+    :root:not([data-theme="light"]) .card.card-accent .card-action-link { color: rgba(43,33,25,.75); }
+  }
+  :root[data-theme="dark"] .card.card-accent { color: #2b2119; }
+  :root[data-theme="dark"] .card.card-accent .card-label { color: rgba(43,33,25,.85); }
+  :root[data-theme="dark"] .card.card-accent .card-sub,
+  :root[data-theme="dark"] .card.card-accent .text-success,
+  :root[data-theme="dark"] .card.card-accent .text-danger-soft,
+  :root[data-theme="dark"] .card.card-accent .card-action-link { color: rgba(43,33,25,.75); }
   .card.card-tint-danger { background: var(--danger-tint-bg); border-color: transparent; }
   .card-action-link {
     display: inline-flex; align-items: center; gap: 4px; margin-top: 6px;
@@ -506,8 +541,12 @@ export const DASHBOARD_CSS = `
 
   /* Recent Transactions - list fleksibel (bukan <table>) biar nominal nggak kepotong di HP. */
   .txn-filter { position: relative; margin-bottom: 10px; }
-  .txn-filter .svg-icon { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); margin: 0; color: var(--text-dim); }
-  .txn-filter input { padding-left: 32px; margin-bottom: 0; }
+  .txn-filter .svg-icon { position: absolute; left: 11px; top: 50%; transform: translateY(-50%); margin: 0; color: var(--text-dim); pointer-events: none; }
+  .txn-filter input {
+    width: 100%; box-sizing: border-box; padding: 9px 10px 9px 34px; border-radius: 10px;
+    border: 1px solid var(--border); background: var(--glass-list-bg); color: var(--text);
+    font-size: 14px; margin-bottom: 0;
+  }
   .txn-list { display: flex; flex-direction: column; gap: 8px; }
   .txn-item {
     display: flex; align-items: center; justify-content: space-between; gap: 10px;
@@ -519,6 +558,24 @@ export const DASHBOARD_CSS = `
   .txn-side { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; flex-shrink: 0; }
   .txn-amount { font-weight: 600; font-size: 14px; white-space: nowrap; }
   .txn-amount.txn-income { color: var(--success); }
+
+  /* Floating bottom nav - kapsul 3 tab melayang, dipakai di /hub, /hub/grind, /dashboard/spending
+     (lihat bottomNavHtml). Blur 16px (bukan 12px default .glass-card) biar sama kuatnya kayak
+     FAB/dialog, bukan permukaan "kartu biasa" yang numpang lewat. */
+  .bottom-nav {
+    position: fixed; bottom: calc(12px + env(safe-area-inset-bottom)); left: 50%; transform: translateX(-50%); z-index: 45;
+    border-radius: 999px; padding: 6px; width: min(360px, calc(100% - 32px));
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px;
+    backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+  }
+  .bottom-nav a {
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+    padding: 8px 4px; border-radius: 999px; text-decoration: none; color: var(--text-muted);
+    font-size: 11px; font-weight: 500;
+  }
+  .bottom-nav a .svg-icon { margin: 0; }
+  .bottom-nav a.active { background: var(--accent-deep); color: var(--accent-light); }
+  .bottom-nav a:active { transform: scale(0.95); transition: transform 0.1s ease; }
 
   /* Feedback sentuhan native - elemen yang bisa diklik "menyusut" dikit pas ditekan, konsisten di
      semua kartu/tombol interaktif utama (bento grid /hub, tile quick-log olahraga, chip transaksi
@@ -774,6 +831,7 @@ const SVG_ICON_PATHS = {
   receipt: '<rect x="5" y="2" width="14" height="20" rx="2"/><line x1="8" y1="7" x2="16" y2="7"/><line x1="8" y1="11" x2="16" y2="11"/><line x1="8" y1="15" x2="13" y2="15"/>',
   edit: '<path d="M17 3a2.83 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/>',
   search: '<circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>',
+  layoutGrid: '<rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/>',
 };
 
 // size dalam px (18-20 direkomendasikan biar sejajar sama teks di sampingnya, lihat .svg-icon).
@@ -794,6 +852,25 @@ export function svgIconLabel(name, text, opts) {
 // sama (bulat, latar aksen) walau isinya masih raster PNG.
 export function iconBadgeHtml(innerHtml) {
   return `<span class="icon-badge">${innerHtml}</span>`;
+}
+
+// Floating bottom nav (kapsul 3 tab: Home/Grind/Spend) - dipanggil eksplisit di tiap halaman yang
+// mau pakai (/hub, /hub/grind, /dashboard/spending sejauh ini), BUKAN auto-inject global lewat
+// middleware, biar halaman lain (Vault/Clocked/Mood/dst) nggak kena efek samping tanpa diminta.
+// currentPath: path halaman yang lagi dibuka (hardcode per call site, bukan dari req) - dipakai
+// buat nentuin tab mana yang "active".
+const BOTTOM_NAV_ITEMS = [
+  { href: "/hub", label: "Home", icon: "layoutGrid", match: (p) => p === "/hub" },
+  { href: "/hub/grind", label: "Grind", icon: "activity", match: (p) => p.startsWith("/hub/grind") },
+  { href: "/dashboard/spending", label: "Spend", icon: "wallet", match: (p) => p.startsWith("/dashboard/spending") },
+];
+
+export function bottomNavHtml(currentPath) {
+  const tabs = BOTTOM_NAV_ITEMS.map((item) => {
+    const active = item.match(currentPath || "");
+    return `<a href="${item.href}" class="${active ? "active" : ""}" aria-current="${active ? "page" : "false"}">${svgIcon(item.icon, { size: 20 })}<span>${item.label}</span></a>`;
+  }).join("");
+  return `<nav class="bottom-nav glass-card" aria-label="Primary Navigation">${tabs}</nav>`;
 }
 
 // bar generik (HP budget, "affection" Mylo, dst) - warnanya otomatis ijo/kuning/merah/gelap

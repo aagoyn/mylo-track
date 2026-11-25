@@ -1,4 +1,4 @@
-import { DASHBOARD_CSS, escapeHtml, navHeader, faviconLink, iconLabel, svgIcon, svgIconLabel, themeToggleHtml } from "../shared/dashboard-layout.js";
+import { DASHBOARD_CSS, escapeHtml, navHeader, faviconLink, iconLabel, svgIcon, svgIconLabel, themeToggleHtml, bottomNavHtml } from "../shared/dashboard-layout.js";
 import { clockedHubCardHtml } from "./clocked/dashboard.js";
 import { grindHubCardHtml } from "./grind/dashboard.js";
 
@@ -43,11 +43,11 @@ function frequentChipsHtml(frequentExpenses) {
 const HUB_PAGE_CSS = `
   /* Ruang kosong ekstra di bawah biar konten terakhir (nav bawah dst) nggak ketutupan FAB "+ Rp"
      yang posisinya fixed melayang di pojok kanan bawah. */
-  .container { padding-bottom: calc(88px + env(safe-area-inset-bottom)); }
+  .container { padding-bottom: calc(144px + env(safe-area-inset-bottom)); }
 
   /* Warna/blur FAB (gradasi + kaca) datang dari .fab-btn (shared) - di sini cuma posisi/ukuran. */
   .hub-fab {
-    position: fixed; bottom: calc(20px + env(safe-area-inset-bottom)); right: 20px; z-index: 40;
+    position: fixed; bottom: calc(84px + env(safe-area-inset-bottom)); right: 20px; z-index: 40;
     display: inline-flex; align-items: center; justify-content: center;
     padding: 14px 22px; border-radius: 999px;
     color: #fff; font-size: 15px; font-weight: 700; cursor: pointer; font-family: inherit;
@@ -347,6 +347,7 @@ ${faviconLink("/icons/hub.png")}
       </div>
     </div>
   </div>
+  ${bottomNavHtml("/hub")}
   ${quickExpenseDialogHtml(frequentExpenses)}
   ${clockedScript}
   ${quickExpenseScript()}

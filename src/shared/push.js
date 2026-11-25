@@ -1,11 +1,23 @@
 import { setVapidDetails, sendNotification } from "web-push";
 import { supabase } from "./supabase-client.js";
 
-setVapidDetails(
-  process.env.VAPID_SUBJECT || "mailto:admin@example.com",
-  process.env.VAPID_PUBLIC_KEY,
-  process.env.VAPID_PRIVATE_KEY
+// Kalau env var VAPID belum diset (mis. lupa ditambahin di hosting), fitur push cuma dimatiin
+// diam-diam - jangan sampai bikin seluruh server gagal start gara-gara satu fitur opsional ini.
+export const isPushConfigured = Boolean(
+  process.env.VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY
 );
+
+if (isPushConfigured) {
+  setVapidDetails(
+    process.env.VAPID_SUBJECT || "mailto:admin@example.com",
+    process.env.VAPID_PUBLIC_KEY,
+    process.env.VAPID_PRIVATE_KEY
+  );
+} else {
+  console.warn(
+    "VAPID_PUBLIC_KEY/VAPID_PRIVATE_KEY belum diset - push notification dimatikan sementara."
+  );
+}
 
 export async function saveSubscription(phone, subscription) {
   const { error } = await supabase.from("push_subscriptions").upsert(
@@ -41,6 +53,7 @@ async function getSubscriptionsForPhone(phone) {
 // Kirim ke semua device user itu. Subscription yang udah invalid/expired (404/410 dari push
 // service) otomatis dibersihin biar nggak terus-terusan dicoba tiap reminder jalan.
 export async function sendPushToPhone(phone, payload) {
+  if (!isPushConfigured) return;
   const subs = await getSubscriptionsForPhone(phone);
   await Promise.all(
     subs.map(async (sub) => {

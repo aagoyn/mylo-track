@@ -1,3 +1,10 @@
+// Dipakai di web dashboard buat dropdown koreksi kategori (lihat spending/router.js &
+// spending/dashboard.js) - urutannya sama kayak CATEGORY_KEYBOARD di Telegram.
+export const EXPENSE_CATEGORIES = [
+  "Food", "Coffee", "Drink", "Groceries", "Transport", "Shopping",
+  "Bills", "Health", "Entertainment", "Social", "Pets", "Other",
+];
+
 // Kategori disederhanakan dari versi awal (23 kategori jadi 12) biar keyboard koreksi
 // kategori nggak kepanjangan. Semua keyword lama tetap dipakai, cuma dikelompokkan ulang.
 const CATEGORY_RULES = {
@@ -119,8 +126,24 @@ const CATEGORY_ENTRIES = Object.entries(CATEGORY_RULES).map(([category, keywords
   keywords: [...keywords].sort((a, b) => b.length - a.length),
 }));
 
-export function detectCategory(desc) {
+// overrides: [{ keyword, category }] - hasil koreksi manual user (lihat saveCategoryOverride di
+// spending/supabase.js), dicek LEBIH DULU sebelum rule statis di bawah karena ini sinyal paling
+// spesifik (user secara eksplisit bilang "merchant/item ini kategorinya X").
+export function detectCategory(desc, overrides = []) {
   const text = desc.toLowerCase().trim().replace(/\s+/g, " ");
+
+  if (overrides.length) {
+    const overrideMatches = [];
+    for (const { keyword, category } of overrides) {
+      if (keywordMatches(text, keyword)) {
+        overrideMatches.push({ category, score: keyword.length });
+      }
+    }
+    if (overrideMatches.length) {
+      overrideMatches.sort((a, b) => b.score - a.score);
+      return overrideMatches[0].category;
+    }
+  }
 
   if (text.includes("grabfood") || text.includes("gofood") || text.includes("shopeefood")) {
     return "Food";

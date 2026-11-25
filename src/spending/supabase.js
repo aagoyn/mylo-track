@@ -118,7 +118,52 @@ export async function updateLastCategory(phone, newCategory) {
     .eq("id", last.id);
   if (error) throw error;
 
+  // "Belajar" dari koreksi manual ini - deskripsi transaksi yang baru aja dikoreksi disimpan
+  // sebagai keyword, biar transaksi berikutnya dengan deskripsi serupa langsung kebaca bener
+  // tanpa nunggu di-hardcode di categorize.js. Lihat detectCategory().
+  await saveCategoryOverride(phone, last.description, newCategory);
+
   return last.description;
+}
+
+export async function saveCategoryOverride(phone, keyword, category) {
+  const normalized = String(keyword).toLowerCase().trim().replace(/\s+/g, " ");
+  if (!normalized) return;
+
+  const { error } = await supabase
+    .from("category_overrides")
+    .upsert(
+      { phone, keyword: normalized, category, updated_at: new Date().toISOString() },
+      { onConflict: "phone,keyword" }
+    );
+  if (error) throw error;
+}
+
+// Koreksi kategori dari web dashboard (row mana aja di tabel Recent Transactions, bukan cuma
+// transaksi terakhir kayak updateLastCategory). filter phone+id karena id-nya dikirim dari
+// form web, dianggap input klien.
+export async function updateExpenseLogCategory(phone, id, newCategory) {
+  const { data, error } = await supabase
+    .from("expense_logs")
+    .update({ category: newCategory })
+    .eq("phone", phone)
+    .eq("id", id)
+    .select("description")
+    .maybeSingle();
+  if (error) throw error;
+  if (!data) return null;
+
+  await saveCategoryOverride(phone, data.description, newCategory);
+  return data.description;
+}
+
+export async function getCategoryOverrides(phone) {
+  const { data, error } = await supabase
+    .from("category_overrides")
+    .select("keyword, category")
+    .eq("phone", phone);
+  if (error) throw error;
+  return data || [];
 }
 
 export async function getAggregatedExpenses(phone, startISO, endISO) {
@@ -157,7 +202,7 @@ export async function getWeekExpenseLogs(phone) {
 export async function getRecentExpenseLogs(phone, limit = 20) {
   const { data, error } = await supabase
     .from("expense_logs")
-    .select("description, category, amount, type, balance_after, created_at")
+    .select("id, description, category, amount, type, balance_after, created_at")
     .eq("phone", phone)
     .order("created_at", { ascending: false })
     .limit(limit);

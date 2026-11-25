@@ -279,6 +279,21 @@ alter table app_users enable row level security;
 -- reminder-nya kekirim.
 alter table clockin_logs add column if not exists clockout_reminder_sent_at timestamptz;
 
+-- Pembelajaran kategori pengeluaran: begitu user koreksi kategori transaksi terakhir (tombol
+-- kategori di Telegram, lihat updateLastCategory di spending/supabase.js), deskripsi transaksi
+-- itu disimpan sebagai keyword -> kategori baru di sini, dicek LEBIH DULU oleh detectCategory()
+-- sebelum rule statis di categorize.js. unique (phone, keyword) - koreksi ulang ke kategori lain
+-- buat keyword yang sama akan nimpa, bukan nambah baris baru.
+create table if not exists category_overrides (
+  id uuid primary key default gen_random_uuid(),
+  phone text not null,
+  keyword text not null,
+  category text not null,
+  updated_at timestamptz not null default now(),
+  unique (phone, keyword)
+);
+alter table category_overrides enable row level security;
+
 -- Web Push (VAPID) subscription per device/browser, dipakai buat reminder Clock In pagi &
 -- Clock Out setelah 9 jam. Satu phone (user) bisa punya lebih dari satu subscription kalau
 -- login dari beberapa device - makanya endpoint (bukan phone) yang jadi unique key.

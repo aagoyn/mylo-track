@@ -209,6 +209,7 @@ export const DASHBOARD_CSS = `
     background-repeat: no-repeat; background-position: right 10px center;
   }
   select:hover { border-color: var(--border-hover); }
+  .category-select { width: auto; padding: 4px 22px 4px 8px; font-size: 12px; margin-bottom: 0; background-position: right 6px center; }
 
   .journal-entry { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 16px; white-space: pre-wrap; font-size: 14px; margin-bottom: 8px; }
   .journal-history-item { padding: 10px 0; border-bottom: 1px solid var(--border); }

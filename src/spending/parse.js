@@ -1,7 +1,8 @@
 import { detectCategory } from "./categorize.js";
 
-// "kopi 25k" / "25k kopi" / "makan siang 50k, 2k parkir" -> array of expense dto
-export function parseExpenseInputs(text) {
+// "kopi 25k" / "25k kopi" / "makan siang 50k, 2k parkir" -> array of expense dto.
+// overrides: lihat detectCategory di categorize.js.
+export function parseExpenseInputs(text, overrides = []) {
   const content = /^spend\s+/i.test(text) ? text.replace(/^spend\s+/i, "") : text;
   const segments = content.split(/,|\n/);
   const results = [];
@@ -36,7 +37,7 @@ export function parseExpenseInputs(text) {
     results.push({
       amount,
       description: descStr,
-      category: detectCategory(descStr),
+      category: detectCategory(descStr, overrides),
       type: "Expense",
     });
   }

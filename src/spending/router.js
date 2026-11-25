@@ -2,7 +2,7 @@ import express from "express";
 import multer from "multer";
 import { TelegramClient } from "../shared/telegram.js";
 import { analyzeReceiptImage } from "./gemini.js";
-import { detectCategory } from "./categorize.js";
+import { detectCategory, EXPENSE_CATEGORIES } from "./categorize.js";
 import { parseExpenseInputs } from "./parse.js";
 import { requireAuth } from "../shared/auth.js";
 import { getAllowedChatIds } from "../shared/users.js";
@@ -13,6 +13,8 @@ import {
   getLastBalance,
   deleteLastExpenseLog,
   updateLastCategory,
+  updateExpenseLogCategory,
+  getCategoryOverrides,
   getAggregatedExpenses,
   getWeeklyBudget,
   searchExpenseLogs,
@@ -210,7 +212,8 @@ async function saveDtosAndReport(chatId, dtos) {
 }
 
 async function handleSpend(chatId, text) {
-  const dtos = parseExpenseInputs(text);
+  const overrides = await getCategoryOverrides(chatId);
+  const dtos = parseExpenseInputs(text, overrides);
   if (dtos.length === 0) {
     await sendText(chatId, "❌ Format tidak valid.");
     return;
@@ -219,10 +222,11 @@ async function handleSpend(chatId, text) {
 }
 
 async function handleReceipt(chatId, { amount, description, imageUrl }) {
+  const overrides = await getCategoryOverrides(chatId);
   const dto = {
     amount,
     description,
-    category: detectCategory(description),
+    category: detectCategory(description, overrides),
     type: "Expense",
     imageUrl,
   };
@@ -399,10 +403,19 @@ router.get("/dashboard/spending", requireAuth, async (req, res) => {
     ]);
 
     const transactionRows = transactions
-      .map(
-        (r) =>
-          `<tr><td class="nowrap">${formatDateLabelWib(r.created_at)}</td><td>${escapeHtml(r.description)}</td><td>${escapeHtml(r.category)}</td><td>${r.type === "Income" ? "+" : "-"}${formatRupiah(r.amount)}</td></tr>`
-      )
+      .map((r) => {
+        const categoryCell =
+          r.type === "Expense"
+            ? `<form method="POST" action="/dashboard/spending/log/${r.id}/category" style="margin:0;">
+                <select name="category" class="category-select" onchange="this.form.submit()">
+                  ${EXPENSE_CATEGORIES.map(
+                    (c) => `<option value="${c}" ${c === r.category ? "selected" : ""}>${escapeHtml(c)}</option>`
+                  ).join("")}
+                </select>
+              </form>`
+            : escapeHtml(r.category);
+        return `<tr><td class="nowrap">${formatDateLabelWib(r.created_at)}</td><td>${escapeHtml(r.description)}</td><td>${categoryCell}</td><td class="nowrap">${r.type === "Income" ? "+" : "-"}${formatRupiah(r.amount)}</td></tr>`;
+      })
       .join("");
 
     const byDay = {};
@@ -452,7 +465,8 @@ router.post("/dashboard/spending/expense-text", requireAuth, async (req, res) =>
   if (!text) return res.redirect("/dashboard/spending?err=Input kosong.");
 
   try {
-    const dtos = parseExpenseInputs(text);
+    const overrides = await getCategoryOverrides(req.user.phone);
+    const dtos = parseExpenseInputs(text, overrides);
     if (dtos.length === 0) return res.redirect("/dashboard/spending?err=Format tidak valid.");
 
     await saveExpenseLogsBatch(req.user.phone, dtos);
@@ -477,10 +491,11 @@ router.post(
       }
 
       const imageUrl = await uploadReceiptImage(req.user.phone, req.file.buffer, req.file.mimetype);
+      const overrides = await getCategoryOverrides(req.user.phone);
       const dto = {
         amount,
         description,
-        category: detectCategory(description),
+        category: detectCategory(description, overrides),
         type: "Expense",
         imageUrl,
       };
@@ -492,6 +507,21 @@ router.post(
     }
   }
 );
+
+router.post("/dashboard/spending/log/:id/category", requireAuth, async (req, res) => {
+  const newCategory = req.body.category;
+  if (!EXPENSE_CATEGORIES.includes(newCategory)) {
+    return res.redirect("/dashboard/spending?err=Kategori tidak valid.");
+  }
+
+  try {
+    await updateExpenseLogCategory(req.user.phone, req.params.id, newCategory);
+    res.redirect("/dashboard/spending?ok=1");
+  } catch (err) {
+    console.error(err);
+    redirectWithError(res, "/dashboard/spending", `Gagal update kategori: ${err.message}`);
+  }
+});
 
 router.post("/dashboard/spending/topup", requireAuth, async (req, res) => {
   const amount = parseInt(req.body.amount, 10);

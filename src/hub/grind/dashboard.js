@@ -1,27 +1,27 @@
-import { DASHBOARD_CSS, escapeHtml, navHeader, faviconLink, iconLabel } from "../../shared/dashboard-layout.js";
+import { DASHBOARD_CSS, escapeHtml, navHeader, faviconLink, svgIcon, svgIconLabel, iconBadgeHtml } from "../../shared/dashboard-layout.js";
 
 const WIB_OFFSET_MS = 7 * 60 * 60 * 1000;
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
 const SESSION_TYPE_BADGE = {
-  EASY: iconLabel("/icons/running.png", "Easy"),
-  QUALITY: iconLabel("/icons/running.png", "Quality"),
-  "LONG RUN": iconLabel("/icons/running.png", "Long Run"),
-  BADMINTON: iconLabel("/icons/shuttlecock.png", "Badminton"),
-  GYM: iconLabel("/icons/dumbbell.png", "Gym"),
-  REST: "😴 Rest",
-  "RACE DAY": "🏁 Race Day",
-  SWIM: iconLabel("/icons/swim.png", "Swim"),
-  TENNIS: iconLabel("/icons/tennis.png", "Tennis"),
+  EASY: `${svgIcon("activity", { size: 16 })}Easy`,
+  QUALITY: `${svgIcon("activity", { size: 16 })}Quality`,
+  "LONG RUN": `${svgIcon("activity", { size: 16 })}Long Run`,
+  BADMINTON: `${svgIcon("racket", { size: 16 })}Badminton`,
+  GYM: `${svgIcon("dumbbell", { size: 16 })}Gym`,
+  REST: `${svgIcon("moon", { size: 16 })}Rest`,
+  "RACE DAY": `${svgIcon("flag", { size: 16 })}Race Day`,
+  SWIM: `${svgIcon("waves", { size: 16 })}Swim`,
+  TENNIS: `${svgIcon("tennisBall", { size: 16 })}Tennis`,
 };
 const TYPE_ICON = {
-  RUN: iconLabel("/icons/running.png", ""),
-  BADMINTON: iconLabel("/icons/shuttlecock.png", ""),
-  GYM: iconLabel("/icons/dumbbell.png", ""),
-  REST: "😴",
-  SWIM: iconLabel("/icons/swim.png", ""),
-  TENNIS: iconLabel("/icons/tennis.png", ""),
+  RUN: svgIcon("activity", { size: 16 }),
+  BADMINTON: svgIcon("racket", { size: 16 }),
+  GYM: svgIcon("dumbbell", { size: 16 }),
+  REST: svgIcon("moon", { size: 16 }),
+  SWIM: svgIcon("waves", { size: 16 }),
+  TENNIS: svgIcon("tennisBall", { size: 16 }),
 };
 const RUN_SUBTYPES = ["Easy", "Tempo", "Intervals", "Long Run", "Race"];
 const BADMINTON_SUBTYPES = ["Fun", "Sparring", "Competitive"];
@@ -114,7 +114,7 @@ function sessionFacts(s) {
 // (sebelumnya cuma Spending/Calorie/Mood/Journal yang nongol di situ).
 export function grindActivityRow(s) {
   return {
-    icon: TYPE_ICON[s.type] || "🏃",
+    icon: TYPE_ICON[s.type] || svgIcon("activity", { size: 16 }),
     title: s.sub_type || s.type,
     subtitle: sessionFacts(s).join(" · ") || "Session logged",
     timestamp: s.created_at,
@@ -133,7 +133,7 @@ export function raceBannerHtml(upcomingRace) {
   const diff = daysUntil(upcomingRace.plan_date);
   const phaseLabel = upcomingRace.phase ? ` · Week ${upcomingRace.week_num || "?"} ${upcomingRace.phase}` : "";
   return `<div class="card" style="margin-bottom:12px; background:var(--accent-deep); border-color:var(--accent);">
-    <div class="card-value card-value-compact">🏁 ${escapeHtml(raceShortTitle(upcomingRace.race_name))} · ${raceWhenLabel(diff)} (${shortDateLabel(upcomingRace.plan_date)})${phaseLabel}</div>
+    <div class="card-value card-value-compact">${svgIcon("flag", { size: 16 })}${escapeHtml(raceShortTitle(upcomingRace.race_name))} · ${raceWhenLabel(diff)} (${shortDateLabel(upcomingRace.plan_date)})${phaseLabel}</div>
   </div>`;
 }
 
@@ -144,23 +144,23 @@ export function raceBannerHtml(upcomingRace) {
 // sendiri, jadi dari /hub tile itu nggak ditampilin biar nggak misleading (klik tapi harus
 // navigate dulu buat ketemu form-nya).
 const QUICK_ADD_SPORTS_HUB = [
-  { form: "run", icon: "/icons/running.png", label: "Run" },
-  { form: "badminton", icon: "/icons/shuttlecock.png", label: "Badminton" },
-  { form: "gym", icon: "/icons/dumbbell.png", label: "Gym" },
+  { form: "run", svg: "activity", label: "Run" },
+  { form: "badminton", svg: "racket", label: "Badminton" },
+  { form: "gym", svg: "dumbbell", label: "Gym" },
 ];
 
 // Di /hub/grind sendiri semua 5 olahraga dapet tile (grid 3 kolom x 2 baris bareng Rest).
 const QUICK_ADD_SPORTS_FULL = [
-  { form: "run", icon: "/icons/running.png", label: "Run" },
-  { form: "swim", icon: "/icons/swim.png", label: "Swim" },
-  { form: "badminton", icon: "/icons/shuttlecock.png", label: "Badminton" },
-  { form: "tennis", icon: "/icons/tennis.png", label: "Tennis" },
-  { form: "gym", icon: "/icons/dumbbell.png", label: "Gym" },
+  { form: "run", svg: "activity", label: "Run" },
+  { form: "swim", svg: "waves", label: "Swim" },
+  { form: "badminton", svg: "racket", label: "Badminton" },
+  { form: "tennis", svg: "tennisBall", label: "Tennis" },
+  { form: "gym", svg: "dumbbell", label: "Gym" },
 ];
 
 function restTileHtml({ stopPropagation = false } = {}) {
   return `<form method="POST" action="/hub/grind/sessions/rest" style="margin:0;" ${stopPropagation ? `onclick="event.stopPropagation()"` : ""}>
-      <button type="submit" class="sport-tile"><span class="sport-tile-emoji">😴</span>Rest</button>
+      <button type="submit" class="sport-tile sport-btn">${iconBadgeHtml(svgIcon("moon", { size: 20 }))}Rest</button>
     </form>`;
 }
 
@@ -169,7 +169,8 @@ function restTileHtml({ stopPropagation = false } = {}) {
 // tile di sini butuh stopPropagation biar klik tile-nya nggak ikut ke-tangkep sama onclick kartu.
 function quickAddTilesHub() {
   const tiles = QUICK_ADD_SPORTS_HUB.map(
-    (s) => `<a class="sport-tile" href="/hub/grind?form=${s.form}#today-logger" onclick="event.stopPropagation()"><img src="${s.icon}" alt="">${s.label}</a>`
+    (s) =>
+      `<a class="sport-tile sport-btn" href="/hub/grind?form=${s.form}#today-logger" onclick="event.stopPropagation()">${iconBadgeHtml(svgIcon(s.svg, { size: 20 }))}${s.label}</a>`
   ).join("");
 
   return `<div class="card-sub" style="margin:10px 0 6px;">Or log a session</div>
@@ -183,7 +184,8 @@ function quickAddTilesHub() {
 // quickAddScript), bukan navigate ke section lain.
 function quickAddTilesGrindPage() {
   const tiles = QUICK_ADD_SPORTS_FULL.map(
-    (s) => `<button type="button" class="sport-tile" data-target="form-${s.form}"><img src="${s.icon}" alt="">${s.label}</button>`
+    (s) =>
+      `<button type="button" class="sport-tile sport-btn" data-target="form-${s.form}">${iconBadgeHtml(svgIcon(s.svg, { size: 20 }))}${s.label}</button>`
   ).join("");
 
   return `<div class="card-sub" style="margin:10px 0 6px;">Or log a session</div>
@@ -195,7 +197,7 @@ function quickAddTilesGrindPage() {
 
 export function grindHubCardHtml({ todayPlan, todaySessions, upcomingRace }) {
   const raceLine = upcomingRace
-    ? `<div class="card-sub">🏁 ${escapeHtml(raceShortTitle(upcomingRace.race_name))} · ${raceWhenLabel(daysUntil(upcomingRace.plan_date))}</div>`
+    ? `<div class="card-sub">${svgIcon("flag", { size: 14 })}${escapeHtml(raceShortTitle(upcomingRace.race_name))} · ${raceWhenLabel(daysUntil(upcomingRace.plan_date))}</div>`
     : "";
 
   let planBlock;
@@ -235,18 +237,21 @@ export function grindHubCardHtml({ todayPlan, todaySessions, upcomingRace }) {
 // ke halaman lain yang nggak butuh FAB ini sama sekali (lihat juga hub/dashboard.js buat FAB
 // Quick Expense, pola yang sama tapi terpisah).
 const GRIND_PAGE_CSS = `
+  /* Ruang kosong ekstra di bawah biar konten terakhir (History dst) nggak ketutupan FAB
+     "+ Plan" yang posisinya fixed melayang di pojok kanan bawah. */
+  .container { padding-bottom: calc(88px + env(safe-area-inset-bottom)); }
+
+  /* Warna/blur FAB (gradasi + kaca) datang dari .fab-btn (shared) - di sini cuma posisi/ukuran. */
   .grind-fab {
     position: fixed; bottom: calc(20px + env(safe-area-inset-bottom)); right: 20px; z-index: 40;
     display: inline-flex; align-items: center; justify-content: center;
-    padding: 14px 22px; border-radius: 999px; border: none;
-    background: var(--accent); color: #fff; font-size: 15px; font-weight: 700;
-    box-shadow: 0 8px 24px rgba(41,37,36,.3); cursor: pointer; font-family: inherit;
+    padding: 14px 22px; border-radius: 999px;
+    color: #fff; font-size: 15px; font-weight: 700; cursor: pointer; font-family: inherit;
   }
-  .grind-fab:hover { background: var(--accent-hover); }
 `;
 
 function importPlanFabHtml() {
-  return `<button type="button" class="grind-fab" id="import-plan-fab" aria-label="Import Training Plan">+ Plan</button>`;
+  return `<button type="button" class="grind-fab fab-btn" id="import-plan-fab" aria-label="Import Training Plan">+ Plan</button>`;
 }
 
 function importModalHtml() {
@@ -297,8 +302,8 @@ function sessionTimeRadios(name, defaultTime) {
   </div>`;
 }
 
-function sportFormSummaryHtml(iconPath, label) {
-  return `<summary class="sport-form-summary"><img class="sport-form-summary-icon" src="${iconPath}" alt="">Log ${label}</summary>`;
+function sportFormSummaryHtml(iconSvg, label) {
+  return `<summary class="sport-form-summary"><span class="sport-form-summary-icon">${svgIcon(iconSvg, { size: 18 })}</span>Log ${label}</summary>`;
 }
 
 // Dipakai Run & Swim - sama-sama jarak + durasi + pace (hybrid auto-calc/manual, lihat
@@ -306,7 +311,7 @@ function sportFormSummaryHtml(iconPath, label) {
 // beberapa form sejenis dengan 1 fungsi generik. unit "km" (Run) atau "m" (Swim, dicatat dalam
 // meter sesuai kebiasaan renang) - distance_km di DB tetap km, konversi meter<->km ditangani di
 // sini (tampilan) dan di router (submit), lihat formatSessionDistance/registerDistanceSportRoute.
-function distanceSportFormHtml({ key, iconPath, label, action, subtypes, open, prefill, defaultTime, unit = "km" }) {
+function distanceSportFormHtml({ key, iconSvg, label, action, subtypes, open, prefill, defaultTime, unit = "km" }) {
   const isSwim = unit === "m";
   const distanceVal = isSwim
     ? prefill?.distanceKm != null
@@ -315,7 +320,7 @@ function distanceSportFormHtml({ key, iconPath, label, action, subtypes, open, p
     : (prefill?.distanceKm ?? "");
 
   return `<details class="form-card" id="form-${key}" ${open ? "open" : ""}>
-    ${sportFormSummaryHtml(iconPath, label)}
+    ${sportFormSummaryHtml(iconSvg, label)}
     <form method="POST" action="${action}">
       ${hiddenPlanId(prefill)}
       ${sessionTimeRadios("session_time", defaultTime)}
@@ -337,22 +342,22 @@ function distanceSportFormHtml({ key, iconPath, label, action, subtypes, open, p
 
 function runFormHtml({ open, prefill, defaultTime }) {
   return distanceSportFormHtml({
-    key: "run", iconPath: "/icons/running.png", label: "Run", action: "/hub/grind/sessions/run",
+    key: "run", iconSvg: "activity", label: "Run", action: "/hub/grind/sessions/run",
     subtypes: RUN_SUBTYPES, open, prefill, defaultTime,
   });
 }
 
 function swimFormHtml({ open, prefill, defaultTime }) {
   return distanceSportFormHtml({
-    key: "swim", iconPath: "/icons/swim.png", label: "Swim", action: "/hub/grind/sessions/swim",
+    key: "swim", iconSvg: "waves", label: "Swim", action: "/hub/grind/sessions/swim",
     subtypes: null, open, prefill, defaultTime, unit: "m",
   });
 }
 
 // Dipakai Badminton & Tennis - sama-sama durasi + quick-chips 60/90/120 menit.
-function durationSportFormHtml({ key, iconPath, label, action, subtypes, open, prefill, defaultTime }) {
+function durationSportFormHtml({ key, iconSvg, label, action, subtypes, open, prefill, defaultTime }) {
   return `<details class="form-card" id="form-${key}" ${open ? "open" : ""}>
-    ${sportFormSummaryHtml(iconPath, label)}
+    ${sportFormSummaryHtml(iconSvg, label)}
     <form method="POST" action="${action}">
       ${hiddenPlanId(prefill)}
       ${sessionTimeRadios("session_time", defaultTime)}
@@ -376,21 +381,21 @@ function durationSportFormHtml({ key, iconPath, label, action, subtypes, open, p
 
 function badmintonFormHtml({ open, prefill, defaultTime }) {
   return durationSportFormHtml({
-    key: "badminton", iconPath: "/icons/shuttlecock.png", label: "Badminton", action: "/hub/grind/sessions/badminton",
+    key: "badminton", iconSvg: "racket", label: "Badminton", action: "/hub/grind/sessions/badminton",
     subtypes: BADMINTON_SUBTYPES, open, prefill, defaultTime,
   });
 }
 
 function tennisFormHtml({ open, prefill, defaultTime }) {
   return durationSportFormHtml({
-    key: "tennis", iconPath: "/icons/tennis.png", label: "Tennis", action: "/hub/grind/sessions/tennis",
+    key: "tennis", iconSvg: "tennisBall", label: "Tennis", action: "/hub/grind/sessions/tennis",
     subtypes: TENNIS_SUBTYPES, open, prefill, defaultTime,
   });
 }
 
 function gymFormHtml({ open, prefill, defaultTime, recoveryHint }) {
   return `<details class="form-card" id="form-gym" ${open ? "open" : ""}>
-    ${sportFormSummaryHtml("/icons/dumbbell.png", "Gym")}
+    ${sportFormSummaryHtml("dumbbell", "Gym")}
     ${recoveryHint ? `<div class="recovery-banner">💡 ${escapeHtml(recoveryHint)}</div>` : ""}
     <form method="POST" action="/hub/grind/sessions/gym" id="gym-form">
       ${hiddenPlanId(prefill)}
@@ -408,9 +413,9 @@ function gymFormHtml({ open, prefill, defaultTime, recoveryHint }) {
 
       <div class="card-sub" style="margin-bottom:4px;">Rest Timer</div>
       <div class="button-row" style="margin-bottom:8px;">
+        <button type="button" class="btn-secondary btn-sm" onclick="grindStartRestTimer(45)">45s</button>
         <button type="button" class="btn-secondary btn-sm" onclick="grindStartRestTimer(60)">60s</button>
         <button type="button" class="btn-secondary btn-sm" onclick="grindStartRestTimer(90)">90s</button>
-        <button type="button" class="btn-secondary btn-sm" onclick="grindStartRestTimer(120)">120s</button>
       </div>
       <div class="card-sub" id="gym-rest-timer-display"></div>
 
@@ -467,7 +472,7 @@ function todayPlanAndLoggerHtml({ todayPlan, todaySessions, openForm, prefill, d
     ${tennisFormHtml({ open: openForm === "tennis", prefill: prefillFor("tennis"), defaultTime })}
   </div>`;
 
-  return `<h2>Today</h2><div class="card">${body}${sessions}${quickAddTilesGrindPage()}</div>${formsHtml}`;
+  return `<h2>Today</h2><div class="card glass-card">${body}${sessions}${quickAddTilesGrindPage()}</div>${formsHtml}`;
 }
 
 // Klik tile Run/Badminton/Gym -> buka <details class="form-card"> yang sesuai persis di bawah
@@ -497,7 +502,7 @@ function weeklyProgressHtml({ weekPlans, weekSessions, weekTargetKm }) {
   const pct = weekTargetKm > 0 ? Math.round((actualKm / weekTargetKm) * 100) : 0;
 
   return `<h2>Weekly Plan vs Actual</h2>
-  <div class="card">
+  <div class="card glass-card">
     <div class="card-label">Target ${weekTargetKm.toFixed(1)}km · Actual ${actualKm.toFixed(1)}km</div>
     <div class="stat-bar"><div class="stat-bar-fill ${pct >= 100 ? "tier-high" : pct >= 50 ? "tier-mid" : "tier-low"}" style="width:${Math.min(100, pct)}%"></div></div>
     <div class="card-sub">${activeDays} hari aktif minggu ini · ${weekPlans.length} sesi terjadwal</div>
@@ -591,9 +596,9 @@ function scheduleViewerHtml({ weekPlans, nextWeekPlans, todayKey }) {
 
 // ---------- Sport Summary (bulan ini) ----------
 
-function sportSummaryCardHtml(iconPath, label, valueHtml, subHtml, { hidden = false } = {}) {
+function sportSummaryCardHtml(iconSvg, label, valueHtml, subHtml, { hidden = false } = {}) {
   return `<div class="card"${hidden ? ' hidden data-sport-summary-extra' : ""}>
-    <div class="card-label">${iconLabel(iconPath, label)}</div>
+    <div class="card-label">${svgIconLabel(iconSvg, label)}</div>
     <div class="card-value card-value-compact">${valueHtml}</div>
     <div class="card-sub">${subHtml}</div>
   </div>`;
@@ -608,18 +613,18 @@ function sportSummaryHtml(monthSummary) {
 
   const coreCards = [
     sportSummaryCardHtml(
-      "/icons/running.png", "Run", `${run.totalKm.toFixed(1)}km`,
+      "activity", "Run", `${run.totalKm.toFixed(1)}km`,
       `${run.count} sesi${run.avgPace ? ` · avg ${run.avgPace}/km` : ""}${run.avgHr ? ` · avg ${run.avgHr}bpm` : ""}`
     ),
-    sportSummaryCardHtml("/icons/shuttlecock.png", "Badminton", `${badminton.count} sesi`, `${badminton.totalHours}h total`),
+    sportSummaryCardHtml("racket", "Badminton", `${badminton.count} sesi`, `${badminton.totalHours}h total`),
     sportSummaryCardHtml(
-      "/icons/dumbbell.png", "Gym", `${gym.count} sesi`,
+      "dumbbell", "Gym", `${gym.count} sesi`,
       gym.topLifts.length ? gym.topLifts.map((l) => `${escapeHtml(l.exerciseName)} ${l.maxWeight}kg`).join(", ") : "Belum ada data beban."
     ),
   ];
 
-  const swimCard = sportSummaryCardHtml("/icons/swim.png", "Swim", `${swim.totalKm.toFixed(1)}km`, `${swim.count} sesi`, { hidden: swim.count === 0 });
-  const tennisCard = sportSummaryCardHtml("/icons/tennis.png", "Tennis", `${tennis.count} sesi`, `${tennis.totalHours}h total`, { hidden: tennis.count === 0 });
+  const swimCard = sportSummaryCardHtml("waves", "Swim", `${swim.totalKm.toFixed(1)}km`, `${swim.count} sesi`, { hidden: swim.count === 0 });
+  const tennisCard = sportSummaryCardHtml("tennisBall", "Tennis", `${tennis.count} sesi`, `${tennis.totalHours}h total`, { hidden: tennis.count === 0 });
   const hasHiddenSports = swim.count === 0 || tennis.count === 0;
 
   const toggle = hasHiddenSports
@@ -1045,23 +1050,44 @@ function gymFormScript() {
       loadForSplit(subtypeSelect.value, false);
     })();
 
+    // Berbasis timestamp (bukan counter yang dikurangin tiap tick) biar nggak meleset kalau
+    // setInterval di-throttle pas tab background/layar mati - skenario paling umum pas nunggu
+    // rest timer gym. navigator.vibrate() sendiri kemungkinan besar DIBLOKIR browser kalau
+    // halaman lagi nggak keliatan (itu alasan utama "udah selesai tapi nggak getar") - makanya
+    // ada listener visibilitychange di bawah yang nyoba getar ULANG begitu user balik buka
+    // tabnya kalau ternyata timer udah lewat waktu dia ninggalin halaman.
     function grindStartRestTimer(seconds) {
       var display = document.getElementById("gym-rest-timer-display");
       if (!display) return;
       if (window.__grindRestTimerInterval) clearInterval(window.__grindRestTimerInterval);
-      var remaining = seconds;
-      display.textContent = "Rest: " + remaining + "s";
-      window.__grindRestTimerInterval = setInterval(function () {
-        remaining--;
-        if (remaining <= 0) {
+      window.__grindRestTimerEndAt = Date.now() + seconds * 1000;
+      window.__grindRestTimerVibrated = false;
+
+      function tick() {
+        var remainingMs = window.__grindRestTimerEndAt - Date.now();
+        if (remainingMs <= 0) {
           clearInterval(window.__grindRestTimerInterval);
           display.textContent = "Rest done!";
-          if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
+          if (!window.__grindRestTimerVibrated && navigator.vibrate) {
+            window.__grindRestTimerVibrated = navigator.vibrate([200, 100, 200]);
+          }
           return;
         }
-        display.textContent = "Rest: " + remaining + "s";
-      }, 1000);
+        display.textContent = "Rest: " + Math.ceil(remainingMs / 1000) + "s";
+      }
+
+      tick();
+      window.__grindRestTimerInterval = setInterval(tick, 250);
     }
+
+    document.addEventListener("visibilitychange", function () {
+      if (document.visibilityState !== "visible" || !window.__grindRestTimerEndAt) return;
+      var display = document.getElementById("gym-rest-timer-display");
+      if (display && Date.now() >= window.__grindRestTimerEndAt && !window.__grindRestTimerVibrated) {
+        display.textContent = "Rest done!";
+        if (navigator.vibrate) window.__grindRestTimerVibrated = navigator.vibrate([200, 100, 200]);
+      }
+    });
   </script>`;
 }
 

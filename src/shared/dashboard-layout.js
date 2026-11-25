@@ -23,6 +23,18 @@ export const DASHBOARD_CSS = `
     --success-text: #166534;
     --warning: #b45309;
     --warning-hover: #92400e;
+
+    /* Warm ambient mesh + frosted glass (lihat .glass-card, .fab-btn, body) */
+    --gradient-mesh:
+      radial-gradient(at 10% 5%, rgba(235, 213, 188, 0.55) 0px, transparent 50%),
+      radial-gradient(at 90% 15%, rgba(216, 226, 214, 0.45) 0px, transparent 48%),
+      radial-gradient(at 50% 95%, rgba(238, 222, 203, 0.5) 0px, transparent 55%);
+    --glass-bg: rgba(255, 255, 255, 0.72);
+    --glass-border: rgba(255, 255, 255, 0.75);
+    --glass-shadow: 0 4px 20px -2px rgba(72, 58, 44, 0.05), inset 0 1px 0 0 rgba(255, 255, 255, 0.85);
+    --glass-list-bg: rgba(255, 255, 255, 0.62);
+    --glass-list-border: rgba(72, 58, 44, 0.07);
+    --fab-gradient: linear-gradient(135deg, #8C735B 0%, #6F5944 100%);
   }
   /* Warm Graphite (dark theme) - follows OS preference by default, overridden by the manual toggle */
   @media (prefers-color-scheme: dark) {
@@ -50,6 +62,17 @@ export const DASHBOARD_CSS = `
       --success-text: #bbf7d0;
       --warning: #fbbf24;
       --warning-hover: #f59e0b;
+
+      --gradient-mesh:
+        radial-gradient(at 12% 8%, rgba(120, 88, 60, 0.24) 0px, transparent 50%),
+        radial-gradient(at 88% 18%, rgba(74, 92, 82, 0.18) 0px, transparent 48%),
+        radial-gradient(at 50% 92%, rgba(96, 74, 56, 0.20) 0px, transparent 55%);
+      --glass-bg: rgba(36, 33, 30, 0.72);
+      --glass-border: rgba(255, 255, 255, 0.08);
+      --glass-shadow: 0 6px 24px -4px rgba(0, 0, 0, 0.35), inset 0 1px 0 0 rgba(255, 255, 255, 0.09);
+      --glass-list-bg: rgba(38, 35, 32, 0.62);
+      --glass-list-border: rgba(255, 255, 255, 0.06);
+      --fab-gradient: linear-gradient(135deg, #B59779 0%, #967A5E 100%);
     }
   }
   :root[data-theme="dark"] {
@@ -76,6 +99,17 @@ export const DASHBOARD_CSS = `
     --success-text: #bbf7d0;
     --warning: #fbbf24;
     --warning-hover: #f59e0b;
+
+    --gradient-mesh:
+      radial-gradient(at 12% 8%, rgba(120, 88, 60, 0.24) 0px, transparent 50%),
+      radial-gradient(at 88% 18%, rgba(74, 92, 82, 0.18) 0px, transparent 48%),
+      radial-gradient(at 50% 92%, rgba(96, 74, 56, 0.20) 0px, transparent 55%);
+    --glass-bg: rgba(36, 33, 30, 0.72);
+    --glass-border: rgba(255, 255, 255, 0.08);
+    --glass-shadow: 0 6px 24px -4px rgba(0, 0, 0, 0.35), inset 0 1px 0 0 rgba(255, 255, 255, 0.09);
+    --glass-list-bg: rgba(38, 35, 32, 0.62);
+    --glass-list-border: rgba(255, 255, 255, 0.06);
+    --fab-gradient: linear-gradient(135deg, #B59779 0%, #967A5E 100%);
   }
   .theme-toggle { border: none; background: transparent; padding: 0; cursor: pointer; line-height: 0; flex-shrink: 0; }
   .theme-toggle-track {
@@ -91,7 +125,11 @@ export const DASHBOARD_CSS = `
   [data-theme="dark"] .theme-toggle-track { background: var(--accent); }
   [data-theme="dark"] .theme-toggle-thumb { transform: translateX(18px); background: var(--surface); }
   * { box-sizing: border-box; }
-  body { font-family: system-ui, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 24px 16px 48px; }
+  body {
+    font-family: system-ui, sans-serif; color: var(--text); margin: 0; padding: 24px 16px 48px;
+    font-variant-numeric: tabular-nums;
+    background-color: var(--bg); background-image: var(--gradient-mesh); background-attachment: fixed;
+  }
   .container { max-width: 720px; margin: 0 auto; }
   header { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px 16px; margin-bottom: 24px; }
   h1 { font-size: 20px; margin: 0; display: flex; align-items: center; gap: 8px; }
@@ -110,6 +148,15 @@ export const DASHBOARD_CSS = `
   .card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; }
   a.card { display: block; color: inherit; text-decoration: none; }
   a.card:hover { background: var(--surface-hover); }
+  /* Permukaan kaca hangat - cuma buat kartu utama & elemen melayang (bento grid, card Grind,
+     TODAY/WEEKLY PLAN, dialog, FAB) di atas ambient mesh gradient body, BUKAN buat list item
+     (Recent/History/Schedule pakai --glass-list-bg yang lebih ringan, tanpa blur, lihat
+     .activity-row/.log-item) biar scroll tetap ringan di HP. */
+  .glass-card {
+    background: var(--glass-bg) !important; border: 1px solid var(--glass-border) !important;
+    box-shadow: var(--glass-shadow); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+  }
+  a.glass-card:hover { background: var(--glass-bg) !important; filter: brightness(1.03); }
   .card-label { font-size: 12px; color: var(--text-muted); margin-bottom: 4px; }
   .card-value { font-size: 18px; font-weight: 600; overflow-wrap: break-word; }
   .card-value.card-value-compact { font-size: 15px; }
@@ -158,8 +205,6 @@ export const DASHBOARD_CSS = `
     text-align: center; cursor: pointer; font-family: inherit;
   }
   .sport-tile:hover { background: var(--surface-hover); border-color: var(--border-hover); }
-  .sport-tile img { width: 26px; height: 26px; object-fit: contain; border-radius: 6px; }
-  .sport-tile-emoji { font-size: 22px; line-height: 1; }
 
   .form-card > summary.sport-form-summary {
     display: flex; align-items: center; gap: 10px; font-size: 14px; font-weight: 600; color: var(--text);
@@ -168,9 +213,11 @@ export const DASHBOARD_CSS = `
   .sport-form-summary::after { content: "▾"; margin-left: auto; color: var(--text-dim); font-size: 11px; transition: transform .15s ease; }
   .form-card[open] > summary.sport-form-summary::after { transform: rotate(180deg); }
   .sport-form-summary-icon {
-    width: 30px; height: 30px; object-fit: contain; border-radius: 8px; flex-shrink: 0;
-    background: var(--accent-deep); padding: 5px; box-sizing: border-box;
+    display: flex; align-items: center; justify-content: center;
+    width: 30px; height: 30px; border-radius: 8px; flex-shrink: 0;
+    background: var(--accent-deep); color: var(--accent-light); box-sizing: border-box;
   }
+  .sport-form-summary-icon .svg-icon { margin: 0; }
   .chart-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 16px; margin-bottom: 12px; }
 
   header.hub-header { display: block; }
@@ -183,7 +230,7 @@ export const DASHBOARD_CSS = `
   .empty-state a { color: var(--accent-light); text-decoration: none; }
   .empty-state a:hover { text-decoration: underline; }
   .activity-list { display: flex; flex-direction: column; gap: 8px; }
-  .activity-row { display: flex; align-items: center; gap: 12px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 10px 14px; }
+  .activity-row { display: flex; align-items: center; gap: 12px; background: var(--glass-list-bg); border: 1px solid var(--glass-list-border); border-radius: 12px; padding: 10px 14px; }
   .activity-icon { font-size: 18px; }
   .activity-main { flex: 1; min-width: 0; }
   .activity-title { font-size: 13px; font-weight: 500; }
@@ -296,7 +343,7 @@ export const DASHBOARD_CSS = `
 
   label { display: block; font-size: 11px; color: var(--text-muted); margin-bottom: 3px; }
 
-  .log-item { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; margin-bottom: 8px; overflow: hidden; }
+  .log-item { background: var(--glass-list-bg); border: 1px solid var(--glass-list-border); border-radius: 12px; margin-bottom: 8px; overflow: hidden; }
   .log-item summary { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 10px; padding: 10px 14px; cursor: pointer; list-style: none; }
   .log-item summary::-webkit-details-marker { display: none; }
   .log-item summary::before { content: "▸"; color: var(--text-dim); font-size: 18px; flex-shrink: 0; transition: transform 0.15s ease; }
@@ -339,7 +386,7 @@ export const DASHBOARD_CSS = `
 
   .gym-set-rows { display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px; }
   .gym-set-header-row, .gym-set-row {
-    display: grid; grid-template-columns: 24px 1fr 1fr 32px; gap: 8px; align-items: center;
+    display: grid; grid-template-columns: 24px minmax(0, 1fr) minmax(0, 1fr) 32px; gap: 8px; align-items: center;
   }
   .gym-set-header-row { font-size: 11px; color: var(--text-dim); padding: 0 8px; }
   .gym-set-col-label { text-align: center; }
@@ -349,23 +396,66 @@ export const DASHBOARD_CSS = `
   }
   .gym-set-row.gym-set-done-row { opacity: .55; background: var(--success-bg); border-color: transparent; }
   .gym-set-index { width: 24px; font-size: 11px; color: var(--text-dim); text-align: center; }
-  .gym-set-field { display: flex; align-items: center; gap: 4px; min-width: 0; }
-  .form-card .gym-set-field .stepper-btn {
-    flex-shrink: 0; width: auto; padding: 4px 6px; font-size: 11px; border-radius: 6px;
-    border: 1px solid var(--border); background: var(--surface); color: var(--text); cursor: pointer; font-family: inherit;
+  /* Field kg/reps dibungkus 1 kotak bulat sendiri (border+background) biar batas antar field
+     (kg vs reps) selalu kebaca jelas walau di layar sempit gap-nya tipis - sebelumnya tombol &
+     input masing-masing punya border sendiri-sendiri jadi kalau kepepet kelihatan numpuk/nyambung
+     kayak satu tombol gede, bukan 2 field yang terpisah. */
+  .gym-set-field {
+    display: flex; align-items: center; gap: 2px; min-width: 0; overflow: hidden;
+    background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 2px;
   }
-  .form-card .gym-set-field .stepper-btn:hover { background: var(--surface-hover); border-color: var(--border-hover); }
+  .form-card .gym-set-field .stepper-btn {
+    flex-shrink: 0; width: auto; padding: 3px 5px; font-size: 10px; border-radius: 5px;
+    border: none; background: var(--bg); color: var(--text); cursor: pointer; font-family: inherit; white-space: nowrap;
+  }
+  .form-card .gym-set-field .stepper-btn:hover { background: var(--surface-hover); }
   .form-card .gym-set-field .stepper-btn:active { background: var(--accent-deep); }
   .gym-weight-input, .gym-reps-input {
-    flex: 1; min-width: 0; width: auto; text-align: center; padding: 4px; margin-bottom: 0;
-    border-radius: 6px; border: 1px solid var(--border);
-    background: var(--bg); color: var(--text); font-size: 13px; box-sizing: border-box;
+    flex: 1; min-width: 0; width: auto; text-align: center; padding: 3px 1px; margin: 0;
+    border-radius: 5px; border: none; background: transparent; color: var(--text); font-size: 13px; box-sizing: border-box;
   }
-  .gym-weight-input { min-width: 44px; }
-  .gym-reps-input { min-width: 38px; }
+  .gym-weight-input { min-width: 30px; }
+  .gym-reps-input { min-width: 24px; }
   .gym-set-done-label { width: 32px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; margin: 0; }
 
   .inline-icon { width: 16px; height: 16px; object-fit: contain; vertical-align: middle; margin-right: 4px; margin-top: -2px; border-radius: 3px; }
+  .svg-icon { vertical-align: middle; margin-right: 6px; margin-top: -2px; flex-shrink: 0; }
+  .icon-badge {
+    display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0;
+    width: 40px; height: 40px; border-radius: 12px; background: var(--accent-deep); color: var(--accent-light);
+  }
+  .icon-badge .svg-icon { margin: 0; }
+  .icon-badge img { width: 20px; height: 20px; object-fit: contain; }
+
+  /* Feedback sentuhan native - elemen yang bisa diklik "menyusut" dikit pas ditekan, konsisten di
+     semua kartu/tombol interaktif utama (bento grid /hub, tile quick-log olahraga, chip transaksi
+     frequent, FAB). Marker class aja (.bento-card/.sport-btn/.fab-btn/.chip-btn), ditempel
+     berdampingan sama class styling asli tiap elemen, bukan gantiin. */
+  .bento-card:active, .sport-btn:active, .fab-btn:active, .chip-btn:active {
+    transform: scale(0.97);
+    transition: transform 0.1s ease;
+  }
+
+  /* FAB "+ Rp" / "+ Plan" - gradasi aksen hangat + kaca (blur 16px), posisi/padding-nya sendiri
+     ditentuin per halaman (.hub-fab/.grind-fab di hub/dashboard.js & grind/dashboard.js). */
+  .fab-btn {
+    background: var(--fab-gradient) !important; border: 1px solid var(--glass-border);
+    box-shadow: var(--glass-shadow); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+  }
+  .fab-btn:hover { filter: brightness(1.08); }
+
+  /* Animasi masuk halus buat semua <dialog> modal (Quick Expense, Import Plan, dst) - generik di
+     tag dialog biar otomatis kepakai di mana aja tanpa perlu diulang per halaman. */
+  @keyframes dialog-pop-in {
+    from { opacity: 0; transform: translateY(8px) scale(0.98); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+  }
+  @keyframes dialog-backdrop-fade-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+  dialog[open] { animation: dialog-pop-in 0.18s ease-out; }
+  dialog::backdrop { animation: dialog-backdrop-fade-in 0.18s ease-out; }
 
   .stat-bar { height: 10px; border-radius: 999px; background: var(--border); overflow: hidden; margin: 6px 0 4px; }
   .stat-bar-fill { height: 100%; border-radius: 999px; transition: width 0.3s ease; }
@@ -418,8 +508,9 @@ export const DASHBOARD_CSS = `
   .schedule-next-week-body { margin-top: 8px; }
 
   dialog.modal-dialog {
-    border: none; border-radius: 14px; padding: 0; background: var(--surface); color: var(--text);
-    max-width: 480px; width: 92vw; box-shadow: 0 12px 40px rgba(0,0,0,.25);
+    border: 1px solid var(--glass-border); border-radius: 14px; padding: 0; color: var(--text);
+    max-width: 480px; width: 92vw; box-shadow: var(--glass-shadow);
+    background: var(--glass-bg); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
   }
   dialog.modal-dialog::backdrop { background: rgba(41,37,36,.55); }
   .modal-dialog-body { padding: 18px; }
@@ -561,6 +652,46 @@ export function escapeHtml(str) {
 // yang sama konvensinya kayak faviconLink - path ke public/icons
 export function iconLabel(iconPath, text) {
   return `<img class="inline-icon" src="${iconPath}" alt="">${text}`;
+}
+
+// Set ikon SVG garis tipis (stroke-based, bukan fill) buat beberapa label/badge kunci yang
+// sebelumnya emoji OS - konsisten tajam di semua perangkat/font emoji, nggak kayak PNG raster
+// yang sedikit buram kalau di-scale. Cuma nge-cover ikon yang path-nya simpel & aman direproduksi
+// manual (flame/wallet/clock/shield-check/activity/moon/flag) - ikon lain (badminton, dumbbell,
+// swim, tennis) sengaja TETAP pakai PNG existing (public/icons) karena bentuknya lebih rumit buat
+// digambar ulang sebagai path SVG tanpa alat desain visual.
+const SVG_ICON_PATHS = {
+  flame: '<path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/>',
+  wallet: '<path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/><path d="M18 12a2 2 0 0 0 0 4h4v-4Z"/>',
+  clock: '<circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15.5 14"/>',
+  shieldCheck: '<path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/>',
+  activity: '<path d="M22 12h-4l-3 9L9 3l-3 9H2"/>',
+  moon: '<path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/>',
+  flag: '<path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/>',
+  waves: '<path d="M2 6c.6.5 1.2 1 2.5 1 2.5 0 2.5-2 5-2 2.6 0 2.4 2 5 2 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1"/><path d="M2 12c.6.5 1.2 1 2.5 1 2.5 0 2.5-2 5-2 2.6 0 2.4 2 5 2 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1"/><path d="M2 18c.6.5 1.2 1 2.5 1 2.5 0 2.5-2 5-2 2.6 0 2.4 2 5 2 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1"/>',
+  racket: '<circle cx="9" cy="9" r="6"/><line x1="13.5" y1="13.5" x2="21" y2="21"/>',
+  tennisBall: '<circle cx="12" cy="12" r="9"/><path d="M4.5 6.5c2.8 2.8 2.8 8.2 0 11M19.5 6.5c-2.8 2.8-2.8 8.2 0 11"/>',
+  dumbbell: '<circle cx="5" cy="12" r="3"/><circle cx="19" cy="12" r="3"/><line x1="8" y1="12" x2="16" y2="12"/>',
+};
+
+// size dalam px (18-20 direkomendasikan biar sejajar sama teks di sampingnya, lihat .svg-icon).
+export function svgIcon(name, { size = 19 } = {}) {
+  const inner = SVG_ICON_PATHS[name];
+  if (!inner) return "";
+  return `<svg class="svg-icon" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${inner}</svg>`;
+}
+
+// Pengganti iconLabel() versi SVG - ikon + teks label, dipakai di card-label /hub dkk.
+export function svgIconLabel(name, text, opts) {
+  return `${svgIcon(name, opts)}${text}`;
+}
+
+// Badge lingkaran lembut warna aksen buat ikon tombol quick-log olahraga (lihat sportIconBadgeHtml
+// di hub/dashboard.js & grind/dashboard.js) - bisa dibungkusin ikon SVG ATAU <img> PNG biasa,
+// supaya sport yang belum punya SVG (badminton/gym/swim/tennis) tetep dapet treatment visual yang
+// sama (bulat, latar aksen) walau isinya masih raster PNG.
+export function iconBadgeHtml(innerHtml) {
+  return `<span class="icon-badge">${innerHtml}</span>`;
 }
 
 // bar generik (HP budget, "affection" Mylo, dst) - warnanya otomatis ijo/kuning/merah/gelap

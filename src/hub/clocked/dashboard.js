@@ -339,6 +339,10 @@ function pushToggleScript() {
               return fetch("/push/public-key").then(function (r) { return r.json(); });
             })
             .then(function (data) {
+              // publicKey kosong berarti server belum disetel buat push (VAPID_PUBLIC_KEY/
+              // VAPID_PRIVATE_KEY belum di-set di environment) - bedain dari "izin ditolak" biar
+              // pesan errornya nggak nyesatin pas penyebabnya sebenarnya di server, bukan di HP.
+              if (!data.publicKey) throw new Error("Server belum disetel buat push notification (VAPID key kosong).");
               return reg.pushManager.subscribe({
                 userVisibleOnly: true,
                 applicationServerKey: urlBase64ToUint8Array(data.publicKey),
@@ -358,7 +362,7 @@ function pushToggleScript() {
             })
             .catch(function (err) {
               console.error(err);
-              statusEl.textContent = "Gagal aktifin reminder (izin notifikasi ditolak?).";
+              statusEl.textContent = "Gagal aktifin reminder: " + err.message;
               btn.disabled = false;
             });
         });

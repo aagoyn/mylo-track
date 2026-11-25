@@ -1,4 +1,4 @@
-import { DASHBOARD_CSS, escapeHtml, navHeader, faviconLink, iconLabel, themeToggleHtml } from "../shared/dashboard-layout.js";
+import { DASHBOARD_CSS, escapeHtml, navHeader, faviconLink, iconLabel, svgIconLabel, themeToggleHtml } from "../shared/dashboard-layout.js";
 import { clockedHubCardHtml } from "./clocked/dashboard.js";
 import { grindHubCardHtml } from "./grind/dashboard.js";
 
@@ -31,7 +31,7 @@ function frequentChipsHtml(frequentExpenses) {
   const chips = frequentExpenses
     .map(
       (f) =>
-        `<button type="button" class="freq-chip" data-text="${escapeHtml(f.description)} ${f.amount}">${escapeHtml(f.description)} · ${formatRupiah(f.amount)}</button>`
+        `<button type="button" class="freq-chip chip-btn" data-text="${escapeHtml(f.description)} ${f.amount}">${escapeHtml(f.description)} · ${formatRupiah(f.amount)}</button>`
     )
     .join("");
   return `<div class="freq-chip-row">${chips}</div>`;
@@ -41,18 +41,22 @@ function frequentChipsHtml(frequentExpenses) {
 // shared/dashboard-layout.js, biar nggak nular ke halaman lain yang nggak butuh FAB ini sama
 // sekali (lihat juga grind/dashboard.js buat FAB Import Plan, pola yang sama tapi terpisah).
 const HUB_PAGE_CSS = `
+  /* Ruang kosong ekstra di bawah biar konten terakhir (nav bawah dst) nggak ketutupan FAB "+ Rp"
+     yang posisinya fixed melayang di pojok kanan bawah. */
+  .container { padding-bottom: calc(88px + env(safe-area-inset-bottom)); }
+
+  /* Warna/blur FAB (gradasi + kaca) datang dari .fab-btn (shared) - di sini cuma posisi/ukuran. */
   .hub-fab {
     position: fixed; bottom: calc(20px + env(safe-area-inset-bottom)); right: 20px; z-index: 40;
     display: inline-flex; align-items: center; justify-content: center;
-    padding: 14px 22px; border-radius: 999px; border: none;
-    background: var(--accent); color: #fff; font-size: 15px; font-weight: 700;
-    box-shadow: 0 8px 24px rgba(41,37,36,.3); cursor: pointer; font-family: inherit;
+    padding: 14px 22px; border-radius: 999px;
+    color: #fff; font-size: 15px; font-weight: 700; cursor: pointer; font-family: inherit;
   }
-  .hub-fab:hover { background: var(--accent-hover); }
 
   dialog.qe-dialog {
-    border: none; border-radius: 16px; padding: 0; margin: auto; background: var(--surface); color: var(--text);
-    max-width: 380px; width: calc(100% - 32px); box-shadow: 0 12px 40px rgba(0,0,0,.25);
+    border: 1px solid var(--glass-border); border-radius: 16px; padding: 0; margin: auto; color: var(--text);
+    max-width: 380px; width: calc(100% - 32px); box-shadow: var(--glass-shadow);
+    background: var(--glass-bg); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
   }
   dialog.qe-dialog::backdrop { background: rgba(28,25,23,.45); backdrop-filter: blur(2px); }
   .qe-dialog-body { padding: 18px; }
@@ -80,9 +84,14 @@ const HUB_PAGE_CSS = `
   .freq-chip:hover { background: var(--surface-hover); border-color: var(--border-hover); }
 
   .hub-toast {
-    position: fixed; bottom: calc(86px + env(safe-area-inset-bottom)); left: 50%; transform: translateX(-50%);
+    position: fixed; top: calc(16px + env(safe-area-inset-top)); left: 50%; transform: translate(-50%, 0);
     background: var(--text); color: var(--bg); padding: 10px 18px; border-radius: 999px; font-size: 13px;
-    box-shadow: 0 8px 24px rgba(0,0,0,.2); z-index: 50; max-width: calc(100% - 40px); text-align: center;
+    box-shadow: 0 8px 24px rgba(0,0,0,.2); z-index: 60; max-width: calc(100% - 40px); text-align: center;
+    animation: hub-toast-slide-down 0.25s ease-out;
+  }
+  @keyframes hub-toast-slide-down {
+    from { opacity: 0; transform: translate(-50%, -12px); }
+    to { opacity: 1; transform: translate(-50%, 0); }
   }
 `;
 
@@ -90,7 +99,7 @@ const HUB_PAGE_CSS = `
 // submit, form submit fetch ke POST /hub/quick-expense (JSON) tanpa reload - sukses update card
 // Spending & list Recent in-place, gagal nampilin pesan error di dalam dialog.
 function quickExpenseDialogHtml(frequentExpenses) {
-  return `<button type="button" class="hub-fab" id="quick-expense-fab" aria-label="Quick Expense">+ Rp</button>
+  return `<button type="button" class="hub-fab fab-btn" id="quick-expense-fab" aria-label="Quick Expense">+ Rp</button>
   <dialog class="qe-dialog" id="quick-expense-dialog">
     <div class="qe-dialog-body">
       <div class="qe-dialog-header">
@@ -292,26 +301,26 @@ ${faviconLink("/icons/hub.png")}
     </header>
 
     <section class="grid-2-always">
-      <a class="card" href="/dashboard/calorie">
-        <div class="card-label">${iconLabel("/icons/calorie.png", "Calories")}</div>
+      <a class="card bento-card glass-card" href="/dashboard/calorie">
+        <div class="card-label">${svgIconLabel("flame", "Calories")}</div>
         ${calorieCard}
       </a>
-      <a class="card" href="/dashboard/spending">
-        <div class="card-label">${iconLabel("/icons/spending.png", "Spending")}</div>
+      <a class="card bento-card glass-card" href="/dashboard/spending">
+        <div class="card-label">${svgIconLabel("wallet", "Spending")}</div>
         <div id="spending-card-body">${spendingCard}</div>
       </a>
-      <div class="card" onclick="location.href='/hub/clocked'" style="cursor:pointer;">
-        <div class="card-label">${iconLabel("/icons/clocked.png", "Clocked!")}</div>
+      <div class="card bento-card glass-card" onclick="location.href='/hub/clocked'" style="cursor:pointer;">
+        <div class="card-label">${svgIconLabel("clock", "Clocked!")}</div>
         ${clockedCard}
       </div>
-      <a class="card" href="/hub/vault">
-        <div class="card-label">${iconLabel("/icons/vault.png", "Vault")}</div>
+      <a class="card bento-card glass-card" href="/hub/vault">
+        <div class="card-label">${svgIconLabel("shieldCheck", "Vault")}</div>
         ${vaultCard}
       </a>
     </section>
 
     <h2>${iconLabel("/icons/grind-icon.png", "Grind")}</h2>
-    <div class="card" onclick="location.href='/hub/grind'" style="cursor:pointer;">${grindCard}</div>
+    <div class="card bento-card glass-card" onclick="location.href='/hub/grind'" style="cursor:pointer;">${grindCard}</div>
 
     <h2>Recent</h2>
     <div class="activity-list" id="recent-activity-list">${recentRows}</div>

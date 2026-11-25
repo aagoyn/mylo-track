@@ -64,14 +64,14 @@ export const DASHBOARD_CSS = `
       --warning-hover: #f59e0b;
 
       --gradient-mesh:
-        radial-gradient(at 12% 8%, rgba(120, 88, 60, 0.24) 0px, transparent 50%),
-        radial-gradient(at 88% 18%, rgba(74, 92, 82, 0.18) 0px, transparent 48%),
-        radial-gradient(at 50% 92%, rgba(96, 74, 56, 0.20) 0px, transparent 55%);
-      --glass-bg: rgba(36, 33, 30, 0.72);
-      --glass-border: rgba(255, 255, 255, 0.08);
-      --glass-shadow: 0 6px 24px -4px rgba(0, 0, 0, 0.35), inset 0 1px 0 0 rgba(255, 255, 255, 0.09);
-      --glass-list-bg: rgba(38, 35, 32, 0.62);
-      --glass-list-border: rgba(255, 255, 255, 0.06);
+        radial-gradient(at 12% 8%, rgba(150, 106, 66, 0.4) 0px, transparent 50%),
+        radial-gradient(at 88% 18%, rgba(84, 110, 96, 0.32) 0px, transparent 48%),
+        radial-gradient(at 50% 92%, rgba(122, 90, 62, 0.36) 0px, transparent 55%);
+      --glass-bg: rgba(68, 62, 55, 0.62);
+      --glass-border: rgba(255, 255, 255, 0.14);
+      --glass-shadow: 0 8px 28px -4px rgba(0, 0, 0, 0.45), inset 0 1px 0 0 rgba(255, 255, 255, 0.14);
+      --glass-list-bg: rgba(54, 49, 44, 0.55);
+      --glass-list-border: rgba(255, 255, 255, 0.09);
       --fab-gradient: linear-gradient(135deg, #B59779 0%, #967A5E 100%);
     }
   }
@@ -101,14 +101,14 @@ export const DASHBOARD_CSS = `
     --warning-hover: #f59e0b;
 
     --gradient-mesh:
-      radial-gradient(at 12% 8%, rgba(120, 88, 60, 0.24) 0px, transparent 50%),
-      radial-gradient(at 88% 18%, rgba(74, 92, 82, 0.18) 0px, transparent 48%),
-      radial-gradient(at 50% 92%, rgba(96, 74, 56, 0.20) 0px, transparent 55%);
-    --glass-bg: rgba(36, 33, 30, 0.72);
-    --glass-border: rgba(255, 255, 255, 0.08);
-    --glass-shadow: 0 6px 24px -4px rgba(0, 0, 0, 0.35), inset 0 1px 0 0 rgba(255, 255, 255, 0.09);
-    --glass-list-bg: rgba(38, 35, 32, 0.62);
-    --glass-list-border: rgba(255, 255, 255, 0.06);
+      radial-gradient(at 12% 8%, rgba(150, 106, 66, 0.4) 0px, transparent 50%),
+      radial-gradient(at 88% 18%, rgba(84, 110, 96, 0.32) 0px, transparent 48%),
+      radial-gradient(at 50% 92%, rgba(122, 90, 62, 0.36) 0px, transparent 55%);
+    --glass-bg: rgba(68, 62, 55, 0.62);
+    --glass-border: rgba(255, 255, 255, 0.14);
+    --glass-shadow: 0 8px 28px -4px rgba(0, 0, 0, 0.45), inset 0 1px 0 0 rgba(255, 255, 255, 0.14);
+    --glass-list-bg: rgba(54, 49, 44, 0.55);
+    --glass-list-border: rgba(255, 255, 255, 0.09);
     --fab-gradient: linear-gradient(135deg, #B59779 0%, #967A5E 100%);
   }
   .theme-toggle { border: none; background: transparent; padding: 0; cursor: pointer; line-height: 0; flex-shrink: 0; }

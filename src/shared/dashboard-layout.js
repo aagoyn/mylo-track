@@ -78,7 +78,18 @@ export const DASHBOARD_CSS = `
     --warning-hover: #f59e0b;
   }
   .theme-toggle { border: none; background: transparent; padding: 0; cursor: pointer; line-height: 0; flex-shrink: 0; }
-  .theme-toggle img { width: 40px; height: 22px; display: block; }
+  .theme-toggle-track {
+    display: inline-flex; align-items: center; width: 40px; height: 22px; border-radius: 999px;
+    background: var(--border); position: relative; transition: background .2s ease;
+  }
+  .theme-toggle-thumb {
+    position: absolute; top: 2px; left: 2px; width: 18px; height: 18px; border-radius: 50%;
+    background: var(--surface); box-shadow: 0 1px 3px rgba(0,0,0,.3);
+    display: flex; align-items: center; justify-content: center; font-size: 10px;
+    transition: transform .2s ease, background .2s ease;
+  }
+  [data-theme="dark"] .theme-toggle-track { background: var(--accent); }
+  [data-theme="dark"] .theme-toggle-thumb { transform: translateX(18px); background: var(--surface); }
   * { box-sizing: border-box; }
   body { font-family: system-ui, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 24px 16px 48px; }
   .container { max-width: 720px; margin: 0 auto; }
@@ -462,21 +473,22 @@ export function navHeader({ icon, title, links = [] }) {
     </header>`;
 }
 
-// Tombol toggle light/dark (icon switch-on.png / switch-off.png di public/icons). Preferensi
-// disimpan di localStorage dan dipakai ulang lintas halaman - tiap halaman full-reload (bukan
-// SPA) jadi script-nya ikut nempel di markup ini biar cukup sekali taruh di navHeader/header.
+// Tombol toggle light/dark - pill + knob custom CSS (bukan PNG, biar nggak gepeng & ikut
+// warna tema otomatis). Preferensi disimpan di localStorage dan dipakai ulang lintas halaman -
+// tiap halaman full-reload (bukan SPA) jadi script-nya ikut nempel di markup ini biar cukup
+// sekali taruh di navHeader/header.
 export function themeToggleHtml() {
   return `<button type="button" class="theme-toggle" id="theme-toggle" aria-label="Toggle dark mode">
-    <img id="theme-toggle-icon" src="/icons/switch-off.png" alt="">
+    <span class="theme-toggle-track"><span class="theme-toggle-thumb">🌙</span></span>
   </button>
   <script>
     (function () {
       var root = document.documentElement;
       var btn = document.getElementById("theme-toggle");
-      var icon = document.getElementById("theme-toggle-icon");
+      var thumb = btn.querySelector(".theme-toggle-thumb");
       function apply(theme) {
         root.setAttribute("data-theme", theme);
-        icon.src = theme === "dark" ? "/icons/switch-on.png" : "/icons/switch-off.png";
+        thumb.textContent = theme === "dark" ? "🌙" : "☀️";
       }
       var saved = localStorage.getItem("theme");
       var theme = saved || (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");

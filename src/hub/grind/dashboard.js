@@ -862,14 +862,14 @@ function gymFormScript() {
           '<span class="gym-set-index"></span>' +
           '<input type="hidden" class="gym-exercise-name-hidden" name="exercise_name[]">' +
           '<input type="hidden" class="gym-set-order-hidden" name="set_order[]">' +
-          '<div class="stepper">' +
+          '<div class="gym-set-field">' +
             '<button type="button" class="stepper-btn" data-step="-2.5">−2.5</button>' +
-            '<input type="text" inputmode="decimal" class="stepper-input gym-weight-input" name="weight_kg[]" placeholder="kg">' +
+            '<input type="text" inputmode="decimal" class="gym-weight-input" name="weight_kg[]">' +
             '<button type="button" class="stepper-btn" data-step="2.5">+2.5</button>' +
           '</div>' +
-          '<div class="stepper">' +
+          '<div class="gym-set-field">' +
             '<button type="button" class="stepper-btn" data-step="-1">−1</button>' +
-            '<input type="text" inputmode="numeric" class="stepper-input gym-reps-input" name="reps[]" placeholder="reps">' +
+            '<input type="text" inputmode="numeric" class="gym-reps-input" name="reps[]">' +
             '<button type="button" class="stepper-btn" data-step="1">+1</button>' +
           '</div>' +
           '<label class="gym-set-done-label"><input type="checkbox" class="gym-set-done-checkbox"></label>';
@@ -914,6 +914,9 @@ function gymFormScript() {
             '<input type="text" class="gym-exercise-name" placeholder="Nama gerakan" required>' +
             '<span class="gym-last-badge"></span>' +
             '<button type="button" class="gym-exercise-remove" aria-label="Hapus gerakan">✕</button>' +
+          '</div>' +
+          '<div class="gym-set-header-row">' +
+            '<span></span><span class="gym-set-col-label">kg</span><span class="gym-set-col-label">reps</span><span></span>' +
           '</div>' +
           '<div class="gym-set-rows"></div>' +
           '<button type="button" class="btn-secondary btn-sm gym-copy-set">+ Copy Set</button>';

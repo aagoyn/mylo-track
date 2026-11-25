@@ -126,6 +126,7 @@ export const DASHBOARD_CSS = `
   .flash-success { background: var(--success-bg); color: var(--success-text); }
   .flash-error { background: var(--danger-bg); color: var(--danger-text); }
   .forms { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; align-items: start; }
+  .forms details[open] { grid-column: 1 / -1; }
   .form-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 16px; }
   .form-card h3 { font-size: 13px; color: var(--text-muted); margin: 0 0 10px; font-weight: 500; }
   .form-card > summary { cursor: pointer; font-size: 13px; color: var(--text-muted); font-weight: 500; list-style: none; margin-bottom: 10px; }
@@ -315,41 +316,54 @@ export const DASHBOARD_CSS = `
   .item-edit-row button { padding: 9px 10px; border-radius: 8px; border: none; background: var(--accent); color: white; font-size: 13px; cursor: pointer; }
   .item-edit-row button:hover { background: var(--accent-hover); }
 
+  /* .form-card button (lihat .form-card button, .inline-toggle-body button di atas) sengaja
+     width:100% buat tombol submit/toggle form biasa, tapi ikut "nangkep" semua tombol kecil
+     nested di dalam form Gym (stepper +/-, hapus gerakan, dst) kalau nggak di-override eksplisit
+     dengan selector yang lebih spesifik ke bawah ini - makanya tiap tombol kecil Gym selalu
+     di-scope ulang via ".form-card <class>" biar menang specificity-nya. */
   .gym-subtype-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
-  .gym-subtype-row select { margin-bottom: 0; flex: 1; }
+  .gym-subtype-row select { margin-bottom: 0; width: auto; min-width: 130px; flex: 1; }
+  .form-card .gym-subtype-row button { width: auto; flex-shrink: 0; }
   .gym-exercise-card { background: var(--bg); border: 1px solid var(--border); border-radius: 12px; padding: 12px; margin-bottom: 10px; }
-  .gym-exercise-head { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; flex-wrap: wrap; }
-  .gym-exercise-name { flex: 1; min-width: 120px; margin-bottom: 0 !important; font-weight: 600; }
+  .gym-exercise-head { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+  .gym-exercise-name { flex: 1; min-width: 0; margin-bottom: 0 !important; font-weight: 600; }
   .gym-last-badge {
-    font-size: 11px; color: var(--accent-light); background: var(--accent-deep);
+    flex-shrink: 0; font-size: 11px; color: var(--accent-light); background: var(--accent-deep);
     padding: 3px 9px; border-radius: 999px; white-space: nowrap;
   }
-  .gym-exercise-remove {
-    border: none; background: transparent; color: var(--text-dim); font-size: 16px; line-height: 1;
-    cursor: pointer; width: 26px; height: 26px; border-radius: 50%; flex-shrink: 0;
+  .form-card .gym-exercise-remove {
+    width: 32px; height: 32px; padding: 0; flex-shrink: 0; border-radius: 50%;
+    border: none; background: transparent; color: var(--text-dim); font-size: 16px; line-height: 1; cursor: pointer;
   }
-  .gym-exercise-remove:hover { background: var(--surface-hover); color: var(--danger); }
+  .form-card .gym-exercise-remove:hover { background: var(--surface-hover); color: var(--danger); }
+
   .gym-set-rows { display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px; }
+  .gym-set-header-row, .gym-set-row {
+    display: grid; grid-template-columns: 24px 1fr 1fr 32px; gap: 8px; align-items: center;
+  }
+  .gym-set-header-row { font-size: 11px; color: var(--text-dim); padding: 0 8px; }
+  .gym-set-col-label { text-align: center; }
   .gym-set-row {
-    display: flex; align-items: center; gap: 6px; background: var(--surface); border: 1px solid var(--border);
-    border-radius: 10px; padding: 6px 8px; transition: opacity .15s ease, background .15s ease, border-color .15s ease;
+    background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 6px 8px;
+    transition: opacity .15s ease, background .15s ease, border-color .15s ease;
   }
   .gym-set-row.gym-set-done-row { opacity: .55; background: var(--success-bg); border-color: transparent; }
-  .gym-set-index { width: 14px; flex-shrink: 0; font-size: 11px; color: var(--text-dim); text-align: center; }
-  .stepper { display: flex; align-items: center; flex: 1; min-width: 0; }
-  .stepper-btn {
-    flex-shrink: 0; width: 28px; height: 28px; border-radius: 8px; border: 1px solid var(--border);
-    background: var(--surface); color: var(--text); font-size: 13px; font-weight: 600; cursor: pointer;
-    font-family: inherit; display: flex; align-items: center; justify-content: center; padding: 0;
+  .gym-set-index { width: 24px; font-size: 11px; color: var(--text-dim); text-align: center; }
+  .gym-set-field { display: flex; align-items: center; gap: 4px; min-width: 0; }
+  .form-card .gym-set-field .stepper-btn {
+    flex-shrink: 0; width: auto; padding: 4px 6px; font-size: 11px; border-radius: 6px;
+    border: 1px solid var(--border); background: var(--surface); color: var(--text); cursor: pointer; font-family: inherit;
   }
-  .stepper-btn:hover { background: var(--surface-hover); border-color: var(--border-hover); }
-  .stepper-btn:active { background: var(--accent-deep); }
-  .stepper-input {
-    flex: 1; min-width: 0; width: 100%; text-align: center; padding: 6px 2px; margin: 0 4px 0;
-    border-radius: 8px; border: 1px solid var(--border); background: var(--bg); color: var(--text);
-    font-size: 13px; box-sizing: border-box;
+  .form-card .gym-set-field .stepper-btn:hover { background: var(--surface-hover); border-color: var(--border-hover); }
+  .form-card .gym-set-field .stepper-btn:active { background: var(--accent-deep); }
+  .gym-weight-input, .gym-reps-input {
+    flex: 1; min-width: 0; width: auto; text-align: center; padding: 4px; margin-bottom: 0;
+    border-radius: 6px; border: 1px solid var(--border);
+    background: var(--bg); color: var(--text); font-size: 13px; box-sizing: border-box;
   }
-  .gym-set-done-label { flex-shrink: 0; display: flex; align-items: center; padding-left: 2px; margin: 0; }
+  .gym-weight-input { min-width: 44px; }
+  .gym-reps-input { min-width: 38px; }
+  .gym-set-done-label { width: 32px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; margin: 0; }
 
   .inline-icon { width: 16px; height: 16px; object-fit: contain; vertical-align: middle; margin-right: 4px; margin-top: -2px; border-radius: 3px; }
 

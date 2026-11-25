@@ -71,16 +71,24 @@ export function raceBannerHtml(upcomingRace) {
 
 // ---------- Hub card (ringkas, dipakai di /hub) ----------
 
+const QUICK_ADD_SPORTS = [
+  { form: "run", icon: "/icons/running.png", label: "Run" },
+  { form: "swim", icon: "/icons/swim.png", label: "Swim" },
+  { form: "badminton", icon: "/icons/shuttlecock.png", label: "Badminton" },
+  { form: "tennis", icon: "/icons/tennis.png", label: "Tennis" },
+  { form: "gym", icon: "/icons/dumbbell.png", label: "Gym" },
+];
+
 function quickAddRowHtml() {
-  return `<div class="card-sub" style="margin:10px 0 4px;">Or log a session</div>
-  <div class="button-row" style="flex-wrap:wrap;">
-    <a class="btn-secondary btn-sm" href="/hub/grind?form=run#log-forms">${iconLabel("/icons/running.png", "+ Run")}</a>
-    <a class="btn-secondary btn-sm" href="/hub/grind?form=swim#log-forms">${iconLabel("/icons/swim.png", "+ Swim")}</a>
-    <a class="btn-secondary btn-sm" href="/hub/grind?form=badminton#log-forms">${iconLabel("/icons/shuttlecock.png", "+ Badminton")}</a>
-    <a class="btn-secondary btn-sm" href="/hub/grind?form=tennis#log-forms">${iconLabel("/icons/tennis.png", "+ Tennis")}</a>
-    <a class="btn-secondary btn-sm" href="/hub/grind?form=gym#log-forms">${iconLabel("/icons/dumbbell.png", "+ Gym")}</a>
+  const tiles = QUICK_ADD_SPORTS.map(
+    (s) => `<a class="sport-tile" href="/hub/grind?form=${s.form}#log-forms"><img src="${s.icon}" alt="">${s.label}</a>`
+  ).join("");
+
+  return `<div class="card-sub" style="margin:10px 0 6px;">Or log a session</div>
+  <div class="sport-tile-grid">
+    ${tiles}
     <form method="POST" action="/hub/grind/sessions/rest" style="margin:0;">
-      <button type="submit" class="btn-secondary btn-sm">😴 Rest</button>
+      <button type="submit" class="sport-tile"><span class="sport-tile-emoji">😴</span>Rest</button>
     </form>
   </div>`;
 }
@@ -188,13 +196,17 @@ function sessionTimeRadios(name, defaultTime) {
   </div>`;
 }
 
+function sportFormSummaryHtml(iconPath, label) {
+  return `<summary class="sport-form-summary"><img class="sport-form-summary-icon" src="${iconPath}" alt="">Log ${label}</summary>`;
+}
+
 // Dipakai Run & Swim - sama-sama jarak + durasi + pace (hybrid auto-calc/manual, lihat
 // pacecalcScript). key = prefix id DOM ("run"/"swim"), dipakai jamak biar skrip bisa wire
 // beberapa form sejenis dengan 1 fungsi generik.
-function distanceSportFormHtml({ key, icon, label, action, subtypes, open, prefill, defaultTime }) {
+function distanceSportFormHtml({ key, iconPath, label, action, subtypes, open, prefill, defaultTime }) {
   const distanceVal = prefill?.distanceKm ?? "";
   return `<details class="form-card" id="form-${key}" ${open ? "open" : ""}>
-    <summary>${icon} Log ${label}</summary>
+    ${sportFormSummaryHtml(iconPath, label)}
     <form method="POST" action="${action}">
       ${hiddenPlanId(prefill)}
       ${sessionTimeRadios("session_time", defaultTime)}
@@ -216,22 +228,22 @@ function distanceSportFormHtml({ key, icon, label, action, subtypes, open, prefi
 
 function runFormHtml({ open, prefill, defaultTime }) {
   return distanceSportFormHtml({
-    key: "run", icon: iconLabel("/icons/running.png", ""), label: "Run", action: "/hub/grind/sessions/run",
+    key: "run", iconPath: "/icons/running.png", label: "Run", action: "/hub/grind/sessions/run",
     subtypes: RUN_SUBTYPES, open, prefill, defaultTime,
   });
 }
 
 function swimFormHtml({ open, prefill, defaultTime }) {
   return distanceSportFormHtml({
-    key: "swim", icon: iconLabel("/icons/swim.png", ""), label: "Swim", action: "/hub/grind/sessions/swim",
+    key: "swim", iconPath: "/icons/swim.png", label: "Swim", action: "/hub/grind/sessions/swim",
     subtypes: null, open, prefill, defaultTime,
   });
 }
 
 // Dipakai Badminton & Tennis - sama-sama durasi + quick-chips 60/90/120 menit.
-function durationSportFormHtml({ key, icon, label, action, subtypes, open, prefill, defaultTime }) {
+function durationSportFormHtml({ key, iconPath, label, action, subtypes, open, prefill, defaultTime }) {
   return `<details class="form-card" id="form-${key}" ${open ? "open" : ""}>
-    <summary>${icon} Log ${label}</summary>
+    ${sportFormSummaryHtml(iconPath, label)}
     <form method="POST" action="${action}">
       ${hiddenPlanId(prefill)}
       ${sessionTimeRadios("session_time", defaultTime)}
@@ -255,14 +267,14 @@ function durationSportFormHtml({ key, icon, label, action, subtypes, open, prefi
 
 function badmintonFormHtml({ open, prefill, defaultTime }) {
   return durationSportFormHtml({
-    key: "badminton", icon: iconLabel("/icons/shuttlecock.png", ""), label: "Badminton", action: "/hub/grind/sessions/badminton",
+    key: "badminton", iconPath: "/icons/shuttlecock.png", label: "Badminton", action: "/hub/grind/sessions/badminton",
     subtypes: BADMINTON_SUBTYPES, open, prefill, defaultTime,
   });
 }
 
 function tennisFormHtml({ open, prefill, defaultTime }) {
   return durationSportFormHtml({
-    key: "tennis", icon: iconLabel("/icons/tennis.png", ""), label: "Tennis", action: "/hub/grind/sessions/tennis",
+    key: "tennis", iconPath: "/icons/tennis.png", label: "Tennis", action: "/hub/grind/sessions/tennis",
     subtypes: TENNIS_SUBTYPES, open, prefill, defaultTime,
   });
 }
@@ -279,7 +291,7 @@ function gymSetRowHtml(exerciseName = "", setOrder = 1, weightKg = "", reps = ""
 
 function gymFormHtml({ open, prefill, defaultTime, recoveryHint }) {
   return `<details class="form-card" id="form-gym" ${open ? "open" : ""}>
-    <summary>${iconLabel("/icons/dumbbell.png", "Log Gym")}</summary>
+    ${sportFormSummaryHtml("/icons/dumbbell.png", "Gym")}
     ${recoveryHint ? `<div class="recovery-banner">💡 ${escapeHtml(recoveryHint)}</div>` : ""}
     <form method="POST" action="/hub/grind/sessions/gym" id="gym-form">
       ${hiddenPlanId(prefill)}

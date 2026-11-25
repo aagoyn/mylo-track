@@ -132,8 +132,9 @@ export const DASHBOARD_CSS = `
   .form-card > summary::-webkit-details-marker { display: none; }
   .form-card > summary::before { content: "▸ "; color: var(--text-dim); }
   .form-card[open] > summary::before { content: "▾ "; }
-  .form-card input[type="text"], .form-card input[type="number"],
-  .ai-suggestion-card input[type="text"], .ai-suggestion-card input[type="number"] {
+  .form-card input[type="text"], .form-card input[type="number"], .form-card input[type="date"],
+  .ai-suggestion-card input[type="text"], .ai-suggestion-card input[type="number"],
+  .inline-toggle-body input[type="text"], .inline-toggle-body input[type="number"], .inline-toggle-body input[type="date"] {
     width: 100%; padding: 9px 10px; border-radius: 8px; border: 1px solid var(--border);
     background: var(--bg); color: var(--text); box-sizing: border-box; font-size: 14px; margin-bottom: 8px;
   }
@@ -141,11 +142,33 @@ export const DASHBOARD_CSS = `
     width: 100%; padding: 9px 10px; border-radius: 8px; border: 1px solid var(--border);
     background: var(--bg); box-sizing: border-box; font-size: 12px; color: var(--text-muted); margin-bottom: 8px;
   }
-  .form-card button {
+  .form-card button, .inline-toggle-body button {
     width: 100%; padding: 9px 10px; border-radius: 8px; border: none;
     background: var(--accent); color: white; font-size: 13px; cursor: pointer;
   }
-  .form-card button:hover { background: var(--accent-hover); }
+  .form-card button:hover, .inline-toggle-body button:hover { background: var(--accent-hover); }
+
+  .sport-tile-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(72px, 1fr)); gap: 8px; }
+  .sport-tile {
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px;
+    width: 100%; box-sizing: border-box; padding: 12px 6px; border-radius: 14px; border: 1px solid var(--border);
+    background: var(--surface); color: var(--text); text-decoration: none; font-size: 12px; font-weight: 500;
+    text-align: center; cursor: pointer; font-family: inherit;
+  }
+  .sport-tile:hover { background: var(--surface-hover); border-color: var(--border-hover); }
+  .sport-tile img { width: 26px; height: 26px; object-fit: contain; border-radius: 6px; }
+  .sport-tile-emoji { font-size: 22px; line-height: 1; }
+
+  .form-card > summary.sport-form-summary {
+    display: flex; align-items: center; gap: 10px; font-size: 14px; font-weight: 600; color: var(--text);
+  }
+  .form-card > summary.sport-form-summary::before { content: ""; }
+  .sport-form-summary::after { content: "▾"; margin-left: auto; color: var(--text-dim); font-size: 11px; transition: transform .15s ease; }
+  .form-card[open] > summary.sport-form-summary::after { transform: rotate(180deg); }
+  .sport-form-summary-icon {
+    width: 30px; height: 30px; object-fit: contain; border-radius: 8px; flex-shrink: 0;
+    background: var(--accent-deep); padding: 5px; box-sizing: border-box;
+  }
   .chart-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 16px; margin-bottom: 12px; }
 
   .hub-greeting { font-size: 22px; font-weight: 600; margin: 0 0 2px; }

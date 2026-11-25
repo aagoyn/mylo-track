@@ -28,7 +28,9 @@ import {
 import { renderGrindPage } from "./dashboard.js";
 
 const WIB_OFFSET_MS = 7 * 60 * 60 * 1000;
-const RUN_PLAN_TYPES = ["EASY", "QUALITY", "LONG RUN", "RACE DAY"];
+// Target lari mingguan tetap 21km, bukan dijumlah dari target_distance_km tiap plan Run minggu
+// ini - jadwal yang padat/longgar nggak ikut nggeser angka targetnya, cuma Actual yang gerak.
+const WEEKLY_RUN_TARGET_KM = 21;
 
 function redirectWithError(res, message) {
   res.redirect(`/hub/grind?err=${encodeURIComponent(message)}`);
@@ -89,13 +91,7 @@ router.get("/hub/grind", requireAuth, async (req, res) => {
       getSessionsSince(phone, sinceISO),
     ]);
 
-    // cuma plan RUN (Easy/Quality/Long Run/Race Day) yang dihitung ke target mingguan - Badminton/
-    // Tennis/Gym/Swim punya target_distance_km null secara normal, tapi kalau kebetulan keisi
-    // (mis. hasil import TSV yang nggak rapi) jangan ikut nambah target lari minggu ini, karena
-    // actual-nya di weeklyProgressHtml cuma ngitung sesi type RUN.
-    const weekTargetKm = weekPlans
-      .filter((p) => RUN_PLAN_TYPES.includes(p.session_type))
-      .reduce((sum, p) => sum + (Number(p.target_distance_km) || 0), 0);
+    const weekTargetKm = WEEKLY_RUN_TARGET_KM;
 
     let openForm = req.query.form || null;
     let prefill = null;

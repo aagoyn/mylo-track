@@ -5,9 +5,9 @@ const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
 const SESSION_TYPE_BADGE = {
-  EASY: iconLabel("/icons/running.png", "🟢 Easy"),
-  QUALITY: iconLabel("/icons/running.png", "🟡 Quality"),
-  "LONG RUN": iconLabel("/icons/running.png", "🔵 Long Run"),
+  EASY: iconLabel("/icons/running.png", "Easy"),
+  QUALITY: iconLabel("/icons/running.png", "Quality"),
+  "LONG RUN": iconLabel("/icons/running.png", "Long Run"),
   BADMINTON: iconLabel("/icons/shuttlecock.png", "Badminton"),
   GYM: iconLabel("/icons/dumbbell.png", "Gym"),
   REST: "😴 Rest",
@@ -72,7 +72,8 @@ export function raceBannerHtml(upcomingRace) {
 // ---------- Hub card (ringkas, dipakai di /hub) ----------
 
 function quickAddRowHtml() {
-  return `<div class="button-row" style="flex-wrap:wrap; margin-top:8px;">
+  return `<div class="card-sub" style="margin:10px 0 4px;">Or log a session</div>
+  <div class="button-row" style="flex-wrap:wrap;">
     <a class="btn-secondary btn-sm" href="/hub/grind?form=run#log-forms">${iconLabel("/icons/running.png", "+ Run")}</a>
     <a class="btn-secondary btn-sm" href="/hub/grind?form=swim#log-forms">${iconLabel("/icons/swim.png", "+ Swim")}</a>
     <a class="btn-secondary btn-sm" href="/hub/grind?form=badminton#log-forms">${iconLabel("/icons/shuttlecock.png", "+ Badminton")}</a>

@@ -149,6 +149,7 @@ export const DASHBOARD_CSS = `
   .form-card button:hover, .inline-toggle-body button:hover { background: var(--accent-hover); }
 
   .sport-tile-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+  .sport-tile-grid.sport-tile-grid-3 { grid-template-columns: repeat(3, 1fr); }
   .sport-tile {
     display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px;
     width: 100%; box-sizing: border-box; padding: 12px 6px; border-radius: 14px; border: 1px solid var(--border);
@@ -369,10 +370,25 @@ export const DASHBOARD_CSS = `
   }
   dialog.modal-dialog::backdrop { background: rgba(41,37,36,.55); }
   .modal-dialog-body { padding: 18px; }
-  .modal-dialog-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
-  .modal-dialog-header h3 { margin: 0; font-size: 15px; }
-  .modal-close-btn { border: none; background: transparent; color: var(--text-muted); font-size: 20px; line-height: 1; cursor: pointer; padding: 4px; }
-  .modal-close-btn:hover { color: var(--text); }
+  .modal-dialog-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+  .modal-dialog-header h3 { margin: 0; font-size: 15px; display: flex; align-items: center; gap: 8px; }
+  .modal-close-btn {
+    border: none; background: var(--bg); color: var(--text-muted); font-size: 16px; line-height: 1;
+    cursor: pointer; width: 28px; height: 28px; border-radius: 50%; flex-shrink: 0;
+  }
+  .modal-close-btn:hover { background: var(--surface-hover); color: var(--text); }
+  .modal-dialog-caption { font-size: 12px; color: var(--text-muted); margin: 0 0 10px; line-height: 1.5; }
+  .modal-dialog-caption-cols {
+    font-size: 11px; color: var(--text-dim); background: var(--bg); border-radius: 8px;
+    padding: 8px 10px; margin: 0 0 12px;
+  }
+
+  .chip-btn {
+    display: inline-flex; align-items: center; gap: 6px; padding: 7px 14px; border-radius: 999px;
+    border: 1px solid var(--accent); background: var(--accent-deep); color: var(--accent-light);
+    font-size: 12px; font-weight: 600; cursor: pointer; font-family: inherit; text-decoration: none;
+  }
+  .chip-btn:hover { background: var(--accent); color: #fff; }
 
   .routine-block { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; margin-bottom: 12px; }
   .routine-block h3 { margin: 0 0 10px; font-size: 14px; }
@@ -524,6 +540,8 @@ export function faviconLink(iconPath) {
 
 // header dashboard dengan nav-link ke dashboard "pasangan" (same-origin sekarang, bukan cross-app URL lagi)
 // icon: path ke PNG di public/icons (sama yang dipakai buat faviconLink halaman itu)
+// Log out sengaja cuma ada di header /hub sendiri (lihat hub/dashboard.js) - tiap sub-halaman
+// lain udah ada link "Home" buat balik ke situ, jadi nggak perlu logout nyebar di tiap halaman.
 export function navHeader({ icon, title, links = [], extra = "" }) {
   const linksHtml = links
     .map((l) => `<a class="nav-link" href="${l.href}">${l.label}</a>`)
@@ -534,7 +552,6 @@ export function navHeader({ icon, title, links = [], extra = "" }) {
         ${extra}
         ${linksHtml}
         ${themeToggleHtml()}
-        <a class="logout" href="/logout">Log out</a>
       </div>
     </header>`;
 }

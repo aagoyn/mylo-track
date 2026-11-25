@@ -35,12 +35,19 @@ export function renderHubDashboard({
   dateLabel,
   username,
   spendingToday,
+  calorieToday,
   vaultSummary,
   clockedToday,
   grindToday,
   recentActivity,
 }) {
   const hasSpending = spendingToday && spendingToday.total > 0;
+  const hasCalorie = calorieToday && calorieToday.calories > 0;
+
+  const calorieCard = hasCalorie
+    ? `<div class="card-value">${Math.round(calorieToday.calories).toLocaleString("en-US")} kcal</div>
+       <div class="card-sub">Protein ${calorieToday.protein_g}g</div>`
+    : `<div class="empty-state">No food logged yet<br>+ Log food</div>`;
 
   // Safe-to-Spend: sisa budget mingguan (lihat getWeeklyBudget di spending/supabase.js, derived
   // dari ledger) dibagi rata ke sisa hari minggu ini (termasuk hari ini) - ijo kalau pengeluaran
@@ -63,8 +70,8 @@ export function renderHubDashboard({
     ? recentActivity.map((a) => activityRow(a)).join("")
     : `<div class="empty-state">No activity yet today.</div>`;
 
-  const vaultSection = vaultSummary
-    ? `<div class="card-value ${vaultSummary.monthlyRemaining < 0 ? "text-danger-soft" : ""}">${formatRupiahSigned(vaultSummary.monthlyRemaining)} left</div>
+  const vaultCard = vaultSummary
+    ? `<div class="card-value card-value-compact ${vaultSummary.monthlyRemaining < 0 ? "text-danger-soft" : ""}">${formatRupiahSigned(vaultSummary.monthlyRemaining)} left</div>
        <div class="card-sub">Monthly pool · ${vaultSummary.unpaidBillsCount} unpaid Bill${vaultSummary.unpaidBillsCount === 1 ? "" : "s"}</div>`
     : `<div class="empty-state">Couldn't load vault.</div>`;
 
@@ -92,6 +99,10 @@ ${faviconLink("/icons/hub.png")}
     </header>
 
     <section class="grid-2-always">
+      <a class="card" href="/dashboard/calorie">
+        <div class="card-label">${iconLabel("/icons/calorie.png", "Calories")}</div>
+        ${calorieCard}
+      </a>
       <a class="card" href="/dashboard/spending">
         <div class="card-label">${iconLabel("/icons/spending.png", "Spending")}</div>
         ${spendingCard}
@@ -100,13 +111,14 @@ ${faviconLink("/icons/hub.png")}
         <div class="card-label">${iconLabel("/icons/clocked.png", "Clocked!")}</div>
         ${clockedCard}
       </div>
+      <a class="card" href="/hub/vault">
+        <div class="card-label">${iconLabel("/icons/vault.png", "Vault")}</div>
+        ${vaultCard}
+      </a>
     </section>
 
     ${sectionHeaderHtml({ icon: "/icons/grind-icon.png", title: "Grind", href: "/hub/grind", label: "Open Grind →" })}
     <div class="card">${grindCard}</div>
-
-    ${sectionHeaderHtml({ icon: "/icons/vault.png", title: "Vault", href: "/hub/vault", label: "View vault →" })}
-    <div class="card">${vaultSection}</div>
 
     <h2>Recent</h2>
     <div class="activity-list">${recentRows}</div>
@@ -114,6 +126,7 @@ ${faviconLink("/icons/hub.png")}
     <div class="hub-nav-group">
       <h2>Trackers</h2>
       <div class="hub-nav-links">
+        <a class="hub-nav-item" href="/dashboard/calorie">${iconLabel("/icons/calorie.png", "Calories")}</a>
         <a class="hub-nav-item" href="/dashboard/spending">${iconLabel("/icons/spending.png", "Spending")}</a>
         <a class="hub-nav-item" href="/hub/grind">${iconLabel("/icons/grind-icon.png", "Grind")}</a>
       </div>

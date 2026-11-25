@@ -139,13 +139,22 @@ export function raceBannerHtml(upcomingRace) {
 
 // ---------- Hub card (ringkas, dipakai di /hub) ----------
 
-// Quick-add dipangkas ke 4 olahraga yang aktif dibiasain (Run/Badminton/Gym/Rest) biar grid-nya
-// 2x2 yang bersih & tombolnya gampang di-tap di HP - Swim & Tennis masih bisa dicatat lewat
-// "Complete Plan" kalau plan hari itu jenisnya SWIM/TENNIS (lihat sportForSessionType di
-// router.js), cuma nggak dapet tile ad-hoc sendiri lagi.
-const QUICK_ADD_SPORTS = [
+// Card Grind di /hub cuma kebagian 4 olahraga yang paling sering (Run/Badminton/Gym/Rest) biar
+// grid-nya 2x2 & tombolnya gede buat di-tap - forms Swim/Tennis cuma ada di halaman /hub/grind
+// sendiri, jadi dari /hub tile itu nggak ditampilin biar nggak misleading (klik tapi harus
+// navigate dulu buat ketemu form-nya).
+const QUICK_ADD_SPORTS_HUB = [
   { form: "run", icon: "/icons/running.png", label: "Run" },
   { form: "badminton", icon: "/icons/shuttlecock.png", label: "Badminton" },
+  { form: "gym", icon: "/icons/dumbbell.png", label: "Gym" },
+];
+
+// Di /hub/grind sendiri semua 5 olahraga dapet tile (grid 3 kolom x 2 baris bareng Rest).
+const QUICK_ADD_SPORTS_FULL = [
+  { form: "run", icon: "/icons/running.png", label: "Run" },
+  { form: "swim", icon: "/icons/swim.png", label: "Swim" },
+  { form: "badminton", icon: "/icons/shuttlecock.png", label: "Badminton" },
+  { form: "tennis", icon: "/icons/tennis.png", label: "Tennis" },
   { form: "gym", icon: "/icons/dumbbell.png", label: "Gym" },
 ];
 
@@ -157,7 +166,7 @@ function restTileHtml() {
 
 // Dipakai di card Grind /hub - tiap tile navigate ke /hub/grind (forms-nya cuma ada di sana).
 function quickAddTilesHub() {
-  const tiles = QUICK_ADD_SPORTS.map(
+  const tiles = QUICK_ADD_SPORTS_HUB.map(
     (s) => `<a class="sport-tile" href="/hub/grind?form=${s.form}#today-logger"><img src="${s.icon}" alt="">${s.label}</a>`
   ).join("");
 
@@ -171,12 +180,12 @@ function quickAddTilesHub() {
 // Dipakai di /hub/grind sendiri - tiap tile nge-trigger buka form yang pas di tempat (lihat
 // quickAddScript), bukan navigate ke section lain.
 function quickAddTilesGrindPage() {
-  const tiles = QUICK_ADD_SPORTS.map(
+  const tiles = QUICK_ADD_SPORTS_FULL.map(
     (s) => `<button type="button" class="sport-tile" data-target="form-${s.form}"><img src="${s.icon}" alt="">${s.label}</button>`
   ).join("");
 
   return `<div class="card-sub" style="margin:10px 0 6px;">Or log a session</div>
-  <div class="sport-tile-grid" id="today-logger">
+  <div class="sport-tile-grid sport-tile-grid-3" id="today-logger">
     ${tiles}
     ${restTileHtml()}
   </div>`;
@@ -221,7 +230,7 @@ export function grindHubCardHtml({ todayPlan, todaySessions, upcomingRace }) {
 // ---------- Import / Paste Training Plan (modal, dipicu tombol di header) ----------
 
 function importPlanButtonHtml() {
-  return `<button type="button" class="btn-secondary btn-sm" id="import-plan-btn">+ Import Plan</button>`;
+  return `<button type="button" class="chip-btn" id="import-plan-btn"><span>📋</span>Import Plan</button>`;
 }
 
 function importModalHtml() {
@@ -231,8 +240,10 @@ function importModalHtml() {
         <h3>📋 Import / Paste Training Plan</h3>
         <button type="button" class="modal-close-btn" id="import-plan-close">✕</button>
       </div>
+      <p class="modal-dialog-caption">Tempel baris tab-separated dari Google Sheets/Excel, urutan kolom:</p>
+      <p class="modal-dialog-caption-cols">Tanggal · Hari · Minggu Ke- · Fase · Jenis Sesi · Jarak Target (km) · Target Pace · Target HR · Deskripsi/Instruksi · Status · Jarak Aktual (km) · Avg Pace Aktual</p>
       <form method="POST" action="/hub/grind/import">
-        <textarea name="tsv" rows="8" placeholder="Paste dari Google Sheets/Excel (tab-separated): Tanggal | Hari | Minggu Ke- | Fase | Jenis Sesi | Jarak Target (km) | Target Pace | Target HR | Deskripsi/Instruksi | Status | Jarak Aktual (km) | Avg Pace Aktual" required></textarea>
+        <textarea name="tsv" rows="8" placeholder="Tempel data di sini..." required></textarea>
         <button type="submit">Import</button>
       </form>
     </div>
@@ -440,9 +451,6 @@ function todayPlanAndLoggerHtml({ todayPlan, todaySessions, openForm, prefill, d
     ? `<div style="margin-top:10px; border-top:1px solid var(--border); padding-top:10px;">${todaySessions.map(sessionLineHtml).join("")}</div>`
     : "";
 
-  // Swim/Tennis nggak punya tile di quickAddTilesGrindPage lagi, tapi form-nya tetep dirender
-  // (disembunyiin lewat <details> tertutup) biar "Complete Plan" masih bisa kebuka kalau plan
-  // hari itu jenisnya SWIM/TENNIS (lihat sportForSessionType di router.js).
   const prefillFor = (key) => (openForm === key ? prefill : null);
   const formsHtml = `<div class="forms" style="margin-top:12px;">
     ${runFormHtml({ open: openForm === "run", prefill: prefillFor("run"), defaultTime })}
@@ -576,29 +584,67 @@ function scheduleViewerHtml({ weekPlans, nextWeekPlans, todayKey }) {
 
 // ---------- Sport Summary (bulan ini) ----------
 
-// Swim & Tennis dikeluarin dari Sport Summary (fokus ke 3 olahraga yang aktif dilacak rutin -
-// lihat QUICK_ADD_SPORTS) tapi monthSummary (grind/supabase.js) tetep ngitung semuanya, jadi data
-// swim/tennis bulan ini nggak hilang, cuma nggak ditampilin sebagai kartu di sini.
-function sportSummaryHtml(monthSummary) {
-  const { run, badminton, gym } = monthSummary;
-  return `<h2>Sport Summary (This Month)</h2>
-  <div class="cards">
-    <div class="card">
-      <div class="card-label">${iconLabel("/icons/running.png", "Run")}</div>
-      <div class="card-value card-value-compact">${run.totalKm.toFixed(1)}km</div>
-      <div class="card-sub">${run.count} sesi${run.avgPace ? ` · avg ${run.avgPace}/km` : ""}${run.avgHr ? ` · avg ${run.avgHr}bpm` : ""}</div>
-    </div>
-    <div class="card">
-      <div class="card-label">${iconLabel("/icons/shuttlecock.png", "Badminton")}</div>
-      <div class="card-value card-value-compact">${badminton.count} sesi</div>
-      <div class="card-sub">${badminton.totalHours}h total</div>
-    </div>
-    <div class="card">
-      <div class="card-label">${iconLabel("/icons/dumbbell.png", "Gym")}</div>
-      <div class="card-value card-value-compact">${gym.count} sesi</div>
-      <div class="card-sub">${gym.topLifts.length ? gym.topLifts.map((l) => `${escapeHtml(l.exerciseName)} ${l.maxWeight}kg`).join(", ") : "Belum ada data beban."}</div>
-    </div>
+function sportSummaryCardHtml(iconPath, label, valueHtml, subHtml, { hidden = false } = {}) {
+  return `<div class="card"${hidden ? ' hidden data-sport-summary-extra' : ""}>
+    <div class="card-label">${iconLabel(iconPath, label)}</div>
+    <div class="card-value card-value-compact">${valueHtml}</div>
+    <div class="card-sub">${subHtml}</div>
   </div>`;
+}
+
+// Run/Badminton/Gym selalu nongol (3 olahraga yang rutin dilacak). Swim/Tennis otomatis ikut
+// nongol kalau bulan ini ada sesinya (count > 0) - kalau masih 0 sesi, kartunya disembunyiin
+// (bukan dihapus - lihat sportSummaryToggleScript) biar nggak pincang/kosong tiap bulan,
+// tapi tetep bisa diintip lewat tombol "Show all sports" di header.
+function sportSummaryHtml(monthSummary) {
+  const { run, badminton, gym, swim, tennis } = monthSummary;
+
+  const coreCards = [
+    sportSummaryCardHtml(
+      "/icons/running.png", "Run", `${run.totalKm.toFixed(1)}km`,
+      `${run.count} sesi${run.avgPace ? ` · avg ${run.avgPace}/km` : ""}${run.avgHr ? ` · avg ${run.avgHr}bpm` : ""}`
+    ),
+    sportSummaryCardHtml("/icons/shuttlecock.png", "Badminton", `${badminton.count} sesi`, `${badminton.totalHours}h total`),
+    sportSummaryCardHtml(
+      "/icons/dumbbell.png", "Gym", `${gym.count} sesi`,
+      gym.topLifts.length ? gym.topLifts.map((l) => `${escapeHtml(l.exerciseName)} ${l.maxWeight}kg`).join(", ") : "Belum ada data beban."
+    ),
+  ];
+
+  const swimCard = sportSummaryCardHtml("/icons/swim.png", "Swim", `${swim.totalKm.toFixed(1)}km`, `${swim.count} sesi`, { hidden: swim.count === 0 });
+  const tennisCard = sportSummaryCardHtml("/icons/tennis.png", "Tennis", `${tennis.count} sesi`, `${tennis.totalHours}h total`, { hidden: tennis.count === 0 });
+  const hasHiddenSports = swim.count === 0 || tennis.count === 0;
+
+  const toggle = hasHiddenSports
+    ? `<button type="button" class="nav-link" id="sport-summary-toggle" data-more-label="Show all sports" data-less-label="Hide" style="background:none; border:none; padding:0; cursor:pointer; font:inherit;">Show all sports</button>`
+    : "";
+
+  return `<div class="section-header">
+    <h2>Sport Summary (This Month)</h2>
+    ${toggle}
+  </div>
+  <div class="cards">
+    ${coreCards.join("")}
+    ${swimCard}
+    ${tennisCard}
+  </div>`;
+}
+
+// Toggle 2 arah (bukan sekali pakai) - "Show all sports" nampilin Swim/Tennis yang masih 0 sesi,
+// klik lagi ("Hide") nyembunyiin balik. Lihat juga historyShowAllScript, pola sama.
+function sportSummaryToggleScript() {
+  return `<script>
+    (function () {
+      var btn = document.getElementById("sport-summary-toggle");
+      if (!btn) return;
+      var extraCards = document.querySelectorAll("[data-sport-summary-extra]");
+      btn.addEventListener("click", function () {
+        var willShow = extraCards.length ? extraCards[0].hidden : false;
+        extraCards.forEach(function (c) { c.hidden = !willShow; });
+        btn.textContent = willShow ? btn.dataset.lessLabel : btn.dataset.moreLabel;
+      });
+    })();
+  </script>`;
 }
 
 // ---------- History Log ----------
@@ -674,12 +720,17 @@ function historyLogHtml(historyLogs) {
   const restLogs = historyLogs.slice(HISTORY_VISIBLE_COUNT);
   const restRows = restLogs.length
     ? `<div id="history-rest" hidden>${restLogs.map(historyRowHtml).join("")}</div>
-       <button type="button" class="btn-secondary btn-sm" id="history-show-all" style="width:100%; margin-top:4px;">Show All (${restLogs.length} more)</button>`
+       <button type="button" class="btn-secondary btn-sm" id="history-show-all"
+         data-more-label="Show All (${restLogs.length} more)" data-less-label="Show Less"
+         style="width:100%; margin-top:4px;">Show All (${restLogs.length} more)</button>`
     : "";
 
   return `<h2>History</h2>${visibleRows}${restRows}`;
 }
 
+// Toggle 2 arah - sebelumnya cuma sekali pakai (klik -> tampil semua, nggak bisa balik ke
+// collapsed tanpa reload halaman), sekarang klik lagi ("Show Less") nyembunyiin balik yang
+// "rest"-nya tanpa reload.
 function historyShowAllScript() {
   return `<script>
     (function () {
@@ -687,8 +738,9 @@ function historyShowAllScript() {
       var rest = document.getElementById("history-rest");
       if (!btn || !rest) return;
       btn.addEventListener("click", function () {
-        rest.hidden = false;
-        btn.hidden = true;
+        var willShow = rest.hidden;
+        rest.hidden = !willShow;
+        btn.textContent = willShow ? btn.dataset.lessLabel : btn.dataset.moreLabel;
       });
     })();
   </script>`;
@@ -942,6 +994,7 @@ ${faviconLink("/icons/grind-icon.png")}
   ${gymFormScript()}
   ${quickAddScript()}
   ${importModalScript()}
+  ${sportSummaryToggleScript()}
   ${historyShowAllScript()}
 </body>
 </html>`;

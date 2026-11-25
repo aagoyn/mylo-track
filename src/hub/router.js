@@ -7,7 +7,7 @@ import {
   getRecentExpenseLogs,
   getWeeklyBudget,
 } from "../spending/supabase.js";
-import { getTodayFoodLogs } from "../calorie/supabase.js";
+import { getTodayCalories, getTodayMacros, getTodayFoodLogs } from "../calorie/supabase.js";
 import { getRecentMoodLogs } from "./mood/supabase.js";
 import { getJournalEntry, todayDateKeyWib } from "./journal/supabase.js";
 import { getTopupTotal } from "../spending/supabase.js";
@@ -125,6 +125,7 @@ router.get("/hub", requireAuth, async (req, res) => {
   const [
     spendingResult,
     weeklyBudgetResult,
+    calorieResult,
     recentSpendingResult,
     recentCalorieResult,
     recentMoodResult,
@@ -145,6 +146,7 @@ router.get("/hub", requireAuth, async (req, res) => {
       ]);
       return { budget, spentThisWeek };
     })(),
+    Promise.all([getTodayCalories(phone), getTodayMacros(phone)]),
     getRecentExpenseLogs(phone, 20),
     getTodayFoodLogs(phone),
     getRecentMoodLogs(phone, 10),
@@ -200,6 +202,11 @@ router.get("/hub", requireAuth, async (req, res) => {
 
   const spendingToday =
     spendingTotalToday != null ? { total: spendingTotalToday, count: spendingCountToday, safeToSpendPerDay } : null;
+
+  const calorieToday =
+    calorieResult.status === "fulfilled"
+      ? { calories: calorieResult.value[0], protein_g: calorieResult.value[1].protein_g }
+      : null;
 
   const journalToday = journalResult.status === "fulfilled" ? journalResult.value : null;
 
@@ -265,6 +272,7 @@ router.get("/hub", requireAuth, async (req, res) => {
       dateLabel: formatDateLabelEn(now),
       username: req.user.username,
       spendingToday,
+      calorieToday,
       vaultSummary,
       clockedToday,
       grindToday,

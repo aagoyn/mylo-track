@@ -18,6 +18,7 @@ self.addEventListener("activate", (event) => {
 // data basi. Cache-first buat icon: cepat & kerja walau offline, aman karena isinya jarang ganti.
 self.addEventListener("fetch", (event) => {
   const url = new URL(event.request.url);
+
   if (url.origin === self.location.origin && url.pathname.startsWith("/icons/")) {
     event.respondWith(
       caches.open(CACHE_NAME).then(async (cache) => {
@@ -28,6 +29,15 @@ self.addEventListener("fetch", (event) => {
         return response;
       })
     );
+    return;
+  }
+
+  // Navigasi antar halaman (termasuk lewat PWA App Shortcut - "Quick Spend" buka
+  // /hub?action=quick-expense, "Log Grind" buka /hub/grind, "Clock In / Out" buka /hub/clocked)
+  // - network-first EKSPLISIT, nggak pernah dicache, biar query string apapun (termasuk
+  // ?action=...) selalu nyampe server fresh dan nggak ke-stuck di cache lama.
+  if (event.request.mode === "navigate") {
+    event.respondWith(fetch(event.request));
   }
 });
 

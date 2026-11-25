@@ -158,22 +158,24 @@ const QUICK_ADD_SPORTS_FULL = [
   { form: "gym", icon: "/icons/dumbbell.png", label: "Gym" },
 ];
 
-function restTileHtml() {
-  return `<form method="POST" action="/hub/grind/sessions/rest" style="margin:0;">
+function restTileHtml({ stopPropagation = false } = {}) {
+  return `<form method="POST" action="/hub/grind/sessions/rest" style="margin:0;" ${stopPropagation ? `onclick="event.stopPropagation()"` : ""}>
       <button type="submit" class="sport-tile"><span class="sport-tile-emoji">😴</span>Rest</button>
     </form>`;
 }
 
 // Dipakai di card Grind /hub - tiap tile navigate ke /hub/grind (forms-nya cuma ada di sana).
+// Kartu Grind di /hub sendiri udah bisa diklik ke /hub/grind (lihat grindHubCardHtml), jadi tiap
+// tile di sini butuh stopPropagation biar klik tile-nya nggak ikut ke-tangkep sama onclick kartu.
 function quickAddTilesHub() {
   const tiles = QUICK_ADD_SPORTS_HUB.map(
-    (s) => `<a class="sport-tile" href="/hub/grind?form=${s.form}#today-logger"><img src="${s.icon}" alt="">${s.label}</a>`
+    (s) => `<a class="sport-tile" href="/hub/grind?form=${s.form}#today-logger" onclick="event.stopPropagation()"><img src="${s.icon}" alt="">${s.label}</a>`
   ).join("");
 
   return `<div class="card-sub" style="margin:10px 0 6px;">Or log a session</div>
   <div class="sport-tile-grid">
     ${tiles}
-    ${restTileHtml()}
+    ${restTileHtml({ stopPropagation: true })}
   </div>`;
 }
 
@@ -207,13 +209,13 @@ export function grindHubCardHtml({ todayPlan, todaySessions, upcomingRace }) {
     if (todayPlan.status === "PENDING") {
       const completeBtn =
         todayPlan.session_type === "REST"
-          ? `<form method="POST" action="/hub/grind/plan/${todayPlan.id}/complete-rest" style="margin:0;">
+          ? `<form method="POST" action="/hub/grind/plan/${todayPlan.id}/complete-rest" style="margin:0;" onclick="event.stopPropagation()">
                <button type="submit" class="btn-primary btn-sm">✓ Complete</button>
              </form>`
-          : `<a class="btn-primary btn-sm" href="/hub/grind?complete=${todayPlan.id}#today-logger">✓ Complete Plan</a>`;
+          : `<a class="btn-primary btn-sm" href="/hub/grind?complete=${todayPlan.id}#today-logger" onclick="event.stopPropagation()">✓ Complete Plan</a>`;
       planBlock += `<div class="button-row" style="margin-top:8px;">
         ${completeBtn}
-        <form method="POST" action="/hub/grind/plan/${todayPlan.id}/skip" style="margin:0;">
+        <form method="POST" action="/hub/grind/plan/${todayPlan.id}/skip" style="margin:0;" onclick="event.stopPropagation()">
           <button type="submit" class="btn-secondary btn-sm">Skip</button>
         </form>
       </div>`;
@@ -227,10 +229,24 @@ export function grindHubCardHtml({ todayPlan, todaySessions, upcomingRace }) {
   return `${raceLine}${planBlock}${sessionsBlock}${quickAddTilesHub()}`;
 }
 
-// ---------- Import / Paste Training Plan (modal, dipicu tombol di header) ----------
+// ---------- Import / Paste Training Plan (FAB + dialog, khusus halaman ini) ----------
 
-function importPlanButtonHtml() {
-  return `<button type="button" class="chip-btn" id="import-plan-btn"><span>📋</span>Import Plan</button>`;
+// CSS FAB "+ Plan" - sengaja ditaruh di sini (bukan shared/dashboard-layout.js) biar nggak nular
+// ke halaman lain yang nggak butuh FAB ini sama sekali (lihat juga hub/dashboard.js buat FAB
+// Quick Expense, pola yang sama tapi terpisah).
+const GRIND_PAGE_CSS = `
+  .grind-fab {
+    position: fixed; bottom: calc(20px + env(safe-area-inset-bottom)); right: 20px; z-index: 40;
+    display: inline-flex; align-items: center; justify-content: center;
+    padding: 14px 22px; border-radius: 999px; border: none;
+    background: var(--accent); color: #fff; font-size: 15px; font-weight: 700;
+    box-shadow: 0 8px 24px rgba(41,37,36,.3); cursor: pointer; font-family: inherit;
+  }
+  .grind-fab:hover { background: var(--accent-hover); }
+`;
+
+function importPlanFabHtml() {
+  return `<button type="button" class="grind-fab" id="import-plan-fab" aria-label="Import Training Plan">+ Plan</button>`;
 }
 
 function importModalHtml() {
@@ -253,7 +269,7 @@ function importModalHtml() {
 function importModalScript() {
   return `<script>
     (function () {
-      var btn = document.getElementById("import-plan-btn");
+      var btn = document.getElementById("import-plan-fab");
       var modal = document.getElementById("import-plan-modal");
       var close = document.getElementById("import-plan-close");
       if (!btn || !modal) return;
@@ -372,16 +388,6 @@ function tennisFormHtml({ open, prefill, defaultTime }) {
   });
 }
 
-function gymSetRowHtml(exerciseName = "", setOrder = 1, weightKg = "", reps = "") {
-  return `<div class="item-edit-row gym-set-row">
-    <div><label>Exercise</label><input type="text" name="exercise_name[]" value="${escapeHtml(exerciseName)}" required></div>
-    <div><label>Set</label><input type="number" name="set_order[]" min="1" value="${setOrder}" required></div>
-    <div><label>Weight (kg)</label><input type="number" step="0.5" name="weight_kg[]" value="${weightKg}"></div>
-    <div><label>Reps</label><input type="number" name="reps[]" value="${reps}"></div>
-    <div><button type="button" class="btn-secondary btn-sm" onclick="this.closest('.gym-set-row').remove()">✕</button></div>
-  </div>`;
-}
-
 function gymFormHtml({ open, prefill, defaultTime, recoveryHint }) {
   return `<details class="form-card" id="form-gym" ${open ? "open" : ""}>
     ${sportFormSummaryHtml("/icons/dumbbell.png", "Gym")}
@@ -390,12 +396,13 @@ function gymFormHtml({ open, prefill, defaultTime, recoveryHint }) {
       ${hiddenPlanId(prefill)}
       ${sessionTimeRadios("session_time", defaultTime)}
       <label>Split</label>
-      <select name="sub_type" id="gym-subtype">${subtypeOptions(GYM_SUBTYPES, prefill?.subType)}</select>
-      <div class="card-sub" style="margin:-4px 0 8px;">Pilih split buat auto-isi dari sesi terakhir (Clone Last Split)</div>
+      <div class="gym-subtype-row">
+        <select name="sub_type" id="gym-subtype">${subtypeOptions(GYM_SUBTYPES, prefill?.subType)}</select>
+        <button type="button" class="btn-secondary btn-sm" id="gym-reset-template" hidden>Reset to Template</button>
+      </div>
 
-      <div id="gym-sets-container">${gymSetRowHtml()}</div>
+      <div id="gym-exercises-container"><div class="empty-state">Loading template...</div></div>
       <div class="button-row" style="margin:8px 0;">
-        <button type="button" class="btn-secondary btn-sm" id="gym-add-set">+ Add Set</button>
         <button type="button" class="btn-secondary btn-sm" id="gym-add-exercise">+ Add Exercise</button>
       </div>
 
@@ -809,118 +816,230 @@ function pacecalcScript() {
   </script>`;
 }
 
-// Draft form Gym di-autosave ke localStorage ("grind_active_gym_draft") tiap ada perubahan
-// (gerakan/set/beban/reps/split/durasi/catatan) biar nggak ilang kalau tab PWA ke-refresh atau
-// layar HP kekunci di tengah sesi latihan - direstore pas form dibuka lagi, dan baru dihapus
-// begitu form ini disubmit.
+// Form Gym: card per gerakan (nama editable, badge "Last: Xkg × Y" dari sesi terakhir kalau ada,
+// + Copy Set yang nyalin angka dari baris terakhir) biar nyatet latihan beban nggak perlu ngetik
+// gerakan/set satu-satu tiap kali. Ganti Split -> auto-fetch GET /hub/grind/gym-template (prioritas
+// sesi terakhir, fallback starter preset - lihat getGymTemplate di supabase.js), KECUALI ada draft
+// aktif buat split yang sama di localStorage ("grind_active_gym_draft") - draft dimenangkan biar
+// progres yang lagi diisi nggak ketiban template setiap re-render, tombol "Reset to Template"
+// disediakan buat yang mau sengaja muat ulang. Checklist "selesai" per set otomatis mulai Rest
+// Timer 90s + getar pas abis. Semua state (termasuk checklist) di-autosave tiap ada perubahan,
+// baru dihapus begitu form ini disubmit.
 function gymFormScript() {
   return `<script>
     (function () {
-      var container = document.getElementById("gym-sets-container");
+      var container = document.getElementById("gym-exercises-container");
       var subtypeSelect = document.getElementById("gym-subtype");
+      var resetBtn = document.getElementById("gym-reset-template");
+      var addExerciseBtn = document.getElementById("gym-add-exercise");
       var form = document.getElementById("gym-form");
       var durationInput = form ? form.querySelector('input[name="duration_min"]') : null;
       var notesInput = form ? form.querySelector('textarea[name="notes"]') : null;
-      if (!container || !form) return;
+      if (!container || !form || !subtypeSelect) return;
 
       var DRAFT_KEY = ${JSON.stringify("grind_active_gym_draft")};
 
-      function makeRow(exerciseName, setOrder, weightKg, reps) {
+      function startRestTimerIfAvailable() {
+        if (typeof grindStartRestTimer === "function") grindStartRestTimer(90);
+      }
+
+      function renumberSets(card) {
+        card.querySelectorAll(".gym-set-row").forEach(function (row, i) {
+          row.querySelector(".gym-set-index").textContent = i + 1;
+          row.querySelector(".gym-set-order-hidden").value = i + 1;
+        });
+      }
+
+      function syncExerciseName(card) {
+        var name = card.querySelector(".gym-exercise-name").value;
+        card.querySelectorAll(".gym-exercise-name-hidden").forEach(function (el) { el.value = name; });
+      }
+
+      function makeSetRow(weightKg, reps, done) {
         var row = document.createElement("div");
-        row.className = "item-edit-row gym-set-row";
+        row.className = "gym-set-row";
         row.innerHTML =
-          '<div><label>Exercise</label><input type="text" name="exercise_name[]" required></div>' +
-          '<div><label>Set</label><input type="number" name="set_order[]" min="1" required></div>' +
-          '<div><label>Weight (kg)</label><input type="number" step="0.5" name="weight_kg[]"></div>' +
-          '<div><label>Reps</label><input type="number" name="reps[]"></div>' +
-          '<div><button type="button" class="btn-secondary btn-sm">✕</button></div>';
-        row.querySelector('input[name="exercise_name[]"]').value = exerciseName || "";
-        row.querySelector('input[name="set_order[]"]').value = setOrder || 1;
-        row.querySelector('input[name="weight_kg[]"]').value = weightKg != null ? weightKg : "";
-        row.querySelector('input[name="reps[]"]').value = reps != null ? reps : "";
-        row.querySelector("button").addEventListener("click", function () { row.remove(); saveDraft(); });
-        row.querySelectorAll("input").forEach(function (el) { el.addEventListener("input", saveDraft); });
+          '<span class="gym-set-index"></span>' +
+          '<input type="hidden" class="gym-exercise-name-hidden" name="exercise_name[]">' +
+          '<input type="hidden" class="gym-set-order-hidden" name="set_order[]">' +
+          '<div class="stepper">' +
+            '<button type="button" class="stepper-btn" data-step="-2.5">−2.5</button>' +
+            '<input type="text" inputmode="decimal" class="stepper-input gym-weight-input" name="weight_kg[]" placeholder="kg">' +
+            '<button type="button" class="stepper-btn" data-step="2.5">+2.5</button>' +
+          '</div>' +
+          '<div class="stepper">' +
+            '<button type="button" class="stepper-btn" data-step="-1">−1</button>' +
+            '<input type="text" inputmode="numeric" class="stepper-input gym-reps-input" name="reps[]" placeholder="reps">' +
+            '<button type="button" class="stepper-btn" data-step="1">+1</button>' +
+          '</div>' +
+          '<label class="gym-set-done-label"><input type="checkbox" class="gym-set-done-checkbox"></label>';
+
+        var weightInput = row.querySelector(".gym-weight-input");
+        var repsInput = row.querySelector(".gym-reps-input");
+        var doneCheckbox = row.querySelector(".gym-set-done-checkbox");
+        weightInput.value = weightKg != null && weightKg !== "" ? weightKg : "";
+        repsInput.value = reps != null && reps !== "" ? reps : "";
+        if (done) {
+          doneCheckbox.checked = true;
+          row.classList.add("gym-set-done-row");
+        }
+
+        row.querySelectorAll(".stepper-btn[data-step]").forEach(function (btn) {
+          btn.addEventListener("click", function () {
+            var step = parseFloat(btn.dataset.step);
+            var targetInput = btn.parentElement.querySelector("input");
+            var current = parseFloat(targetInput.value) || 0;
+            var next = Math.round((current + step) * 100) / 100;
+            if (next < 0) next = 0;
+            targetInput.value = next;
+            saveDraft();
+          });
+        });
+        weightInput.addEventListener("input", saveDraft);
+        repsInput.addEventListener("input", saveDraft);
+        doneCheckbox.addEventListener("change", function () {
+          row.classList.toggle("gym-set-done-row", doneCheckbox.checked);
+          if (doneCheckbox.checked) startRestTimerIfAvailable();
+          saveDraft();
+        });
+
         return row;
       }
 
-      function saveDraft() {
-        try {
-          var sets = Array.prototype.map.call(container.querySelectorAll(".gym-set-row"), function (row) {
+      function makeExerciseCard(exerciseName, lastSummary, sets) {
+        var card = document.createElement("div");
+        card.className = "gym-exercise-card";
+        card.innerHTML =
+          '<div class="gym-exercise-head">' +
+            '<input type="text" class="gym-exercise-name" placeholder="Nama gerakan" required>' +
+            '<span class="gym-last-badge"></span>' +
+            '<button type="button" class="gym-exercise-remove" aria-label="Hapus gerakan">✕</button>' +
+          '</div>' +
+          '<div class="gym-set-rows"></div>' +
+          '<button type="button" class="btn-secondary btn-sm gym-copy-set">+ Copy Set</button>';
+
+        var nameInput = card.querySelector(".gym-exercise-name");
+        var badge = card.querySelector(".gym-last-badge");
+        var rowsContainer = card.querySelector(".gym-set-rows");
+
+        nameInput.value = exerciseName || "";
+        if (lastSummary) {
+          badge.textContent = lastSummary;
+        } else {
+          badge.hidden = true;
+        }
+
+        (sets && sets.length ? sets : [{ weightKg: "", reps: "" }]).forEach(function (s) {
+          rowsContainer.appendChild(makeSetRow(s.weightKg, s.reps, s.done));
+        });
+        renumberSets(card);
+        syncExerciseName(card);
+
+        nameInput.addEventListener("input", function () { syncExerciseName(card); saveDraft(); });
+        card.querySelector(".gym-exercise-remove").addEventListener("click", function () {
+          card.remove();
+          saveDraft();
+        });
+        card.querySelector(".gym-copy-set").addEventListener("click", function () {
+          var rows = rowsContainer.querySelectorAll(".gym-set-row");
+          var last = rows[rows.length - 1];
+          var lastWeight = last ? last.querySelector(".gym-weight-input").value : "";
+          var lastReps = last ? last.querySelector(".gym-reps-input").value : "";
+          rowsContainer.appendChild(makeSetRow(lastWeight, lastReps, false));
+          renumberSets(card);
+          syncExerciseName(card);
+          saveDraft();
+        });
+
+        return card;
+      }
+
+      function renderExercises(exercises) {
+        container.innerHTML = "";
+        if (!exercises || !exercises.length) {
+          container.appendChild(makeExerciseCard("", null, [{ weightKg: "", reps: "" }]));
+          return;
+        }
+        exercises.forEach(function (ex) {
+          container.appendChild(makeExerciseCard(ex.exerciseName, ex.lastSummary, ex.sets));
+        });
+      }
+
+      // ---------- draft persistence ----------
+
+      function collectState() {
+        var exercises = Array.prototype.map.call(container.querySelectorAll(".gym-exercise-card"), function (card) {
+          var badge = card.querySelector(".gym-last-badge");
+          var sets = Array.prototype.map.call(card.querySelectorAll(".gym-set-row"), function (row) {
             return {
-              exercise_name: row.querySelector('input[name="exercise_name[]"]').value,
-              set_order: row.querySelector('input[name="set_order[]"]').value,
-              weight_kg: row.querySelector('input[name="weight_kg[]"]').value,
-              reps: row.querySelector('input[name="reps[]"]').value,
+              weightKg: row.querySelector(".gym-weight-input").value,
+              reps: row.querySelector(".gym-reps-input").value,
+              done: row.querySelector(".gym-set-done-checkbox").checked,
             };
           });
-          localStorage.setItem(DRAFT_KEY, JSON.stringify({
-            subType: subtypeSelect ? subtypeSelect.value : "",
-            durationMin: durationInput ? durationInput.value : "",
-            notes: notesInput ? notesInput.value : "",
+          return {
+            exerciseName: card.querySelector(".gym-exercise-name").value,
+            lastSummary: badge.hidden ? null : badge.textContent,
             sets: sets,
-          }));
-        } catch (e) {}
+          };
+        });
+        return {
+          split: subtypeSelect.value,
+          durationMin: durationInput ? durationInput.value : "",
+          notes: notesInput ? notesInput.value : "",
+          exercises: exercises,
+        };
+      }
+
+      function saveDraft() {
+        try { localStorage.setItem(DRAFT_KEY, JSON.stringify(collectState())); } catch (e) {}
       }
 
       function clearDraft() {
         try { localStorage.removeItem(DRAFT_KEY); } catch (e) {}
       }
 
-      function restoreDraft() {
-        var draft = null;
-        try { draft = JSON.parse(localStorage.getItem(DRAFT_KEY) || "null"); } catch (e) {}
-        if (!draft || !draft.sets || !draft.sets.length) return false;
-
-        container.innerHTML = "";
-        draft.sets.forEach(function (s) {
-          container.appendChild(makeRow(s.exercise_name, s.set_order, s.weight_kg, s.reps));
-        });
-        if (subtypeSelect && draft.subType) subtypeSelect.value = draft.subType;
-        if (durationInput && draft.durationMin) durationInput.value = draft.durationMin;
-        if (notesInput && draft.notes) notesInput.value = draft.notes;
-        return true;
+      function readDraft() {
+        try { return JSON.parse(localStorage.getItem(DRAFT_KEY) || "null"); } catch (e) { return null; }
       }
 
-      if (!restoreDraft()) {
-        container.querySelectorAll(".gym-set-row input").forEach(function (el) {
-          el.addEventListener("input", saveDraft);
-        });
+      // ---------- template loading ----------
+
+      function loadTemplate(split) {
+        container.innerHTML = '<div class="empty-state">Loading template...</div>';
+        if (resetBtn) resetBtn.hidden = true;
+        fetch("/hub/grind/gym-template?split=" + encodeURIComponent(split))
+          .then(function (r) { return r.json(); })
+          .then(function (data) { renderExercises(data.exercises); saveDraft(); })
+          .catch(function () { renderExercises([]); });
       }
 
-      document.getElementById("gym-add-set").addEventListener("click", function () {
-        var rows = container.querySelectorAll(".gym-set-row");
-        var last = rows[rows.length - 1];
-        var exerciseName = last ? last.querySelector('input[name="exercise_name[]"]').value : "";
-        var lastOrder = last ? parseInt(last.querySelector('input[name="set_order[]"]').value, 10) || 0 : 0;
-        container.appendChild(makeRow(exerciseName, lastOrder + 1, null, null));
-        saveDraft();
-      });
-
-      document.getElementById("gym-add-exercise").addEventListener("click", function () {
-        container.appendChild(makeRow("", 1, null, null));
-        saveDraft();
-      });
-
-      if (subtypeSelect) {
-        subtypeSelect.addEventListener("change", function () {
-          fetch("/hub/grind/api/last-split?sub_type=" + encodeURIComponent(subtypeSelect.value))
-            .then(function (r) { return r.json(); })
-            .then(function (data) {
-              if (!data.sets || !data.sets.length) return;
-              container.innerHTML = "";
-              data.sets.forEach(function (s) {
-                container.appendChild(makeRow(s.exercise_name, s.set_order, s.weight_kg, s.reps));
-              });
-              saveDraft();
-            })
-            .catch(function () {});
-        });
+      function loadForSplit(split, forceTemplate) {
+        var draft = !forceTemplate ? readDraft() : null;
+        if (draft && draft.split === split && draft.exercises && draft.exercises.length) {
+          renderExercises(draft.exercises);
+          if (durationInput && draft.durationMin) durationInput.value = draft.durationMin;
+          if (notesInput && draft.notes) notesInput.value = draft.notes;
+          if (resetBtn) resetBtn.hidden = false;
+          return;
+        }
+        loadTemplate(split);
       }
 
+      subtypeSelect.addEventListener("change", function () { loadForSplit(subtypeSelect.value, false); });
+      if (resetBtn) resetBtn.addEventListener("click", function () { loadForSplit(subtypeSelect.value, true); });
+      if (addExerciseBtn) {
+        addExerciseBtn.addEventListener("click", function () {
+          container.appendChild(makeExerciseCard("", null, [{ weightKg: "", reps: "" }]));
+          saveDraft();
+        });
+      }
       if (durationInput) durationInput.addEventListener("input", saveDraft);
       if (notesInput) notesInput.addEventListener("input", saveDraft);
 
       form.addEventListener("submit", clearDraft);
+
+      loadForSplit(subtypeSelect.value, false);
     })();
 
     function grindStartRestTimer(seconds) {
@@ -970,6 +1089,7 @@ export function renderGrindPage({
 <title>Grind</title>
 ${faviconLink("/icons/grind-icon.png")}
 <style>${DASHBOARD_CSS}</style>
+<style>${GRIND_PAGE_CSS}</style>
 </head>
 <body>
   <div class="container">
@@ -977,7 +1097,6 @@ ${faviconLink("/icons/grind-icon.png")}
       icon: "/icons/grind-icon.png",
       title: "Grind",
       links: [{ href: "/hub", label: "Home" }],
-      extra: importPlanButtonHtml(),
     })}
 
     ${flash ? `<div class="flash flash-${flash.type}">${escapeHtml(flash.text)}</div>` : ""}
@@ -989,6 +1108,7 @@ ${faviconLink("/icons/grind-icon.png")}
     ${sportSummaryHtml(monthSummary)}
     ${historyLogHtml(historyLogs)}
   </div>
+  ${importPlanFabHtml()}
   ${importModalHtml()}
   ${pacecalcScript()}
   ${gymFormScript()}

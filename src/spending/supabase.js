@@ -77,6 +77,9 @@ export async function getLastBalance(phone) {
 
 // hitung running balance tiap item di JS, insert semua sekaligus (1 query,
 // bukan 2xN query kayak nyimpen satu-satu bergantian)
+// `.select()` dibalikin sekalian (rows) buat caller yang butuh render item baru tanpa query lagi
+// (lihat POST /hub/quick-expense) - caller lama yang cuma butuh balanceAfter nggak kepengaruh,
+// cuma nambah 1 field di return value.
 export async function saveExpenseLogsBatch(phone, dtos) {
   let balance = await getLastBalance(phone);
   const rows = dtos.map((dto) => {
@@ -92,10 +95,13 @@ export async function saveExpenseLogsBatch(phone, dtos) {
     };
   });
 
-  const { error } = await supabase.from("expense_logs").insert(rows);
+  const { data, error } = await supabase
+    .from("expense_logs")
+    .insert(rows)
+    .select("id, description, category, amount, type, created_at");
   if (error) throw error;
 
-  return { balanceAfter: balance };
+  return { balanceAfter: balance, rows: data || [] };
 }
 
 export async function deleteLastExpenseLog(phone) {
@@ -208,6 +214,36 @@ export async function getRecentExpenseLogs(phone, limit = 20) {
     .limit(limit);
   if (error) throw error;
   return data;
+}
+
+// Frequent Chips (Quick Expense di /hub) - transaksi yang paling sering berulang persis dalam
+// 30 hari terakhir, dikelompokkan dari kemiripan description (case-insensitive) + amount yang
+// dibulatkan. Dihitung di JS (bukan SQL GROUP BY) karena datanya kecil per user & logic grouping-nya
+// (normalize + round) lebih gampang dibaca di sini.
+export async function getFrequentExpenses(phone, days = 30, limit = 5) {
+  const sinceISO = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
+  const { data, error } = await supabase
+    .from("expense_logs")
+    .select("description, amount")
+    .eq("phone", phone)
+    .eq("type", "Expense")
+    .gte("created_at", sinceISO);
+  if (error) throw error;
+
+  const counts = new Map();
+  for (const row of data || []) {
+    const amount = Math.round(Number(row.amount) || 0);
+    if (!amount) continue;
+    const key = `${String(row.description || "").toLowerCase().trim()}__${amount}`;
+    const entry = counts.get(key) || { description: row.description, amount, count: 0 };
+    entry.count++;
+    counts.set(key, entry);
+  }
+
+  return [...counts.values()]
+    .filter((e) => e.count > 1)
+    .sort((a, b) => b.count - a.count)
+    .slice(0, limit);
 }
 
 export async function searchExpenseLogs(phone, keyword, limit = 10) {

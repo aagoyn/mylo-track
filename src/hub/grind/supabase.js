@@ -335,7 +335,8 @@ export async function addGymSets(sessionId, sets) {
 }
 
 // "Clone Last Split" - ambil gerakan dari sesi GYM terakhir dengan sub_type yang sama, biar form
-// baru auto-keisi sebagai referensi/nilai awal (lihat endpoint GET /hub/grind/api/last-split).
+// baru auto-keisi sebagai referensi/nilai awal (dipakai getGymTemplate, endpoint GET
+// /hub/grind/gym-template).
 export async function getLastGymSplit(phone, subType) {
   const { data: session, error } = await supabase
     .from("grind_sessions")
@@ -357,6 +358,89 @@ export async function getLastGymSplit(phone, subType) {
     .order("set_order", { ascending: true });
   if (setsErr) throw setsErr;
   return sets || [];
+}
+
+// Starter preset per split kalau user belum pernah nge-log split itu sama sekali - pola umum
+// 3x8-15 biar ada titik mulai yang familiar, weight_kg 0 cuma placeholder kosong (user isi beban
+// sendiri pas latihan pertama). Dipakai getGymTemplate sebagai fallback prioritas-2.
+const GYM_SPLIT_PRESETS = {
+  Push: [
+    { exerciseName: "Bench Press / Dumbbell Press", sets: 3, reps: 8 },
+    { exerciseName: "Incline Dumbbell Press", sets: 3, reps: 10 },
+    { exerciseName: "Overhead Shoulder Press", sets: 3, reps: 10 },
+    { exerciseName: "Lateral Raise", sets: 3, reps: 12 },
+    { exerciseName: "Tricep Rope Pushdown", sets: 3, reps: 12 },
+  ],
+  Pull: [
+    { exerciseName: "Lat Pulldown / Pull-Up", sets: 3, reps: 10 },
+    { exerciseName: "Seated Cable Row", sets: 3, reps: 10 },
+    { exerciseName: "Dumbbell Row", sets: 3, reps: 10 },
+    { exerciseName: "Face Pull", sets: 3, reps: 15 },
+    { exerciseName: "Dumbbell / Cable Bicep Curl", sets: 3, reps: 12 },
+  ],
+  Legs: [
+    { exerciseName: "Goblet Squat / Leg Press", sets: 3, reps: 10 },
+    { exerciseName: "Romanian Deadlift (RDL)", sets: 3, reps: 10 },
+    { exerciseName: "Leg Curl", sets: 3, reps: 12 },
+    { exerciseName: "Standing Calf Raise", sets: 3, reps: 15 },
+    { exerciseName: "Plank / Hanging Knee Raise", sets: 3, reps: 12 },
+  ],
+  Upper: [
+    { exerciseName: "Dumbbell Bench Press", sets: 3, reps: 10 },
+    { exerciseName: "Lat Pulldown", sets: 3, reps: 10 },
+    { exerciseName: "Overhead Press", sets: 3, reps: 10 },
+    { exerciseName: "Seated Row", sets: 3, reps: 12 },
+    { exerciseName: "Lateral Raise", sets: 2, reps: 12 },
+  ],
+  "Full Body": [
+    { exerciseName: "Goblet Squat", sets: 3, reps: 10 },
+    { exerciseName: "Dumbbell Bench Press", sets: 3, reps: 10 },
+    { exerciseName: "Lat Pulldown", sets: 3, reps: 10 },
+    { exerciseName: "Romanian Deadlift (RDL)", sets: 3, reps: 10 },
+    { exerciseName: "Overhead Press", sets: 3, reps: 10 },
+  ],
+};
+
+function presetGymTemplate(split) {
+  const preset = GYM_SPLIT_PRESETS[split];
+  if (!preset) return [];
+  return preset.map((p) => ({
+    exerciseName: p.exerciseName,
+    lastSummary: null,
+    sets: Array.from({ length: p.sets }, (_, i) => ({ setOrder: i + 1, weightKg: 0, reps: p.reps })),
+  }));
+}
+
+// Smart pre-fill form Gym (lihat GET /hub/grind/gym-template) - prioritas 1: gerakan/set/beban/
+// reps dari sesi GYM terakhir dengan split yang sama, dikelompokkan per gerakan (set_order di DB
+// cuma urutan baris mentah pas disubmit, bukan per-gerakan - makanya dikelompokkan ulang di sini
+// berdasarkan exercise_name, bukan diasumsikan udah berurutan rapi per gerakan). lastSummary
+// diambil dari set TERBERAT gerakan itu (acuan "udah pernah angkat segini", bukan rata-rata).
+// Prioritas 2 (belum pernah nge-log split ini sama sekali): starter preset generik.
+export async function getGymTemplate(phone, split) {
+  const lastSets = await getLastGymSplit(phone, split);
+  if (!lastSets.length) {
+    return { source: "preset", exercises: presetGymTemplate(split) };
+  }
+
+  const order = [];
+  const byExercise = new Map();
+  for (const s of lastSets) {
+    if (!byExercise.has(s.exercise_name)) {
+      byExercise.set(s.exercise_name, []);
+      order.push(s.exercise_name);
+    }
+    byExercise.get(s.exercise_name).push({ setOrder: s.set_order, weightKg: s.weight_kg, reps: s.reps });
+  }
+
+  const exercises = order.map((exerciseName) => {
+    const sets = byExercise.get(exerciseName);
+    const heaviest = sets.reduce((max, s) => ((Number(s.weightKg) || 0) > (Number(max.weightKg) || 0) ? s : max), sets[0]);
+    const lastSummary = heaviest.weightKg != null ? `Last: ${heaviest.weightKg}kg × ${heaviest.reps ?? "-"}` : null;
+    return { exerciseName, lastSummary, sets };
+  });
+
+  return { source: "history", exercises };
 }
 
 // History log (30 terakhir) dengan gym sets ikut nempel per sesi GYM, buat tampilan detail

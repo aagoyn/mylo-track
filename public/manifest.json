@@ -9,5 +9,28 @@
   "icons": [
     { "src": "/icons/hub.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
     { "src": "/icons/hub.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    {
+      "name": "Quick Spend",
+      "short_name": "Spend",
+      "description": "Log an expense immediately",
+      "url": "/hub?action=quick-expense",
+      "icons": [{ "src": "/icons/spending.png", "sizes": "512x512", "type": "image/png" }]
+    },
+    {
+      "name": "Log Grind",
+      "short_name": "Grind",
+      "description": "Log Run, Badminton, or Gym session",
+      "url": "/hub/grind",
+      "icons": [{ "src": "/icons/grind-icon.png", "sizes": "512x512", "type": "image/png" }]
+    },
+    {
+      "name": "Clock In / Out",
+      "short_name": "Clocked",
+      "description": "Check in or out of work",
+      "url": "/hub/clocked",
+      "icons": [{ "src": "/icons/clocked.png", "sizes": "512x512", "type": "image/png" }]
+    }
   ]
 }

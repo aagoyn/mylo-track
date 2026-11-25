@@ -172,8 +172,11 @@ export const DASHBOARD_CSS = `
   }
   .chart-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 16px; margin-bottom: 12px; }
 
-  .hub-greeting { font-size: 22px; font-weight: 600; margin: 0 0 2px; }
-  .hub-date { font-size: 13px; color: var(--text-muted); margin: 0 0 4px; }
+  header.hub-header { display: block; }
+  .hub-topbar { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 10px; }
+  .hub-topbar-actions { display: inline-flex; align-items: center; gap: 12px; flex-shrink: 0; white-space: nowrap; }
+  .hub-greeting { display: block; width: 100%; font-size: clamp(1.35rem, 5.5vw, 1.75rem); line-height: 1.25; font-weight: 600; margin: 0 0 4px 0; }
+  .hub-date { font-size: 13px; color: var(--text-muted); margin: 0; }
   .hub-sub { font-size: 13px; color: var(--text-dim); margin: 0 0 20px; }
   .empty-state { font-size: 13px; color: var(--text-dim); }
   .empty-state a { color: var(--accent-light); text-decoration: none; }
@@ -312,6 +315,42 @@ export const DASHBOARD_CSS = `
   .item-edit-row button { padding: 9px 10px; border-radius: 8px; border: none; background: var(--accent); color: white; font-size: 13px; cursor: pointer; }
   .item-edit-row button:hover { background: var(--accent-hover); }
 
+  .gym-subtype-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+  .gym-subtype-row select { margin-bottom: 0; flex: 1; }
+  .gym-exercise-card { background: var(--bg); border: 1px solid var(--border); border-radius: 12px; padding: 12px; margin-bottom: 10px; }
+  .gym-exercise-head { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; flex-wrap: wrap; }
+  .gym-exercise-name { flex: 1; min-width: 120px; margin-bottom: 0 !important; font-weight: 600; }
+  .gym-last-badge {
+    font-size: 11px; color: var(--accent-light); background: var(--accent-deep);
+    padding: 3px 9px; border-radius: 999px; white-space: nowrap;
+  }
+  .gym-exercise-remove {
+    border: none; background: transparent; color: var(--text-dim); font-size: 16px; line-height: 1;
+    cursor: pointer; width: 26px; height: 26px; border-radius: 50%; flex-shrink: 0;
+  }
+  .gym-exercise-remove:hover { background: var(--surface-hover); color: var(--danger); }
+  .gym-set-rows { display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px; }
+  .gym-set-row {
+    display: flex; align-items: center; gap: 6px; background: var(--surface); border: 1px solid var(--border);
+    border-radius: 10px; padding: 6px 8px; transition: opacity .15s ease, background .15s ease, border-color .15s ease;
+  }
+  .gym-set-row.gym-set-done-row { opacity: .55; background: var(--success-bg); border-color: transparent; }
+  .gym-set-index { width: 14px; flex-shrink: 0; font-size: 11px; color: var(--text-dim); text-align: center; }
+  .stepper { display: flex; align-items: center; flex: 1; min-width: 0; }
+  .stepper-btn {
+    flex-shrink: 0; width: 28px; height: 28px; border-radius: 8px; border: 1px solid var(--border);
+    background: var(--surface); color: var(--text); font-size: 13px; font-weight: 600; cursor: pointer;
+    font-family: inherit; display: flex; align-items: center; justify-content: center; padding: 0;
+  }
+  .stepper-btn:hover { background: var(--surface-hover); border-color: var(--border-hover); }
+  .stepper-btn:active { background: var(--accent-deep); }
+  .stepper-input {
+    flex: 1; min-width: 0; width: 100%; text-align: center; padding: 6px 2px; margin: 0 4px 0;
+    border-radius: 8px; border: 1px solid var(--border); background: var(--bg); color: var(--text);
+    font-size: 13px; box-sizing: border-box;
+  }
+  .gym-set-done-label { flex-shrink: 0; display: flex; align-items: center; padding-left: 2px; margin: 0; }
+
   .inline-icon { width: 16px; height: 16px; object-fit: contain; vertical-align: middle; margin-right: 4px; margin-top: -2px; border-radius: 3px; }
 
   .stat-bar { height: 10px; border-radius: 999px; background: var(--border); overflow: hidden; margin: 6px 0 4px; }
@@ -382,13 +421,6 @@ export const DASHBOARD_CSS = `
     font-size: 11px; color: var(--text-dim); background: var(--bg); border-radius: 8px;
     padding: 8px 10px; margin: 0 0 12px;
   }
-
-  .chip-btn {
-    display: inline-flex; align-items: center; gap: 6px; padding: 7px 14px; border-radius: 999px;
-    border: 1px solid var(--accent); background: var(--accent-deep); color: var(--accent-light);
-    font-size: 12px; font-weight: 600; cursor: pointer; font-family: inherit; text-decoration: none;
-  }
-  .chip-btn:hover { background: var(--accent); color: #fff; }
 
   .routine-block { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; margin-bottom: 12px; }
   .routine-block h3 { margin: 0 0 10px; font-size: 14px; }

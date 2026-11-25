@@ -20,7 +20,7 @@ import {
   updateSession,
   deleteSession,
   addGymSets,
-  getLastGymSplit,
+  getGymTemplate,
   getRecentSessions,
   getMonthSummary,
   importTrainingPlan,
@@ -34,6 +34,9 @@ const WIB_OFFSET_MS = 7 * 60 * 60 * 1000;
 // Sama persis sama SESSION_TYPE_OPTIONS di dashboard.js (dropdown "Jenis Sesi" di Edit plan) -
 // validasi di sini biar nggak ada nilai session_type sembarangan yang kesimpen.
 const VALID_SESSION_TYPES = ["EASY", "QUALITY", "LONG RUN", "RACE DAY", "SWIM", "BADMINTON", "TENNIS", "GYM", "REST"];
+
+// Sama persis sama GYM_SUBTYPES di dashboard.js (dropdown "Split" di form Gym).
+const VALID_GYM_SPLITS = ["Push", "Pull", "Legs", "Upper", "Full Body"];
 
 function redirectWithError(res, message) {
   res.redirect(`/hub/grind?err=${encodeURIComponent(message)}`);
@@ -386,10 +389,17 @@ router.post("/hub/grind/sessions/:id/delete", requireAuth, async (req, res) => {
   }
 });
 
-router.get("/hub/grind/api/last-split", requireAuth, async (req, res) => {
+// Auto-load template form Gym (lihat gymFormScript di dashboard.js) - dipanggil tiap user
+// pilih/ganti Split, prioritas sesi terakhir dengan split sama, fallback starter preset kalau
+// belum pernah (lihat getGymTemplate).
+router.get("/hub/grind/gym-template", requireAuth, async (req, res) => {
+  if (!VALID_GYM_SPLITS.includes(req.query.split)) {
+    return res.status(400).json({ error: "Split tidak valid." });
+  }
+
   try {
-    const sets = await getLastGymSplit(req.user.phone, req.query.sub_type);
-    res.json({ sets });
+    const template = await getGymTemplate(req.user.phone, req.query.split);
+    res.json(template);
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: err.message });

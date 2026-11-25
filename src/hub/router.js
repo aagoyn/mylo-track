@@ -6,7 +6,11 @@ import {
   getAggregatedExpenses,
   getRecentExpenseLogs,
   getWeeklyBudget,
+  getFrequentExpenses,
+  getCategoryOverrides,
+  saveExpenseLogsBatch,
 } from "../spending/supabase.js";
+import { parseExpenseInputs } from "../spending/parse.js";
 import { getTodayCalories, getTodayMacros, getTodayFoodLogs } from "../calorie/supabase.js";
 import { getRecentMoodLogs } from "./mood/supabase.js";
 import { getJournalEntry, todayDateKeyWib } from "./journal/supabase.js";
@@ -64,9 +68,22 @@ function formatRupiah(amount) {
   return `Rp${Math.round(amount).toLocaleString("id-ID")}`;
 }
 
+// Dipakai bareng GET /hub & POST /hub/quick-expense biar formula-nya nggak kedobelan -
+// "remaining" dari getWeeklyBudget (total budget minggu ini, derived dari ledger) dikurangi yang
+// udah kepake minggu ini, dibagi rata ke sisa hari (termasuk hari ini). Sama persis formula "Xd
+// left this week" di /dashboard/spending (spending/router.js).
+function safeToSpendPerDayFrom(budget, spentThisWeek, now) {
+  const remaining = budget - spentThisWeek;
+  const dayOfWeek = now.getUTCDay() || 7; // Senin=1 ... Minggu=7
+  const daysLeftInWeek = 8 - dayOfWeek; // termasuk hari ini
+  return budget && remaining > 0 && daysLeftInWeek > 0 ? remaining / daysLeftInWeek : null;
+}
+
 // beberapa variasi per waktu, dipilih random tiap load - biar nggak monoton doang, bukan
-// nge-track apa-apa jadi nggak ada tekanan buat "harus konsisten"
+// nge-track apa-apa jadi nggak ada tekanan buat "harus konsisten". Jam pakai WIB (lihat wibNow()
+// - caller selalu lempar now.getUTCHours() dari Date yang udah di-shift +7).
 const GREETINGS = {
+  // 05:00 - 10:59 WIB
   morning: [
     "Good morning",
     "Rise and shine",
@@ -76,7 +93,20 @@ const GREETINGS = {
     "Fresh start, fresh day",
     "Coffee first?",
     "Ready for today?",
+    "Rise and grind, mylo ☀️",
+    "Fresh start, new pace 🏃",
+    "Coffee first, world second ☕",
+    "Early bird energy today ✨",
+    "Let's set the tone for today 👋",
+    "Morning check-in, mylo 🌤️",
+    "Ready to clock in & crush it? 💪",
+    "New day, clean slate 🌱",
+    "Lace up or log in? 👟",
+    "Fuel up and make it count 🍳",
+    "Good morning! What's the game plan? 📋",
+    "Sun's up, time to move 🌅",
   ],
+  // 11:00 - 16:59 WIB
   afternoon: [
     "Good afternoon",
     "Hey there",
@@ -86,7 +116,20 @@ const GREETINGS = {
     "Keeping busy?",
     "Hey, how's it going",
     "Afternoon check-in",
+    "Hope your day's going well 👋",
+    "Keeping busy? 👋",
+    "Midday pulse check ⚡",
+    "Halfway through the day 🎯",
+    "Stay sharp, stay hydrated 💧",
+    "Powering through the afternoon 🚀",
+    "How's the momentum today? 👀",
+    "Afternoon cruise mode ⛵",
+    "Don't forget to stretch & hydrate 🥤",
+    "Steady pace wins the day 🧭",
+    "Checking in on the grind 📈",
+    "Keep the streak alive, mylo 🔥",
   ],
+  // 17:00 - 20:59 WIB
   evening: [
     "Good evening",
     "Evening",
@@ -96,13 +139,78 @@ const GREETINGS = {
     "Almost bedtime",
     "Evening wrap-up time",
     "Hey, welcome back",
+    "Clocking out soon? 🌇",
+    "Evening mode activated 🌙",
+    "Time to switch gears 🏸",
+    "Unwinding or grinding tonight? 🔥",
+    "Golden hour check-in ✨",
+    "Solid effort today, mylo 🙌",
+    "Work's done, your time starts now 🎧",
+    "Court, road, or iron tonight? 🏋️",
+    "Cooling down from the rush 🍃",
+    "How did today treat you? 🌆",
+    "Evening debrief time 📝",
+    "Wrapping up the hustle 🏁",
+  ],
+  // 21:00 - 04:59 WIB (muter lewat tengah malam)
+  lateNight: [
+    "Burning the midnight oil? 🦉",
+    "Night owl check-in 🌌",
+    "Wrapping things up for tonight 🛌",
+    "Rest up for tomorrow's miles 🔋",
+    "Quiet hours, clear mind ✨",
+    "Still up, mylo? 🌠",
+    "Recovery happens while you sleep 💤",
+    "Closing out the day's tabs 📓",
+    "Late night log-in 🕯️",
+    "Recharge mode: almost on 🔌",
+    "Tomorrow's pace starts tonight 🌙",
+    "One last check before lights out 😴",
   ],
 };
 
-function greetingForHour(hour) {
-  const bucket = hour < 12 ? "morning" : hour < 17 ? "afternoon" : "evening";
-  const options = GREETINGS[bucket];
-  return options[Math.floor(Math.random() * options.length)];
+// Dicampur ke pool pilihan acak cuma kalau kondisinya kena (weekend / race dalam waktu dekat) -
+// lihat greetingForHour. Nggak gantiin greeting biasa, cuma nambah variasi ekstra ke pool-nya.
+const WEEKEND_BONUS_GREETINGS = [
+  "Weekend mode: on 🌿",
+  "No alarms, just vibes ☀️",
+  "Long run or chill day? 🏃",
+  "Weekend warrior check-in ⚡",
+  "Slow mornings, strong miles ☕",
+  "Smash some shuttles today? 🏸",
+  "Recharge & reset weekend 🔋",
+  "Out of office, into the zone 🎯",
+];
+
+// Aktif kalau ada plan RACE DAY dalam <= 7 hari ke depan (lihat isRaceWeek di handler GET /hub).
+const RACE_WEEK_BONUS_GREETINGS = [
+  "Race week energy loading 🏁",
+  "Eyes on the finish line 🎯",
+  "Trust the training, mylo 💪",
+  "Taper time — keep the legs fresh 👟",
+  "Countdown to race day is real ⏱️",
+  "Built the base, ready to race 🔥",
+  "Every easy mile counts now 🏃",
+];
+
+function greetingBucketForHour(hour) {
+  if (hour >= 5 && hour < 11) return "morning";
+  if (hour >= 11 && hour < 17) return "afternoon";
+  if (hour >= 17 && hour < 21) return "evening";
+  return "lateNight";
+}
+
+function greetingForHour(hour, { isWeekend = false, isRaceWeek = false } = {}) {
+  let pool = GREETINGS[greetingBucketForHour(hour)];
+  if (isWeekend) pool = pool.concat(WEEKEND_BONUS_GREETINGS);
+  if (isRaceWeek) pool = pool.concat(RACE_WEEK_BONUS_GREETINGS);
+  return pool[Math.floor(Math.random() * pool.length)];
+}
+
+function daysUntilDateKey(dateKey, todayKey) {
+  const target = new Date(`${dateKey}T00:00:00Z`);
+  const today = new Date(`${todayKey}T00:00:00Z`);
+  return Math.round((target - today) / 86400000);
 }
 
 const WEEKDAYS_EN = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
@@ -133,6 +241,7 @@ router.get("/hub", requireAuth, async (req, res) => {
     vaultResult,
     clockedResult,
     grindResult,
+    frequentExpensesResult,
   ] = await Promise.allSettled([
     (async () => {
       const { startISO, endISO } = getSpendingDayBoundsWib();
@@ -180,6 +289,7 @@ router.get("/hub", requireAuth, async (req, res) => {
       ]);
       return { todayPlan, todaySessions, upcomingRace };
     })(),
+    getFrequentExpenses(phone, 30, 5),
   ]);
 
   const spendingTotalToday = spendingResult.status === "fulfilled" ? spendingResult.value.total : null;
@@ -188,17 +298,10 @@ router.get("/hub", requireAuth, async (req, res) => {
       ? recentSpendingResult.value.filter((r) => toWibDateKey(r.created_at) === todayKey).length
       : 0;
 
-  // Safe-to-Spend Today: sisa budget mingguan (lihat getWeeklyBudget, derived dari ledger -
-  // remaining = budget - spentThisWeek) dibagi rata ke sisa hari minggu ini (termasuk hari ini),
-  // sama persis formula "Xd left this week" di /dashboard/spending - lihat spending/router.js.
-  let safeToSpendPerDay = null;
-  if (weeklyBudgetResult.status === "fulfilled") {
-    const { budget, spentThisWeek } = weeklyBudgetResult.value;
-    const remaining = budget - spentThisWeek;
-    const dayOfWeek = now.getUTCDay() || 7; // Senin=1 ... Minggu=7
-    const daysLeftInWeek = 8 - dayOfWeek; // termasuk hari ini
-    if (budget && remaining > 0 && daysLeftInWeek > 0) safeToSpendPerDay = remaining / daysLeftInWeek;
-  }
+  const safeToSpendPerDay =
+    weeklyBudgetResult.status === "fulfilled"
+      ? safeToSpendPerDayFrom(weeklyBudgetResult.value.budget, weeklyBudgetResult.value.spentThisWeek, now)
+      : null;
 
   const spendingToday =
     spendingTotalToday != null ? { total: spendingTotalToday, count: spendingCountToday, safeToSpendPerDay } : null;
@@ -266,9 +369,14 @@ router.get("/hub", requireAuth, async (req, res) => {
   }
   recentActivity.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
 
+  const frequentExpenses = frequentExpensesResult.status === "fulfilled" ? frequentExpensesResult.value : [];
+
+  const isWeekend = now.getUTCDay() === 0 || now.getUTCDay() === 6; // Minggu/Sabtu (now udah di-shift ke WIB)
+  const isRaceWeek = !!grindToday.upcomingRace && daysUntilDateKey(grindToday.upcomingRace.plan_date, todayKey) <= 7;
+
   res.send(
     renderHubDashboard({
-      greeting: greetingForHour(now.getUTCHours()),
+      greeting: greetingForHour(now.getUTCHours(), { isWeekend, isRaceWeek }),
       dateLabel: formatDateLabelEn(now),
       username: req.user.username,
       spendingToday,
@@ -277,6 +385,53 @@ router.get("/hub", requireAuth, async (req, res) => {
       clockedToday,
       grindToday,
       recentActivity: recentActivity.slice(0, 4).map((a) => ({ ...a, time: toWibTime(a.timestamp) })),
+      frequentExpenses,
     })
   );
+});
+
+// FAB "+ Rp" di /hub (lihat hub/dashboard.js quickExpenseDialogHtml) - sama persis logic parsing
+// & auto-learn kategorisasi kayak POST /dashboard/spending/expense-text, cuma responnya JSON
+// (bukan redirect) biar dialog-nya bisa update UI in-place tanpa reload halaman.
+router.post("/hub/quick-expense", requireAuth, async (req, res) => {
+  const text = (req.body.text || "").trim();
+  if (!text) return res.status(400).json({ ok: false, error: "Input kosong." });
+
+  try {
+    const phone = req.user.phone;
+    const overrides = await getCategoryOverrides(phone);
+    const dtos = parseExpenseInputs(text, overrides);
+    if (!dtos.length) return res.status(400).json({ ok: false, error: "Format tidak dikenali." });
+
+    const { rows } = await saveExpenseLogsBatch(phone, dtos);
+
+    const now = wibNow();
+    const todayKey = now.toISOString().slice(0, 10);
+    const { startISO: dayStart, endISO: dayEnd } = getSpendingDayBoundsWib();
+    const { startISO: weekStart, endISO: weekEnd } = getSpendingWeekBoundsWib();
+
+    const [{ total: todayTotal }, budget, { total: spentThisWeek }, recentLogs] = await Promise.all([
+      getAggregatedExpenses(phone, dayStart, dayEnd),
+      getWeeklyBudget(phone),
+      getAggregatedExpenses(phone, weekStart, weekEnd),
+      getRecentExpenseLogs(phone, 20),
+    ]);
+    const todayCount = recentLogs.filter((r) => toWibDateKey(r.created_at) === todayKey).length;
+
+    res.json({
+      ok: true,
+      items: rows.map((r) => ({
+        description: r.description,
+        category: r.category,
+        amount: Number(r.amount),
+        time: toWibTime(r.created_at),
+      })),
+      todayTotal,
+      todayCount,
+      safeToSpend: safeToSpendPerDayFrom(budget, spentThisWeek, now),
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ ok: false, error: err.message });
+  }
 });

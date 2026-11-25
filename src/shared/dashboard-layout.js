@@ -29,12 +29,13 @@ export const DASHBOARD_CSS = `
       radial-gradient(at 10% 5%, rgba(235, 213, 188, 0.55) 0px, transparent 50%),
       radial-gradient(at 90% 15%, rgba(216, 226, 214, 0.45) 0px, transparent 48%),
       radial-gradient(at 50% 95%, rgba(238, 222, 203, 0.5) 0px, transparent 55%);
-    --glass-bg: rgba(255, 255, 255, 0.72);
-    --glass-border: rgba(255, 255, 255, 0.75);
-    --glass-shadow: 0 4px 20px -2px rgba(72, 58, 44, 0.05), inset 0 1px 0 0 rgba(255, 255, 255, 0.85);
-    --glass-list-bg: rgba(255, 255, 255, 0.62);
-    --glass-list-border: rgba(72, 58, 44, 0.07);
+    --glass-bg: rgba(255, 255, 255, 0.58);
+    --glass-border: rgba(255, 255, 255, 0.8);
+    --glass-shadow: 0 4px 20px -2px rgba(72, 58, 44, 0.08), inset 0 1px 0 0 rgba(255, 255, 255, 0.9);
+    --glass-list-bg: rgba(255, 255, 255, 0.48);
+    --glass-list-border: rgba(72, 58, 44, 0.08);
     --fab-gradient: linear-gradient(135deg, #8C735B 0%, #6F5944 100%);
+    --danger-tint-bg: #fbeae6;
   }
   /* Warm Graphite (dark theme) - follows OS preference by default, overridden by the manual toggle */
   @media (prefers-color-scheme: dark) {
@@ -73,6 +74,7 @@ export const DASHBOARD_CSS = `
       --glass-list-bg: rgba(54, 49, 44, 0.55);
       --glass-list-border: rgba(255, 255, 255, 0.09);
       --fab-gradient: linear-gradient(135deg, #B59779 0%, #967A5E 100%);
+      --danger-tint-bg: var(--surface);
     }
   }
   :root[data-theme="dark"] {
@@ -110,6 +112,7 @@ export const DASHBOARD_CSS = `
     --glass-list-bg: rgba(54, 49, 44, 0.55);
     --glass-list-border: rgba(255, 255, 255, 0.09);
     --fab-gradient: linear-gradient(135deg, #B59779 0%, #967A5E 100%);
+    --danger-tint-bg: var(--surface);
   }
   .theme-toggle { border: none; background: transparent; padding: 0; cursor: pointer; line-height: 0; flex-shrink: 0; }
   .theme-toggle-track {
@@ -199,12 +202,13 @@ export const DASHBOARD_CSS = `
   .sport-tile-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
   .sport-tile-grid.sport-tile-grid-3 { grid-template-columns: repeat(3, 1fr); }
   .sport-tile {
-    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px;
-    width: 100%; box-sizing: border-box; padding: 12px 6px; border-radius: 14px; border: 1px solid var(--border);
-    background: var(--surface); color: var(--text); text-decoration: none; font-size: 12px; font-weight: 500;
-    text-align: center; cursor: pointer; font-family: inherit;
+    display: flex; flex-direction: row; align-items: center; gap: 10px;
+    width: 100%; box-sizing: border-box; padding: 10px 14px; border-radius: 14px; border: 1px solid var(--border);
+    background: var(--surface); color: var(--text); text-decoration: none; font-size: 13px; font-weight: 500;
+    text-align: left; cursor: pointer; font-family: inherit;
   }
   .sport-tile:hover { background: var(--surface-hover); border-color: var(--border-hover); }
+  .sport-tile .icon-badge { width: 36px; height: 36px; border-radius: 10px; }
 
   .form-card > summary.sport-form-summary {
     display: flex; align-items: center; gap: 10px; font-size: 14px; font-weight: 600; color: var(--text);
@@ -289,7 +293,10 @@ export const DASHBOARD_CSS = `
     background-repeat: no-repeat; background-position: right 10px center;
   }
   select:hover { border-color: var(--border-hover); }
-  .category-select { width: auto; padding: 4px 22px 4px 8px; font-size: 12px; margin-bottom: 0; background-position: right 6px center; }
+  .category-select {
+    width: auto; padding: 4px 22px 4px 10px; font-size: 11px; margin-bottom: 0;
+    background-position: right 7px center; border-radius: 999px;
+  }
 
   .journal-entry { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 16px; white-space: pre-wrap; font-size: 14px; margin-bottom: 8px; }
   .journal-history-item { padding: 10px 0; border-bottom: 1px solid var(--border); }
@@ -427,11 +434,97 @@ export const DASHBOARD_CSS = `
   .icon-badge .svg-icon { margin: 0; }
   .icon-badge img { width: 20px; height: 20px; object-fit: contain; }
 
+  /* Varian warna kartu Bento /hub (Spending = solid aksen, Vault = tint lembut pas minus) - FLAT,
+     sengaja TANPA glass/blur (beda sama .glass-card yang dipakai Grind/TODO/dialog/FAB), sesuai
+     referensi desain "Daily overview". */
+  .card.card-accent {
+    background: var(--accent); border-color: var(--accent); color: #fff;
+  }
+  .card.card-accent .card-sub { color: rgba(255,255,255,.78); }
+  .card.card-accent .text-success, .card.card-accent .text-danger-soft { color: #fff; }
+  .card.card-accent .card-action-link { color: #fff; }
+  .card.card-tint-danger { background: var(--danger-tint-bg); border-color: transparent; }
+  .card-action-link {
+    display: inline-flex; align-items: center; gap: 4px; margin-top: 6px;
+    font-size: 13px; font-weight: 600; color: var(--accent-light);
+  }
+  .card-action-link .svg-icon { margin: 0; }
+
+  /* Hero "plan hari ini" (Grind) - ikon gede + angka besar + unit, label jenis sesi di bawahnya,
+     plus grid 2 kolom buat pace/HR (lihat todayPlanAndLoggerHtml & grindHubCardHtml). */
+  .plan-hero { display: flex; align-items: center; gap: 12px; margin-bottom: 4px; }
+  .plan-hero .icon-badge { width: 52px; height: 52px; border-radius: 16px; }
+  .plan-hero-value { font-size: 30px; font-weight: 700; line-height: 1; }
+  .plan-hero-unit { font-size: 15px; font-weight: 500; color: var(--text-muted); margin-left: 3px; }
+  .plan-hero-subtype { font-size: 13px; color: var(--text-muted); margin: 6px 0 10px; }
+  .plan-facts-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+  .plan-fact-value { font-size: 14px; font-weight: 700; }
+  .plan-fact-label { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+
+  /* Race countdown jadi "ribbon" tipis di atas card TODAY, bukan card gede sendiri. */
+  .race-ribbon { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 10px; }
+  .race-ribbon-title {
+    display: flex; align-items: center; font-size: 11px; font-weight: 700; letter-spacing: .04em;
+    text-transform: uppercase; color: var(--text-muted);
+  }
+  .race-ribbon-pill {
+    flex-shrink: 0; font-size: 11px; font-weight: 600; color: var(--accent-light);
+    background: var(--accent-deep); padding: 4px 10px; border-radius: 999px; white-space: nowrap;
+  }
+
+  .flex-3 { flex: 3; }
+  .flex-1 { flex: 1; }
+
+  /* Tombol ikon kecil bulat (edit budget, dst) - beda konteks sama .modal-close-btn (itu khusus
+     "tutup dialog") walau tampilannya mirip, sengaja dipisah biar nggak numpuk makna. */
+  .icon-btn {
+    display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0;
+    width: 30px; height: 30px; border-radius: 50%; border: none;
+    background: var(--surface-hover); color: var(--text-muted); cursor: pointer;
+  }
+  .icon-btn:hover { background: var(--border-hover); color: var(--text); }
+  .icon-btn .svg-icon { margin: 0; }
+
+  /* Segmented tabs (Today/This Week/This Month dkk) - konten tiap tab di-render semua di server,
+     tab button cuma toggle hidden lewat JS kecil (lihat segmentedTabsScript), jadi ganti tab
+     nggak reload halaman. */
+  .segmented-tabs { display: flex; gap: 4px; background: var(--bg); border-radius: 10px; padding: 3px; margin-bottom: 12px; }
+  .segmented-tab {
+    flex: 1; padding: 7px 10px; border-radius: 8px; border: none; background: transparent;
+    color: var(--text-muted); font-size: 13px; font-weight: 500; cursor: pointer; font-family: inherit;
+  }
+  .segmented-tab.active { background: var(--surface); color: var(--text); font-weight: 600; box-shadow: 0 1px 3px rgba(0,0,0,.08); }
+
+  /* Micro-bar proporsi per kategori (Category Breakdown). */
+  .category-bar-row { margin-bottom: 10px; }
+  .category-bar-head { display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 4px; }
+  .category-bar-name { color: var(--text); }
+  .category-bar-amount { font-weight: 600; }
+  .category-bar-track { height: 6px; border-radius: 999px; background: var(--border); overflow: hidden; }
+  .category-bar-fill { height: 100%; border-radius: 999px; background: var(--accent); }
+  .category-total-row { display: flex; justify-content: space-between; font-size: 14px; font-weight: 700; margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--border); }
+
+  /* Recent Transactions - list fleksibel (bukan <table>) biar nominal nggak kepotong di HP. */
+  .txn-filter { position: relative; margin-bottom: 10px; }
+  .txn-filter .svg-icon { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); margin: 0; color: var(--text-dim); }
+  .txn-filter input { padding-left: 32px; margin-bottom: 0; }
+  .txn-list { display: flex; flex-direction: column; gap: 8px; }
+  .txn-item {
+    display: flex; align-items: center; justify-content: space-between; gap: 10px;
+    background: var(--glass-list-bg); border: 1px solid var(--glass-list-border); border-radius: 12px; padding: 10px 14px;
+  }
+  .txn-main { flex: 1; min-width: 0; }
+  .txn-title { font-weight: 600; font-size: 14px; word-break: break-word; }
+  .txn-date { font-size: 12px; color: var(--text-dim); margin-top: 2px; }
+  .txn-side { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; flex-shrink: 0; }
+  .txn-amount { font-weight: 600; font-size: 14px; white-space: nowrap; }
+  .txn-amount.txn-income { color: var(--success); }
+
   /* Feedback sentuhan native - elemen yang bisa diklik "menyusut" dikit pas ditekan, konsisten di
      semua kartu/tombol interaktif utama (bento grid /hub, tile quick-log olahraga, chip transaksi
      frequent, FAB). Marker class aja (.bento-card/.sport-btn/.fab-btn/.chip-btn), ditempel
      berdampingan sama class styling asli tiap elemen, bukan gantiin. */
-  .bento-card:active, .sport-btn:active, .fab-btn:active, .chip-btn:active {
+  .bento-card:active, .sport-btn:active, .fab-btn:active, .chip-btn:active, .segmented-tab:active, .icon-btn:active {
     transform: scale(0.97);
     transition: transform 0.1s ease;
   }
@@ -672,6 +765,15 @@ const SVG_ICON_PATHS = {
   racket: '<circle cx="9" cy="9" r="6"/><line x1="13.5" y1="13.5" x2="21" y2="21"/>',
   tennisBall: '<circle cx="12" cy="12" r="9"/><path d="M4.5 6.5c2.8 2.8 2.8 8.2 0 11M19.5 6.5c-2.8 2.8-2.8 8.2 0 11"/>',
   dumbbell: '<circle cx="5" cy="12" r="3"/><circle cx="19" cy="12" r="3"/><line x1="8" y1="12" x2="16" y2="12"/>',
+  plus: '<line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>',
+  arrowRight: '<line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/>',
+  alertCircle: '<circle cx="12" cy="12" r="9"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>',
+  calendar: '<rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>',
+  tag: '<path d="M12.59 2.59a2 2 0 0 0-1.42-.59H4a2 2 0 0 0-2 2v7.17a2 2 0 0 0 .59 1.42l8 8a2 2 0 0 0 2.82 0l7.18-7.18a2 2 0 0 0 0-2.82z"/><circle cx="7.5" cy="7.5" r="1.3"/>',
+  barChart: '<line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/>',
+  receipt: '<rect x="5" y="2" width="14" height="20" rx="2"/><line x1="8" y1="7" x2="16" y2="7"/><line x1="8" y1="11" x2="16" y2="11"/><line x1="8" y1="15" x2="13" y2="15"/>',
+  edit: '<path d="M17 3a2.83 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/>',
+  search: '<circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>',
 };
 
 // size dalam px (18-20 direkomendasikan biar sejajar sama teks di sampingnya, lihat .svg-icon).

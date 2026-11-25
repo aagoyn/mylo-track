@@ -23,6 +23,18 @@ const TYPE_ICON = {
   SWIM: svgIcon("waves", { size: 16 }),
   TENNIS: svgIcon("tennisBall", { size: 16 }),
 };
+
+// Dipakai khusus hero "plan hari ini" (planHeroHtml) - icon-badge gede + label teks polos tanpa
+// icon ketempel (beda sama SESSION_TYPE_BADGE yang gabungin icon+text jadi 1 string buat badge
+// kecil di Schedule/History).
+const SESSION_TYPE_ICON_NAME = {
+  EASY: "activity", QUALITY: "activity", "LONG RUN": "activity", "RACE DAY": "flag",
+  BADMINTON: "racket", GYM: "dumbbell", REST: "moon", SWIM: "waves", TENNIS: "tennisBall",
+};
+const SESSION_TYPE_LABEL_TEXT = {
+  EASY: "Easy", QUALITY: "Quality", "LONG RUN": "Long Run", "RACE DAY": "Race Day",
+  BADMINTON: "Badminton", GYM: "Gym", REST: "Rest", SWIM: "Swim", TENNIS: "Tennis",
+};
 const RUN_SUBTYPES = ["Easy", "Tempo", "Intervals", "Long Run", "Race"];
 const BADMINTON_SUBTYPES = ["Fun", "Sparring", "Competitive"];
 const GYM_SUBTYPES = ["Push", "Pull", "Legs", "Upper", "Full Body"];
@@ -67,6 +79,42 @@ function planSummaryLine(plan) {
   if (plan.target_pace) parts.push(stripParenthetical(plan.target_pace));
   if (plan.target_hr) parts.push(stripParenthetical(plan.target_hr));
   return parts.join(" · ");
+}
+
+// "119-139 bpm (Zona 2 - pakai Metode Run/Walk kalau susah turun)" -> "Zone 2" doang (bukan
+// seluruh catatannya, itu udah kepotong duluan sama stripParenthetical) - buat label kecil di
+// bawah "Heart rate" pada planFactsGridHtml. null kalau nggak ada pola "Zona/Zone N" sama sekali.
+function extractZone(str) {
+  const m = String(str || "").match(/zon[ae]\s*(\d+)/i);
+  return m ? `Zone ${m[1]}` : null;
+}
+
+// Hero "plan hari ini": icon-badge gede + angka jarak besar (buat sesi berbasis jarak) atau
+// label jenis sesi polos (Gym/Rest/dst yang nggak punya target jarak).
+function planHeroHtml(plan) {
+  const iconName = SESSION_TYPE_ICON_NAME[plan.session_type] || "activity";
+  const label = SESSION_TYPE_LABEL_TEXT[plan.session_type] || plan.session_type;
+  const hasDistance = plan.target_distance_km != null;
+  return `<div class="plan-hero">
+    <div class="icon-badge">${svgIcon(iconName, { size: 24 })}</div>
+    <div class="plan-hero-value">${hasDistance ? `${plan.target_distance_km}<span class="plan-hero-unit">km</span>` : escapeHtml(label)}</div>
+  </div>
+  ${hasDistance ? `<div class="plan-hero-subtype">${escapeHtml(label)}</div>` : ""}`;
+}
+
+// Grid 2 kolom pace/HR di bawah hero - cuma dirender kalau ada datanya (kebanyakan relevan buat
+// sesi Run, sport lain biasanya nggak ngisi target_pace/target_hr).
+function planFactsGridHtml(plan) {
+  const facts = [];
+  if (plan.target_pace) facts.push({ value: stripParenthetical(plan.target_pace), label: "Target pace" });
+  if (plan.target_hr) {
+    const zone = extractZone(plan.target_hr);
+    facts.push({ value: stripParenthetical(plan.target_hr), label: zone ? `Heart rate · ${zone}` : "Heart rate" });
+  }
+  if (!facts.length) return "";
+  return `<div class="plan-facts-grid">${facts
+    .map((f) => `<div><div class="plan-fact-value">${escapeHtml(f.value)}</div><div class="plan-fact-label">${f.label}</div></div>`)
+    .join("")}</div>`;
 }
 
 // Judul pendek buat Race Countdown Banner - "RACE DAY: UI ULTRA 7K. Ini race kecil..." jadi
@@ -126,14 +174,16 @@ function sessionLineHtml(s) {
   return `<div class="card-sub">${TYPE_ICON[s.type] || "•"} ${s.session_time} ${escapeHtml(s.sub_type || s.type)}${facts.length ? " — " + facts.join(" · ") : ""}</div>`;
 }
 
-// ---------- Race countdown & phase banner ----------
+// ---------- Race countdown ribbon (header tipis di atas card TODAY, bukan card sendiri) ----------
 
-export function raceBannerHtml(upcomingRace) {
+function raceRibbonHtml(upcomingRace) {
   if (!upcomingRace) return "";
   const diff = daysUntil(upcomingRace.plan_date);
   const phaseLabel = upcomingRace.phase ? ` · Week ${upcomingRace.week_num || "?"} ${upcomingRace.phase}` : "";
-  return `<div class="card" style="margin-bottom:12px; background:var(--accent-deep); border-color:var(--accent);">
-    <div class="card-value card-value-compact">${svgIcon("flag", { size: 16 })}${escapeHtml(raceShortTitle(upcomingRace.race_name))} · ${raceWhenLabel(diff)} (${shortDateLabel(upcomingRace.plan_date)})${phaseLabel}</div>
+  const detail = `${shortDateLabel(upcomingRace.plan_date)}${phaseLabel}`;
+  return `<div class="race-ribbon" title="${escapeHtml(detail)}">
+    <div class="race-ribbon-title">${svgIcon("flag", { size: 14 })}${escapeHtml(raceShortTitle(upcomingRace.race_name))}</div>
+    <div class="race-ribbon-pill">${raceWhenLabel(diff)}</div>
   </div>`;
 }
 
@@ -196,28 +246,24 @@ function quickAddTilesGrindPage() {
 }
 
 export function grindHubCardHtml({ todayPlan, todaySessions, upcomingRace }) {
-  const raceLine = upcomingRace
-    ? `<div class="card-sub">${svgIcon("flag", { size: 14 })}${escapeHtml(raceShortTitle(upcomingRace.race_name))} · ${raceWhenLabel(daysUntil(upcomingRace.plan_date))}</div>`
-    : "";
+  const raceLine = raceRibbonHtml(upcomingRace);
 
   let planBlock;
   if (!todayPlan) {
     planBlock = `<div class="empty-state">No plan for today.</div>`;
   } else {
-    const summary = planSummaryLine(todayPlan);
-    planBlock = `<div class="card-value card-value-compact">${SESSION_TYPE_BADGE[todayPlan.session_type] || todayPlan.session_type}</div>
-      ${summary ? `<div class="card-sub">${escapeHtml(summary)}</div>` : ""}`;
+    planBlock = `${planHeroHtml(todayPlan)}${planFactsGridHtml(todayPlan)}`;
 
     if (todayPlan.status === "PENDING") {
       const completeBtn =
         todayPlan.session_type === "REST"
-          ? `<form method="POST" action="/hub/grind/plan/${todayPlan.id}/complete-rest" style="margin:0;" onclick="event.stopPropagation()">
+          ? `<form method="POST" action="/hub/grind/plan/${todayPlan.id}/complete-rest" class="flex-3" style="margin:0;" onclick="event.stopPropagation()">
                <button type="submit" class="btn-primary btn-sm">✓ Complete</button>
              </form>`
-          : `<a class="btn-primary btn-sm" href="/hub/grind?complete=${todayPlan.id}#today-logger" onclick="event.stopPropagation()">✓ Complete Plan</a>`;
+          : `<a class="btn-primary btn-sm flex-3" href="/hub/grind?complete=${todayPlan.id}#today-logger" onclick="event.stopPropagation()">✓ Complete Plan</a>`;
       planBlock += `<div class="button-row" style="margin-top:8px;">
         ${completeBtn}
-        <form method="POST" action="/hub/grind/plan/${todayPlan.id}/skip" style="margin:0;" onclick="event.stopPropagation()">
+        <form method="POST" action="/hub/grind/plan/${todayPlan.id}/skip" class="flex-1" style="margin:0;" onclick="event.stopPropagation()">
           <button type="submit" class="btn-secondary btn-sm">Skip</button>
         </form>
       </div>`;
@@ -431,26 +477,26 @@ function gymFormHtml({ open, prefill, defaultTime, recoveryHint }) {
 // ---------- Today's Plan + Interactive Quick Logger (gabungan, biar nggak perlu scroll ke
 // section terpisah buat nge-log - lihat quickAddScript buat wiring klik tile -> buka form) ----------
 
-function todayPlanAndLoggerHtml({ todayPlan, todaySessions, openForm, prefill, defaultTime, recoveryHint }) {
+function todayPlanAndLoggerHtml({ todayPlan, todaySessions, upcomingRace, openForm, prefill, defaultTime, recoveryHint }) {
+  const raceLine = raceRibbonHtml(upcomingRace);
+
   let body;
   if (!todayPlan) {
     body = `<div class="empty-state">No plan scheduled for today.</div>`;
   } else {
-    const summary = planSummaryLine(todayPlan);
-    body = `<div class="card-value">${SESSION_TYPE_BADGE[todayPlan.session_type] || todayPlan.session_type}</div>
-      ${summary ? `<div class="card-sub">${escapeHtml(summary)}</div>` : ""}
-      ${todayPlan.instructions ? `<div class="card-sub" style="margin-top:6px;">${escapeHtml(todayPlan.instructions)}</div>` : ""}`;
+    body = `${planHeroHtml(todayPlan)}${planFactsGridHtml(todayPlan)}
+      ${todayPlan.instructions ? `<div class="card-sub" style="margin-top:2px;">${escapeHtml(todayPlan.instructions)}</div>` : ""}`;
 
     if (todayPlan.status === "PENDING") {
       const completeBtn =
         todayPlan.session_type === "REST"
-          ? `<form method="POST" action="/hub/grind/plan/${todayPlan.id}/complete-rest" style="margin:0;">
+          ? `<form method="POST" action="/hub/grind/plan/${todayPlan.id}/complete-rest" class="flex-3" style="margin:0;">
                <button type="submit" class="btn-primary btn-sm">✓ Complete</button>
              </form>`
-          : `<a class="btn-primary btn-sm" href="/hub/grind?complete=${todayPlan.id}#today-logger">✓ Complete Plan</a>`;
+          : `<a class="btn-primary btn-sm flex-3" href="/hub/grind?complete=${todayPlan.id}#today-logger">✓ Complete Plan</a>`;
       body += `<div class="button-row" style="margin-top:10px;">
         ${completeBtn}
-        <form method="POST" action="/hub/grind/plan/${todayPlan.id}/skip" style="margin:0;">
+        <form method="POST" action="/hub/grind/plan/${todayPlan.id}/skip" class="flex-1" style="margin:0;">
           <button type="submit" class="btn-secondary btn-sm">Skip</button>
         </form>
       </div>`;
@@ -472,7 +518,7 @@ function todayPlanAndLoggerHtml({ todayPlan, todaySessions, openForm, prefill, d
     ${tennisFormHtml({ open: openForm === "tennis", prefill: prefillFor("tennis"), defaultTime })}
   </div>`;
 
-  return `<h2>Today</h2><div class="card glass-card">${body}${sessions}${quickAddTilesGrindPage()}</div>${formsHtml}`;
+  return `<h2>Today</h2><div class="card glass-card">${raceLine}${body}${sessions}${quickAddTilesGrindPage()}</div>${formsHtml}`;
 }
 
 // Klik tile Run/Badminton/Gym -> buka <details class="form-card"> yang sesuai persis di bawah
@@ -1130,8 +1176,7 @@ ${faviconLink("/icons/grind-icon.png")}
 
     ${flash ? `<div class="flash flash-${flash.type}">${escapeHtml(flash.text)}</div>` : ""}
 
-    ${raceBannerHtml(upcomingRace)}
-    ${todayPlanAndLoggerHtml({ todayPlan, todaySessions, openForm, prefill, defaultTime, recoveryHint })}
+    ${todayPlanAndLoggerHtml({ todayPlan, todaySessions, upcomingRace, openForm, prefill, defaultTime, recoveryHint })}
     ${weeklyProgressHtml({ weekPlans, weekSessions, weekTargetKm })}
     ${scheduleViewerHtml({ weekPlans, nextWeekPlans, todayKey })}
     ${sportSummaryHtml(monthSummary)}

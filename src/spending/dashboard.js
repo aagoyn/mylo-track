@@ -1,13 +1,17 @@
-import { DASHBOARD_CSS, escapeHtml, navHeader, horizontalStackedBarChartSvg, faviconLink, iconLabel, statBarHtml, progressFormScript } from "../shared/dashboard-layout.js";
+import {
+  DASHBOARD_CSS,
+  escapeHtml,
+  themeToggleHtml,
+  horizontalStackedBarChartSvg,
+  faviconLink,
+  svgIcon,
+  svgIconLabel,
+  statBarHtml,
+  progressFormScript,
+} from "../shared/dashboard-layout.js";
 
-// flavor text buat "Budget Boss HP bar" - gamify budget mingguan biar lebih iseng dilihat
-function budgetFlavorText(pct, remaining, weeklyBudget) {
-  if (!weeklyBudget) return "Set a weekly budget to start the fight.";
-  if (remaining <= 0)
-    return `💀 Budget Boss defeated you — over by Rp${Math.round(Math.abs(remaining)).toLocaleString("id-ID")}.`;
-  if (pct < 20) return "🔥 Critical HP! Spend carefully.";
-  if (pct < 50) return "⚔️ Halfway through the week's dungeon.";
-  return "💪 Budget's looking strong.";
+function formatRupiah(amount) {
+  return `Rp${Math.round(amount).toLocaleString("id-ID")}`;
 }
 
 const CATEGORY_COLOR_PALETTE = [
@@ -32,46 +36,109 @@ function buildCategorySeries(days) {
     }));
 }
 
-function periodCard(icon, text, { total, categories }) {
-  const rows = Object.entries(categories)
-    .sort((a, b) => b[1] - a[1])
-    .map(([cat, amt]) => `<tr><td>${cat}</td><td>Rp${Math.round(amt).toLocaleString("id-ID")}</td></tr>`)
-    .join("");
+// CSS khusus halaman ini (month input, dkk) - BUKAN di shared/dashboard-layout.js biar nggak
+// nular ke halaman lain, sama pola-nya kayak HUB_PAGE_CSS/GRIND_PAGE_CSS di /hub & /hub/grind.
+const SPENDING_PAGE_CSS = `
+  .month-input {
+    border: 1px solid var(--border); background: var(--surface); color: var(--text);
+    border-radius: 999px; padding: 6px 12px; font-size: 13px; font-family: inherit; cursor: pointer;
+  }
+`;
 
-  return `
-    <div>
-      <h2>${iconLabel(icon, text)}</h2>
-      <div class="table-wrap">
-        <table>
-          <thead><tr><th>🏷️ Category</th><th>💰 Total</th></tr></thead>
-          <tbody>${rows || `<tr><td colspan="2">No data yet.</td></tr>`}</tbody>
-        </table>
-      </div>
-      <div class="card" style="margin-top: 8px;">
-        <div class="card-label">Total ${text}</div>
-        <div class="card-value">Rp${Math.round(total).toLocaleString("id-ID")}</div>
-      </div>
-    </div>`;
+// Satu panel tab Category Breakdown (Today/This Week/This Month) - micro-bar proporsi per
+// kategori + baris Total. Semua 3 panel dirender sekaligus (yang nggak aktif disembunyiin lewat
+// `hidden`), jadi ganti tab di client murni toggle visibility, nggak reload/fetch apa-apa.
+function categoryTabPanelHtml(key, { total, categories }, active) {
+  const sorted = Object.entries(categories).sort((a, b) => b[1] - a[1]);
+  const rows = sorted.length
+    ? sorted
+        .map(([cat, amt]) => {
+          const pct = total > 0 ? Math.round((amt / total) * 100) : 0;
+          return `<div class="category-bar-row">
+            <div class="category-bar-head">
+              <span class="category-bar-name">${escapeHtml(cat)}</span>
+              <span class="category-bar-amount">${formatRupiah(amt)}</span>
+            </div>
+            <div class="category-bar-track"><div class="category-bar-fill" style="width:${pct}%"></div></div>
+          </div>`;
+        })
+        .join("")
+    : `<div class="empty-state">No data yet.</div>`;
+
+  return `<div data-tab-panel="${key}" ${active ? "" : "hidden"}>
+    ${rows}
+    <div class="category-total-row"><span>Total</span><span>${formatRupiah(total)}</span></div>
+  </div>`;
+}
+
+// Toggle tab Category Breakdown tanpa reload - konten semua tab udah ke-render, tinggal
+// disembunyiin/ditampilin (lihat categoryTabPanelHtml).
+function segmentedTabsScript() {
+  return `<script>
+    (function () {
+      var tabs = document.querySelectorAll(".segmented-tab[data-tab-target]");
+      var panels = document.querySelectorAll("[data-tab-panel]");
+      tabs.forEach(function (tab) {
+        tab.addEventListener("click", function () {
+          tabs.forEach(function (t) { t.classList.remove("active"); });
+          tab.classList.add("active");
+          var key = tab.dataset.tabTarget;
+          panels.forEach(function (p) { p.hidden = p.dataset.tabPanel !== key; });
+        });
+      });
+    })();
+  </script>`;
+}
+
+// Filter lokal (client-side, bukan request baru ke server) buat nyari transaksi yang udah
+// ke-render di Recent Transactions - cukup buat 15 item terakhir yang emang ditampilin.
+function txnFilterScript() {
+  return `<script>
+    (function () {
+      var input = document.getElementById("txn-filter-input");
+      if (!input) return;
+      input.addEventListener("input", function () {
+        var q = input.value.trim().toLowerCase();
+        document.querySelectorAll(".txn-item").forEach(function (item) {
+          var text = (item.dataset.search || "");
+          item.hidden = q.length > 0 && text.indexOf(q) === -1;
+        });
+      });
+    })();
+  </script>`;
+}
+
+function weeklyBudgetDialogScript() {
+  return `<script>
+    (function () {
+      var btn = document.getElementById("edit-budget-btn");
+      var dialog = document.getElementById("weekly-budget-dialog");
+      var closeBtn = document.getElementById("weekly-budget-close");
+      if (!btn || !dialog) return;
+      btn.addEventListener("click", function () { dialog.showModal(); });
+      if (closeBtn) closeBtn.addEventListener("click", function () { dialog.close(); });
+      dialog.addEventListener("click", function (e) { if (e.target === dialog) dialog.close(); });
+    })();
+  </script>`;
 }
 
 export function renderSpendingDashboard({
-  balance,
+  monthKey,
+  monthLabel,
+  todayDateKey,
   weeklyBudget,
   weekSpent,
-  daysElapsedInWeek,
-  daysLeftInWeek,
+  safeToSpendPerDay,
   today,
   week,
   month,
   weekChartData,
-  transactionRows,
+  transactionItemsHtml,
   flash,
 }) {
   const remaining = weeklyBudget ? weeklyBudget - weekSpent : null;
-  const avgDaily = daysElapsedInWeek > 0 ? weekSpent / daysElapsedInWeek : 0;
-  const maxPerDay =
-    remaining != null && remaining > 0 && daysLeftInWeek > 0 ? remaining / daysLeftInWeek : null;
   const budgetPct = weeklyBudget ? ((remaining ?? 0) / weeklyBudget) * 100 : 0;
+  const overBudget = remaining != null && remaining < 0;
 
   return `<!doctype html>
 <html lang="en">
@@ -81,105 +148,125 @@ export function renderSpendingDashboard({
 <title>Spending Tracker</title>
 ${faviconLink("/icons/spending.png")}
 <style>${DASHBOARD_CSS}</style>
+<style>${SPENDING_PAGE_CSS}</style>
 </head>
 <body>
   <div class="container">
-    ${navHeader({
-      icon: "/icons/spending.png",
-      title: "Spending Tracker",
-      links: [{ href: "/hub", label: "Home" }],
-    })}
-    <nav class="subnav"><a href="/dashboard/calorie">${iconLabel("/icons/calorie.png", "Calories")}</a></nav>
+    <header class="hub-header">
+      <div class="hub-topbar">
+        <a class="nav-link" href="/hub">← Hub</a>
+        <div class="hub-topbar-actions">
+          <input type="month" class="month-input" value="${monthKey}" onchange="location.href='/dashboard/spending?month=' + this.value">
+          ${themeToggleHtml()}
+        </div>
+      </div>
+      <h1 class="hub-greeting" style="font-size:22px;">${svgIconLabel("wallet", "Spending Tracker")}</h1>
+    </header>
 
     ${flash ? `<div class="flash flash-${flash.type}">${escapeHtml(flash.text)}</div>` : ""}
 
-    <section class="cards">
-      <div class="card">
-        <div class="card-label">💳 Running Balance</div>
-        <div class="card-value">Rp${Math.round(balance).toLocaleString("id-ID")}</div>
-        ${
-          maxPerDay != null
-            ? `<div class="card-sub">Rp${Math.round(maxPerDay).toLocaleString("id-ID")}/day max (${daysLeftInWeek}d left this week)</div>`
-            : ""
-        }
+    <section class="grid-2-always">
+      <div class="card glass-card">
+        <div class="card-label">${svgIconLabel("calendar", "Today")}</div>
+        <div class="card-value">${formatRupiah(today.total)}</div>
+        <div class="card-sub">${today.count} transaction${today.count === 1 ? "" : "s"}</div>
       </div>
-      <div class="card">
-        <div class="card-label">⚔️ Weekly Budget HP</div>
-        <div class="card-value card-value-compact">${weeklyBudget ? `Rp${Math.round(weeklyBudget).toLocaleString("id-ID")}` : "Not set"}</div>
-        ${weeklyBudget ? statBarHtml(budgetPct) : ""}
-        ${
-          remaining != null
-            ? `<div class="card-sub">${remaining >= 0 ? `Rp${Math.round(remaining).toLocaleString("id-ID")} left` : `Rp${Math.round(Math.abs(remaining)).toLocaleString("id-ID")} over`}</div>`
-            : ""
-        }
-        <div class="card-sub">${budgetFlavorText(budgetPct, remaining ?? 0, weeklyBudget)}</div>
-      </div>
-      <div class="card">
-        <div class="card-label">📊 Avg Daily</div>
-        <div class="card-value">Rp${Math.round(avgDaily).toLocaleString("id-ID")}</div>
-        <div class="card-sub">this week so far</div>
+      <div class="card glass-card">
+        <div class="card-label">${svgIconLabel("barChart", "This Month")}</div>
+        <div class="card-value">${formatRupiah(month.total)}</div>
+        <div class="card-sub">${escapeHtml(monthLabel)}</div>
       </div>
     </section>
 
-    <h2>💸 Log Expense</h2>
-    <div class="forms">
-      <div class="form-card">
-        <h3>${iconLabel("/icons/via-text.png", "Via Text")}</h3>
-        <form method="POST" action="/dashboard/spending/expense-text">
-          <input type="text" name="text" placeholder="e.g. coffee 25k" required>
-          <button type="submit">Save</button>
-        </form>
+    <div class="card glass-card" style="margin-top:12px;">
+      <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:4px;">
+        <div class="card-label" style="margin-bottom:0;">${svgIconLabel("wallet", "Daily Safe-to-Spend")}</div>
+        <button type="button" class="icon-btn" id="edit-budget-btn" aria-label="Edit weekly budget">${svgIcon("edit", { size: 15 })}</button>
       </div>
-      <div class="form-card">
-        <h3>${iconLabel("/icons/receipt.png", "Via Receipt Photo")}</h3>
-        <form method="POST" action="/dashboard/spending/expense-photo" enctype="multipart/form-data" id="expense-photo-form">
-          <input type="file" name="photo" accept="image/*" required>
-          <button type="submit" id="expense-photo-submit">Save</button>
-          <div class="upload-progress" id="expense-photo-progress" hidden>
-            <div class="upload-progress-bar"></div>
-          </div>
-        </form>
-      </div>
+      <div class="card-value ${overBudget ? "text-danger-soft" : ""}">${safeToSpendPerDay != null ? `${formatRupiah(safeToSpendPerDay)}/day` : "No budget set"}</div>
+      ${weeklyBudget ? statBarHtml(budgetPct) : ""}
+      <div class="card-sub">${
+        remaining != null
+          ? remaining >= 0
+            ? `${formatRupiah(remaining)} left this week`
+            : `${formatRupiah(Math.abs(remaining))} over this week`
+          : "Set a weekly budget to see your daily safe-to-spend."
+      }</div>
     </div>
 
-    <h2>${iconLabel("/icons/weekly-budget.png", "Set Weekly Budget")}</h2>
-    <div class="forms">
-      <details class="form-card">
-        <summary>${iconLabel("/icons/top-up.png", "Top Up / Update Budget")}</summary>
-        <form method="POST" action="/dashboard/spending/topup">
-          <input type="number" name="amount" placeholder="e.g. 500000" required>
-          <button type="submit">Save</button>
-        </form>
+    <h2>${svgIconLabel("wallet", "Log Expense")}</h2>
+    <div class="card glass-card">
+      <form method="POST" action="/dashboard/spending/expense-text">
+        <label>What did you spend on?</label>
+        <input type="text" name="text" placeholder="e.g. kopi 25k, parkir 5k" required>
+        <label>Date</label>
+        <input type="date" name="date" value="${todayDateKey}" max="${todayDateKey}">
+        <button type="submit">Save</button>
+      </form>
+      <details class="inline-toggle" style="margin-top:10px;">
+        <summary>${svgIconLabel("receipt", "Upload a receipt photo instead")}</summary>
+        <div class="inline-toggle-body">
+          <form method="POST" action="/dashboard/spending/expense-photo" enctype="multipart/form-data" id="expense-photo-form">
+            <input type="file" name="photo" accept="image/*" required>
+            <button type="submit" id="expense-photo-submit">Save</button>
+            <div class="upload-progress" id="expense-photo-progress" hidden>
+              <div class="upload-progress-bar"></div>
+            </div>
+          </form>
+        </div>
       </details>
     </div>
 
-    <h2>${iconLabel("/icons/trend.png", "7-Day Spending Trend (by Category)")}</h2>
+    <h2>${svgIconLabel("tag", "Category Breakdown")}</h2>
+    <div class="card glass-card">
+      <div class="segmented-tabs">
+        <button type="button" class="segmented-tab active" data-tab-target="today">Today</button>
+        <button type="button" class="segmented-tab" data-tab-target="week">This Week</button>
+        <button type="button" class="segmented-tab" data-tab-target="month">This Month</button>
+      </div>
+      ${categoryTabPanelHtml("today", today, true)}
+      ${categoryTabPanelHtml("week", week, false)}
+      ${categoryTabPanelHtml("month", month, false)}
+    </div>
+
+    <h2>${svgIconLabel("barChart", "7-Day Spending Trend")}</h2>
     ${
       weekChartData?.length
-        ? `<div class="chart-card">${horizontalStackedBarChartSvg(weekChartData, buildCategorySeries(weekChartData), {
+        ? `<div class="chart-card glass-card">${horizontalStackedBarChartSvg(weekChartData, buildCategorySeries(weekChartData), {
             formatValue: (v) => `${Math.round(v / 1000)}k`,
             itemsPerRow: 4,
           })}</div>`
         : ""
     }
 
-    <div class="grid-2">
-      ${periodCard("/icons/today.png", "Today", today)}
-      ${periodCard("/icons/week.png", "This Week", week)}
+    <h2>${svgIconLabel("receipt", "Recent Transactions")}</h2>
+    <div class="txn-filter">
+      ${svgIcon("search", { size: 15 })}
+      <input type="text" id="txn-filter-input" placeholder="Search transactions...">
     </div>
-    ${periodCard("/icons/month.png", "This Month", month)}
-
-    <h2>${iconLabel("/icons/recent-transactions.png", "Recent Transactions")}</h2>
-    <div class="table-wrap">
-      <table>
-        <thead><tr><th class="nowrap">🗓️ Date</th><th>📝 Description</th><th>🏷️ Category</th><th>💰 Amount</th></tr></thead>
-        <tbody>${transactionRows || `<tr><td colspan="4">No transactions yet.</td></tr>`}</tbody>
-      </table>
-    </div>
+    <div class="txn-list">${transactionItemsHtml || `<div class="empty-state">No transactions yet.</div>`}</div>
   </div>
+
+  <dialog class="modal-dialog" id="weekly-budget-dialog">
+    <div class="modal-dialog-body">
+      <div class="modal-dialog-header">
+        <h3>${svgIconLabel("edit", "Set / Update Weekly Budget")}</h3>
+        <button type="button" class="modal-close-btn" id="weekly-budget-close">✕</button>
+      </div>
+      <p class="modal-dialog-caption">Top up nominal baru ditambahkan ke Running Balance, dan jadi acuan budget mingguan berikutnya.</p>
+      <form method="POST" action="/dashboard/spending/topup">
+        <input type="number" name="amount" placeholder="e.g. 500000" required>
+        <button type="submit">Save</button>
+      </form>
+    </div>
+  </dialog>
+
   ${progressFormScript([
     { formId: "expense-photo-form", submitId: "expense-photo-submit", progressId: "expense-photo-progress", loadingLabel: "Reading receipt..." },
   ])}
+  ${segmentedTabsScript()}
+  ${txnFilterScript()}
+  ${weeklyBudgetDialogScript()}
 </body>
 </html>`;
 }

@@ -5,6 +5,7 @@ const CLOCK_OUT_AFTER_MS = 9 * 60 * 60 * 1000;
 
 const MODE_ICON = { WFO: "/icons/work-from-office.png", WFH: "/icons/work-from-home.png", OFF: "/icons/day-off.png" };
 const MODE_LABEL = { WFO: "WFO", WFH: "WFH", OFF: "Off" };
+const MODE_DESCRIPTION = { WFO: "Work from office", WFH: "Work from home", OFF: "Day off" };
 
 // variasi wording buat countdown - biar nggak monoton, dipilih sekali per page load (server-side),
 // sama pola-nya kayak GREETINGS di hub/router.js / budgetFlavorText di spending
@@ -122,7 +123,12 @@ export function clockedHubCardHtml(todayLog) {
   }
 
   if (todayLog.work_mode !== "WFO") {
-    return { html: `<div class="card-value">${modeIconLabel(todayLog.work_mode)} today</div>`, script: "" };
+    const mode = todayLog.work_mode;
+    return {
+      html: `<div class="card-value">${MODE_LABEL[mode] || mode} today</div>
+             <div class="card-sub">${iconLabel(MODE_ICON[mode] || MODE_ICON.WFO, MODE_DESCRIPTION[mode] || "")}</div>`,
+      script: "",
+    };
   }
 
   if (todayLog.clock_out_at) {

@@ -1,4 +1,4 @@
-import { DASHBOARD_CSS, escapeHtml, navHeader, faviconLink, iconLabel, svgIconLabel, themeToggleHtml } from "../shared/dashboard-layout.js";
+import { DASHBOARD_CSS, escapeHtml, navHeader, faviconLink, iconLabel, svgIcon, svgIconLabel, themeToggleHtml } from "../shared/dashboard-layout.js";
 import { clockedHubCardHtml } from "./clocked/dashboard.js";
 import { grindHubCardHtml } from "./grind/dashboard.js";
 
@@ -150,7 +150,8 @@ function quickExpenseScript() {
         body.innerHTML =
           '<div class="card-value">' + formatRupiah(data.todayTotal) + '</div>' +
           '<div class="card-sub">' + data.todayCount + ' transaction' + (data.todayCount === 1 ? "" : "s") + ' today</div>' +
-          safeHtml;
+          safeHtml +
+          '<div class="card-action-link">View spending<svg class="svg-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></div>';
       }
 
       function prependRecent(item) {
@@ -245,10 +246,12 @@ export function renderHubDashboard({
   const hasSpending = spendingToday && spendingToday.total > 0;
   const hasCalorie = calorieToday && calorieToday.calories > 0;
 
-  const calorieCard = hasCalorie
-    ? `<div class="card-value">${Math.round(calorieToday.calories).toLocaleString("en-US")} kcal</div>
-       <div class="card-sub">Protein ${calorieToday.protein_g}g</div>`
-    : `<div class="empty-state">No food logged yet<br>+ Log food</div>`;
+  // Card-action-link render DIV (bukan <a>) sengaja - kartu ini udah dibungkus <a class="card">
+  // sendiri (lihat markup di bawah), nested <a> invalid & bisa bikin behavior klik aneh.
+  const calorieCard = `
+    <div class="card-value">${hasCalorie ? `${Math.round(calorieToday.calories).toLocaleString("en-US")} kcal` : "No food logged yet"}</div>
+    ${hasCalorie ? `<div class="card-sub">Protein ${calorieToday.protein_g}g</div>` : ""}
+    <div class="card-action-link">${svgIcon("plus", { size: 14 })}Log food</div>`;
 
   // Safe-to-Spend: sisa budget mingguan (lihat getWeeklyBudget di spending/supabase.js, derived
   // dari ledger) dibagi rata ke sisa hari minggu ini (termasuk hari ini) - ijo kalau pengeluaran
@@ -258,11 +261,11 @@ export function renderHubDashboard({
       ? `<div class="card-sub ${(spendingToday.total || 0) > spendingToday.safeToSpendPerDay ? "text-danger-soft" : "text-success"}">Safe: ${formatRupiah(spendingToday.safeToSpendPerDay)}/day</div>`
       : "";
 
-  const spendingCard = hasSpending
-    ? `<div class="card-value">${formatRupiah(spendingToday.total)}</div>
-       <div class="card-sub">${spendingToday.count} transaction${spendingToday.count === 1 ? "" : "s"} today</div>
-       ${safeToSpendLine}`
-    : `<div class="empty-state">No spending yet<br>+ Log spending</div>${safeToSpendLine}`;
+  const spendingCard = `
+    <div class="card-value">${hasSpending ? formatRupiah(spendingToday.total) : "No spending yet"}</div>
+    <div class="card-sub">${spendingToday?.count || 0} transaction${spendingToday?.count === 1 ? "" : "s"} today</div>
+    ${safeToSpendLine}
+    <div class="card-action-link">View spending${svgIcon("arrowRight", { size: 14 })}</div>`;
 
   const { html: clockedCard, script: clockedScript } = clockedHubCardHtml(clockedToday);
   const grindCard = grindHubCardHtml(grindToday);
@@ -271,9 +274,11 @@ export function renderHubDashboard({
     ? recentActivity.map((a) => activityRow(a)).join("")
     : `<div class="empty-state">No activity yet today.</div>`;
 
+  const vaultNegative = !!vaultSummary && vaultSummary.monthlyRemaining < 0;
   const vaultCard = vaultSummary
-    ? `<div class="card-value card-value-compact ${vaultSummary.monthlyRemaining < 0 ? "text-danger-soft" : ""}">${formatRupiahSigned(vaultSummary.monthlyRemaining)} left</div>
-       <div class="card-sub">Monthly pool · ${vaultSummary.unpaidBillsCount} unpaid Bill${vaultSummary.unpaidBillsCount === 1 ? "" : "s"}</div>`
+    ? `<div class="card-value ${vaultNegative ? "text-danger-soft" : ""}">${formatRupiahSigned(vaultSummary.monthlyRemaining)}</div>
+       <div class="card-sub">left in monthly pool</div>
+       ${vaultSummary.unpaidBillsCount > 0 ? `<div class="card-sub text-danger-soft">${svgIcon("alertCircle", { size: 13 })}${vaultSummary.unpaidBillsCount} unpaid Bill${vaultSummary.unpaidBillsCount === 1 ? "" : "s"}</div>` : ""}`
     : `<div class="empty-state">Couldn't load vault.</div>`;
 
   return `<!doctype html>
@@ -301,19 +306,19 @@ ${faviconLink("/icons/hub.png")}
     </header>
 
     <section class="grid-2-always">
-      <a class="card bento-card glass-card" href="/dashboard/calorie">
+      <a class="card bento-card" href="/dashboard/calorie">
         <div class="card-label">${svgIconLabel("flame", "Calories")}</div>
         ${calorieCard}
       </a>
-      <a class="card bento-card glass-card" href="/dashboard/spending">
+      <a class="card bento-card card-accent" href="/dashboard/spending">
         <div class="card-label">${svgIconLabel("wallet", "Spending")}</div>
         <div id="spending-card-body">${spendingCard}</div>
       </a>
-      <div class="card bento-card glass-card" onclick="location.href='/hub/clocked'" style="cursor:pointer;">
+      <div class="card bento-card" onclick="location.href='/hub/clocked'" style="cursor:pointer;">
         <div class="card-label">${svgIconLabel("clock", "Clocked!")}</div>
         ${clockedCard}
       </div>
-      <a class="card bento-card glass-card" href="/hub/vault">
+      <a class="card bento-card${vaultNegative ? " card-tint-danger" : ""}" href="/hub/vault">
         <div class="card-label">${svgIconLabel("shieldCheck", "Vault")}</div>
         ${vaultCard}
       </a>

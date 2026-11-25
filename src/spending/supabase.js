@@ -58,6 +58,29 @@ export function getMonthBoundsWib() {
   };
 }
 
+// Bedanya sama getMonthBoundsWib() - dipakai pas user pilih bulan lain lewat selector bulan di
+// /dashboard/spending (bukan selalu bulan berjalan). monthKey formatnya "YYYY-MM".
+export function getMonthBoundsWibFor(monthKey) {
+  const [y, m] = monthKey.split("-").map(Number);
+  return {
+    startISO: wibPartsToIso(y, m - 1, 1, 0, 0, 0),
+    endISO: wibPartsToIso(y, m, 0, 23, 59, 59),
+  };
+}
+
+// "YYYY-MM" buat bulan berjalan (WIB) - dipakai default value <input type="month"> kalau user
+// belum milih bulan lain lewat query string.
+export function currentMonthKeyWib() {
+  const now = wibNow();
+  return `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, "0")}`;
+}
+
+// "YYYY-MM-DD" hari ini (WIB) - dipakai default value <input type="date"> di form Log Expense.
+export function todayDateKeyWib() {
+  const now = wibNow();
+  return now.toISOString().slice(0, 10);
+}
+
 export async function getLastExpenseLog(phone) {
   const { data, error } = await supabase
     .from("expense_logs")
@@ -92,6 +115,9 @@ export async function saveExpenseLogsBatch(phone, dtos) {
       type: dto.type,
       balance_after: balance,
       image_url: dto.imageUrl || null,
+      // dto.createdAt dipakai buat "Log for a past date" (Log Expense di /dashboard/spending) -
+      // kalau nggak diisi, kolom ini dilepas sama sekali biar jatuh ke default now() di DB.
+      ...(dto.createdAt ? { created_at: dto.createdAt } : {}),
     };
   });
 
@@ -189,7 +215,7 @@ export async function getAggregatedExpenses(phone, startISO, endISO) {
     total += amount;
     categories[row.category] = (categories[row.category] || 0) + amount;
   }
-  return { total, categories };
+  return { total, categories, count: data.length };
 }
 
 export async function getWeekExpenseLogs(phone) {
@@ -257,6 +283,17 @@ export async function searchExpenseLogs(phone, keyword, limit = 10) {
     .limit(limit);
   if (error) throw error;
   return data;
+}
+
+// Dipakai bareng GET /hub, POST /hub/quick-expense, & /dashboard/spending - "remaining" dari
+// getWeeklyBudget (total budget minggu ini, derived dari ledger) dikurangi yang udah kepake
+// minggu ini, dibagi rata ke sisa hari (termasuk hari ini). Satu-satunya sumber formula ini biar
+// /hub dan /dashboard/spending selalu nunjukkin angka Safe-to-Spend yang sama persis.
+export function safeToSpendPerDayFrom(budget, spentThisWeek, now) {
+  const remaining = budget - spentThisWeek;
+  const dayOfWeek = now.getUTCDay() || 7; // Senin=1 ... Minggu=7
+  const daysLeftInWeek = 8 - dayOfWeek; // termasuk hari ini
+  return budget && remaining > 0 && daysLeftInWeek > 0 ? remaining / daysLeftInWeek : null;
 }
 
 // Weekly budget selalu diturunin langsung dari ledger (Running Balance + yang udah kepake

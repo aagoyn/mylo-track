@@ -9,6 +9,7 @@ import {
   getFrequentExpenses,
   getCategoryOverrides,
   saveExpenseLogsBatch,
+  safeToSpendPerDayFrom,
 } from "../spending/supabase.js";
 import { parseExpenseInputs } from "../spending/parse.js";
 import { getTodayCalories, getTodayMacros, getTodayFoodLogs } from "../calorie/supabase.js";
@@ -66,17 +67,6 @@ function toWibTime(isoString) {
 
 function formatRupiah(amount) {
   return `Rp${Math.round(amount).toLocaleString("id-ID")}`;
-}
-
-// Dipakai bareng GET /hub & POST /hub/quick-expense biar formula-nya nggak kedobelan -
-// "remaining" dari getWeeklyBudget (total budget minggu ini, derived dari ledger) dikurangi yang
-// udah kepake minggu ini, dibagi rata ke sisa hari (termasuk hari ini). Sama persis formula "Xd
-// left this week" di /dashboard/spending (spending/router.js).
-function safeToSpendPerDayFrom(budget, spentThisWeek, now) {
-  const remaining = budget - spentThisWeek;
-  const dayOfWeek = now.getUTCDay() || 7; // Senin=1 ... Minggu=7
-  const daysLeftInWeek = 8 - dayOfWeek; // termasuk hari ini
-  return budget && remaining > 0 && daysLeftInWeek > 0 ? remaining / daysLeftInWeek : null;
 }
 
 // beberapa variasi per waktu, dipilih random tiap load - biar nggak monoton doang, bukan

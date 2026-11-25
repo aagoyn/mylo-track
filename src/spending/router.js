@@ -17,12 +17,16 @@ import {
   getCategoryOverrides,
   getAggregatedExpenses,
   getWeeklyBudget,
+  safeToSpendPerDayFrom,
   searchExpenseLogs,
   getRecentExpenseLogs,
   getWeekExpenseLogs,
   getDayBoundsWib,
   getWeekBoundsWib,
   getMonthBoundsWib,
+  getMonthBoundsWibFor,
+  currentMonthKeyWib,
+  todayDateKeyWib,
 } from "./supabase.js";
 
 const { sendText, editText, answerCallbackQuery, setMyCommands, downloadPhoto } =
@@ -67,12 +71,6 @@ function toWibDateKey(isoString) {
 function formatWibLabelFromKey(dateKey) {
   const d = new Date(`${dateKey}T00:00:00Z`);
   return `${d.getUTCDate()} ${BULAN[d.getUTCMonth()]}`;
-}
-
-// Senin=1 ... Minggu=7, sama kayak convention di getWeekBoundsWib (spending/supabase.js)
-function wibDayOfWeek() {
-  const wibNow = new Date(Date.now() + 7 * 60 * 60 * 1000);
-  return wibNow.getUTCDay() || 7;
 }
 
 // nunggu jawaban nominal kalau user cuma kirim nama barang tanpa harga (mis. "kopi")
@@ -385,12 +383,51 @@ function redirectWithError(res, path, message) {
 
 export const router = express.Router();
 
+// Pill kategori di tiap item Recent Transactions - submit onchange ke route yang udah ada
+// (/dashboard/spending/log/:id/category), sama persis behaviour kayak sebelumnya, cuma beda
+// markup/styling (lihat .category-select di shared/dashboard-layout.js).
+function categoryPillHtml(r) {
+  if (r.type !== "Expense") return escapeHtml(r.category);
+  return `<form method="POST" action="/dashboard/spending/log/${r.id}/category" style="margin:0;">
+    <select name="category" class="category-select" onchange="this.form.submit()">
+      ${EXPENSE_CATEGORIES.map((c) => `<option value="${c}" ${c === r.category ? "selected" : ""}>${escapeHtml(c)}</option>`).join("")}
+    </select>
+  </form>`;
+}
+
+// List item Recent Transactions (bukan <table> lagi) - nominal selalu utuh/nggak kepotong di HP
+// (lihat .txn-item di shared/dashboard-layout.js). data-search dipakai filter client-side
+// (txnFilterScript di dashboard.js).
+function transactionItemHtml(r) {
+  return `<div class="txn-item" data-search="${escapeHtml(r.description.toLowerCase())}">
+    <div class="txn-main">
+      <div class="txn-title">${escapeHtml(r.description)}</div>
+      <div class="txn-date">${formatDateLabelWib(r.created_at)}</div>
+    </div>
+    <div class="txn-side">
+      <div class="txn-amount${r.type === "Income" ? " txn-income" : ""}">${r.type === "Income" ? "+" : "-"}${formatRupiah(r.amount)}</div>
+      ${categoryPillHtml(r)}
+    </div>
+  </div>`;
+}
+
+const MONTHS_FULL = [
+  "January", "February", "March", "April", "May", "June",
+  "July", "August", "September", "October", "November", "December",
+];
+
+function monthLabelFromKey(monthKey) {
+  const [y, m] = monthKey.split("-").map(Number);
+  return `${MONTHS_FULL[m - 1]} ${y}`;
+}
+
 router.get("/dashboard/spending", requireAuth, async (req, res) => {
   try {
     const chatId = req.user.phone;
     const dayBounds = getDayBoundsWib();
     const weekBounds = getWeekBoundsWib();
-    const monthBounds = getMonthBoundsWib();
+    const monthKey = /^\d{4}-\d{2}$/.test(req.query.month || "") ? req.query.month : currentMonthKeyWib();
+    const monthBounds = getMonthBoundsWibFor(monthKey);
 
     const [balance, weeklyBudget, today, week, month, transactions, weekLogs] = await Promise.all([
       getLastBalance(chatId),
@@ -402,21 +439,7 @@ router.get("/dashboard/spending", requireAuth, async (req, res) => {
       getWeekExpenseLogs(chatId),
     ]);
 
-    const transactionRows = transactions
-      .map((r) => {
-        const categoryCell =
-          r.type === "Expense"
-            ? `<form method="POST" action="/dashboard/spending/log/${r.id}/category" style="margin:0;">
-                <select name="category" class="category-select" onchange="this.form.submit()">
-                  ${EXPENSE_CATEGORIES.map(
-                    (c) => `<option value="${c}" ${c === r.category ? "selected" : ""}>${escapeHtml(c)}</option>`
-                  ).join("")}
-                </select>
-              </form>`
-            : escapeHtml(r.category);
-        return `<tr><td class="nowrap">${formatDateLabelWib(r.created_at)}</td><td>${escapeHtml(r.description)}</td><td>${categoryCell}</td><td class="nowrap">${r.type === "Income" ? "+" : "-"}${formatRupiah(r.amount)}</td></tr>`;
-      })
-      .join("");
+    const transactionItemsHtml = transactions.map(transactionItemHtml).join("");
 
     const byDay = {};
     for (const row of weekLogs) {
@@ -435,22 +458,19 @@ router.get("/dashboard/spending", requireAuth, async (req, res) => {
         ? { type: "success", text: "Berhasil disimpan." }
         : null;
 
-    const dayOfWeek = wibDayOfWeek(); // 1=Senin..7=Minggu
-    const daysElapsedInWeek = dayOfWeek; // termasuk hari ini
-    const daysLeftInWeek = 8 - dayOfWeek; // termasuk hari ini
-
     res.send(
       renderSpendingDashboard({
-        balance,
+        monthKey,
+        monthLabel: monthLabelFromKey(monthKey),
+        todayDateKey: todayDateKeyWib(),
         weeklyBudget,
         weekSpent: week.total,
-        daysElapsedInWeek,
-        daysLeftInWeek,
+        safeToSpendPerDay: safeToSpendPerDayFrom(weeklyBudget, week.total, new Date(Date.now() + 7 * 60 * 60 * 1000)),
         today,
         week,
         month,
         weekChartData,
-        transactionRows,
+        transactionItemsHtml,
         flash,
       })
     );
@@ -464,12 +484,23 @@ router.post("/dashboard/spending/expense-text", requireAuth, async (req, res) =>
   const text = (req.body.text || "").trim();
   if (!text) return res.redirect("/dashboard/spending?err=Input kosong.");
 
+  // Form Log Expense sekarang gabungin "hari ini" & "tanggal lampau" jadi 1 field tanggal
+  // (default-nya hari ini WIB) - kalau user nggak ganti tanggalnya, biarin created_at pakai jam
+  // asli sekarang (bukan disamain ke tengah hari) biar urutan di Recent Transactions tetap akurat.
+  const dateRaw = (req.body.date || "").trim();
+  const todayKey = todayDateKeyWib();
+  let createdAt;
+  if (dateRaw && dateRaw !== todayKey && /^\d{4}-\d{2}-\d{2}$/.test(dateRaw)) {
+    const [y, m, d] = dateRaw.split("-").map(Number);
+    createdAt = new Date(Date.UTC(y, m - 1, d, 5, 0, 0)).toISOString(); // jam 12:00 WIB (UTC+7)
+  }
+
   try {
     const overrides = await getCategoryOverrides(req.user.phone);
     const dtos = parseExpenseInputs(text, overrides);
     if (dtos.length === 0) return res.redirect("/dashboard/spending?err=Format tidak valid.");
 
-    await saveExpenseLogsBatch(req.user.phone, dtos);
+    await saveExpenseLogsBatch(req.user.phone, createdAt ? dtos.map((dto) => ({ ...dto, createdAt })) : dtos);
     res.redirect("/dashboard/spending?ok=1");
   } catch (err) {
     console.error(err);

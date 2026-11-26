@@ -26,6 +26,12 @@ const GYM_PAGE_CSS = `
   }
   .gym-back-link:hover { color: var(--text); }
   .gym-timer { font-size: 15px; font-weight: 700; }
+
+  /* Action bar Start/Finish/Cancel - dipisah dari header jadi baris sendiri full-width (sebelumnya
+     numpuk kecil di gym-header-right, susah ditekan) - tombol gede & gampang dipencet. */
+  .gym-action-bar { display: flex; align-items: center; gap: 10px; padding: 12px 14px; margin-bottom: 14px; }
+  .gym-action-bar .btn-primary { flex: 2; }
+  .gym-action-bar .btn-secondary { flex: 1; }
   .gym-ampm-toggle { gap: 6px; flex-shrink: 0; }
   .gym-ampm-toggle label { padding: 5px 10px; font-size: 12px; }
 
@@ -1066,14 +1072,17 @@ ${faviconLink("/icons/grind-icon.png")}
         </div>
         <div class="gym-header-right">
           <div class="gym-timer tabular-nums" id="gym-duration">00:00</div>
-          <button type="button" class="btn-secondary btn-sm" id="gym-cancel-btn" hidden>Cancel</button>
-          <button type="button" class="btn-primary btn-sm" id="gym-start-finish-btn" data-state="start">Start Workout</button>
         </div>
       </div>
       <div class="gym-split-pills-row">
         ${splitPillsHtml(activeSplit)}
       </div>
     </header>
+
+    <div class="card glass-card gym-action-bar">
+      <button type="button" class="btn-secondary" id="gym-cancel-btn" hidden>Cancel</button>
+      <button type="button" class="btn-primary" id="gym-start-finish-btn" data-state="start">Start Workout</button>
+    </div>
 
     ${recoveryHint ? `<div class="recovery-banner recovery-banner-gym">${escapeHtml(recoveryHint)}</div>` : ""}
 

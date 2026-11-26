@@ -188,16 +188,6 @@ function raceRibbonHtml(upcomingRace) {
 
 // ---------- Hub card (ringkas, dipakai di /hub) ----------
 
-// Card Grind di /hub cuma kebagian 4 olahraga yang paling sering (Run/Badminton/Gym/Rest) biar
-// grid-nya 2x2 & tombolnya gede buat di-tap - forms Swim/Tennis cuma ada di halaman /hub/grind
-// sendiri, jadi dari /hub tile itu nggak ditampilin biar nggak misleading (klik tapi harus
-// navigate dulu buat ketemu form-nya).
-const QUICK_ADD_SPORTS_HUB = [
-  { form: "run", svg: "activity", label: "Run" },
-  { form: "badminton", svg: "racket", label: "Badminton" },
-  { form: "gym", svg: "dumbbell", label: "Gym", href: "/hub/grind/gym" },
-];
-
 // Di /hub/grind sendiri semua 5 olahraga dapet tile (grid 3 kolom x 2 baris bareng Rest).
 const QUICK_ADD_SPORTS_FULL = [
   { form: "run", svg: "activity", label: "Run" },
@@ -211,24 +201,6 @@ function restTileHtml({ stopPropagation = false } = {}) {
   return `<form method="POST" action="/hub/grind/sessions/rest" style="margin:0;" ${stopPropagation ? `onclick="event.stopPropagation()"` : ""}>
       <button type="submit" class="sport-tile sport-btn">${iconBadgeHtml(svgIcon("moon", { size: 20 }))}<span class="sport-tile-label">Rest</span></button>
     </form>`;
-}
-
-// Dipakai di card Grind /hub - tiap tile navigate ke /hub/grind (forms-nya cuma ada di sana),
-// kecuali Gym yang sekarang punya halaman standalone sendiri (lihat gym-page.js) - href eksplisit
-// override query-string trigger di bawah.
-// Kartu Grind di /hub sendiri udah bisa diklik ke /hub/grind (lihat grindHubCardHtml), jadi tiap
-// tile di sini butuh stopPropagation biar klik tile-nya nggak ikut ke-tangkep sama onclick kartu.
-function quickAddTilesHub() {
-  const tiles = QUICK_ADD_SPORTS_HUB.map(
-    (s) =>
-      `<a class="sport-tile sport-btn" href="${s.href || `/hub/grind?form=${s.form}#today-logger`}" onclick="event.stopPropagation()">${iconBadgeHtml(svgIcon(s.svg, { size: 20 }))}<span class="sport-tile-label">${s.label}</span></a>`
-  ).join("");
-
-  return `<div class="card-sub" style="margin:10px 0 6px;">Or log a session</div>
-  <div class="sport-tile-grid">
-    ${tiles}
-    ${restTileHtml({ stopPropagation: true })}
-  </div>`;
 }
 
 // Dipakai di /hub/grind sendiri - tiap tile nge-trigger buka form yang pas di tempat (lihat
@@ -257,18 +229,27 @@ export function grindHubCardHtml({ todayPlan, todaySessions, upcomingRace }) {
     planBlock = `${planHeroHtml(todayPlan)}${planFactsGridHtml(todayPlan)}`;
 
     if (todayPlan.status === "PENDING") {
-      const completeBtn =
-        todayPlan.session_type === "REST"
-          ? `<form method="POST" action="/hub/grind/plan/${todayPlan.id}/complete-rest" class="flex-3" style="margin:0;" onclick="event.stopPropagation()">
-               <button type="submit" class="btn-primary btn-sm">✓ Complete</button>
-             </form>`
-          : `<a class="btn-primary btn-sm flex-3" href="/hub/grind?complete=${todayPlan.id}#today-logger" onclick="event.stopPropagation()">✓ Complete Plan</a>`;
-      planBlock += `<div class="button-row" style="margin-top:8px;">
-        ${completeBtn}
-        <form method="POST" action="/hub/grind/plan/${todayPlan.id}/skip" class="flex-1" style="margin:0;" onclick="event.stopPropagation()">
-          <button type="submit" class="btn-secondary btn-sm">Skip</button>
-        </form>
-      </div>`;
+      if (todayPlan.virtual) {
+        // Plan gym default (jadwal 4-Day Hybrid Split, belum ada di DB) - tombol langsung buka
+        // halaman Gym dengan split hari itu, bukan flow complete/skip plan asli (lihat
+        // gym-program.js: defaultGymPlanForDate).
+        planBlock += `<div class="button-row" style="margin-top:8px;">
+          <a class="btn-primary btn-sm flex-3" href="/hub/grind/gym?split=${encodeURIComponent(todayPlan.sub_type)}" onclick="event.stopPropagation()">${svgIconLabel("dumbbell", "Start Gym", { size: 14 })}</a>
+        </div>`;
+      } else {
+        const completeBtn =
+          todayPlan.session_type === "REST"
+            ? `<form method="POST" action="/hub/grind/plan/${todayPlan.id}/complete-rest" class="flex-3" style="margin:0;" onclick="event.stopPropagation()">
+                 <button type="submit" class="btn-primary btn-sm">✓ Complete</button>
+               </form>`
+            : `<a class="btn-primary btn-sm flex-3" href="/hub/grind?complete=${todayPlan.id}#today-logger" onclick="event.stopPropagation()">✓ Complete Plan</a>`;
+        planBlock += `<div class="button-row" style="margin-top:8px;">
+          ${completeBtn}
+          <form method="POST" action="/hub/grind/plan/${todayPlan.id}/skip" class="flex-1" style="margin:0;" onclick="event.stopPropagation()">
+            <button type="submit" class="btn-secondary btn-sm">Skip</button>
+          </form>
+        </div>`;
+      }
     } else {
       planBlock += `<div class="card-sub">${todayPlan.status === "DONE" ? "✅ Done" : "⏭ Skipped"}</div>`;
     }
@@ -276,7 +257,7 @@ export function grindHubCardHtml({ todayPlan, todaySessions, upcomingRace }) {
 
   const sessionsBlock = todaySessions.length ? todaySessions.map(sessionLineHtml).join("") : "";
 
-  return `${raceLine}${planBlock}${sessionsBlock}${quickAddTilesHub()}`;
+  return `${raceLine}${planBlock}${sessionsBlock}`;
 }
 
 // ---------- Import / Paste Training Plan (FAB + dialog, khusus halaman ini) ----------
@@ -455,18 +436,24 @@ function todayPlanAndLoggerHtml({ todayPlan, todaySessions, upcomingRace, openFo
       ${todayPlan.instructions ? `<div class="card-sub" style="margin-top:2px;">${escapeHtml(todayPlan.instructions)}</div>` : ""}`;
 
     if (todayPlan.status === "PENDING") {
-      const completeBtn =
-        todayPlan.session_type === "REST"
-          ? `<form method="POST" action="/hub/grind/plan/${todayPlan.id}/complete-rest" class="flex-3" style="margin:0;">
-               <button type="submit" class="btn-primary btn-sm">✓ Complete</button>
-             </form>`
-          : `<a class="btn-primary btn-sm flex-3" href="/hub/grind?complete=${todayPlan.id}#today-logger">✓ Complete Plan</a>`;
-      body += `<div class="button-row" style="margin-top:10px;">
-        ${completeBtn}
-        <form method="POST" action="/hub/grind/plan/${todayPlan.id}/skip" class="flex-1" style="margin:0;">
-          <button type="submit" class="btn-secondary btn-sm">Skip</button>
-        </form>
-      </div>`;
+      if (todayPlan.virtual) {
+        body += `<div class="button-row" style="margin-top:10px;">
+          <a class="btn-primary btn-sm flex-3" href="/hub/grind/gym?split=${encodeURIComponent(todayPlan.sub_type)}">${svgIconLabel("dumbbell", "Start Gym", { size: 14 })}</a>
+        </div>`;
+      } else {
+        const completeBtn =
+          todayPlan.session_type === "REST"
+            ? `<form method="POST" action="/hub/grind/plan/${todayPlan.id}/complete-rest" class="flex-3" style="margin:0;">
+                 <button type="submit" class="btn-primary btn-sm">✓ Complete</button>
+               </form>`
+            : `<a class="btn-primary btn-sm flex-3" href="/hub/grind?complete=${todayPlan.id}#today-logger">✓ Complete Plan</a>`;
+        body += `<div class="button-row" style="margin-top:10px;">
+          ${completeBtn}
+          <form method="POST" action="/hub/grind/plan/${todayPlan.id}/skip" class="flex-1" style="margin:0;">
+            <button type="submit" class="btn-secondary btn-sm">Skip</button>
+          </form>
+        </div>`;
+      }
     } else {
       body += `<div class="card-sub" style="margin-top:6px;">${todayPlan.status === "DONE" ? "✅ Done" : "⏭ Skipped"}</div>`;
     }
@@ -538,6 +525,21 @@ function scheduleDayHtml(plan, todayKey) {
   const statusBadge =
     plan.status === "DONE" ? " ✅" : plan.status === "SKIPPED" ? " ⏭" : "";
   const summary = planSummaryLine(plan);
+
+  // Plan gym default (jadwal 4-Day Hybrid Split, belum ada di DB sama sekali) - cuma kebagian
+  // tombol "Start Gym" langsung ke template hari itu, nggak ada Edit/Move/Skip karena nggak ada
+  // plan.id yang bisa di-update (lihat gym-program.js: defaultGymPlanForDate).
+  if (plan.virtual) {
+    return `<details class="log-item">
+      <summary><span class="log-name">${dateLabel(plan.plan_date)} — ${badge}</span></summary>
+      <div class="log-detail-body">
+        ${plan.instructions ? `<div class="card-sub">${escapeHtml(plan.instructions)}</div>` : ""}
+        <div class="button-row" style="margin-top:8px;">
+          <a class="btn-primary btn-sm" href="/hub/grind/gym?split=${encodeURIComponent(plan.sub_type)}">${svgIconLabel("dumbbell", "Start Gym", { size: 14 })}</a>
+        </div>
+      </div>
+    </details>`;
+  }
 
   const actions =
     plan.status === "PENDING"

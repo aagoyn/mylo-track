@@ -1,5 +1,6 @@
 import { supabase } from "../../shared/supabase-client.js";
 import { parseTrainingPlanTsv, paceToSeconds, secondsToPace, detectSessionTimeFromInstructions } from "./parse.js";
+import { presetExercisesForSplit, restSecForExerciseName } from "./gym-program.js";
 
 const WIB_OFFSET_MS = 7 * 60 * 60 * 1000;
 
@@ -16,7 +17,7 @@ export function todayDateKeyWib() {
 }
 
 // Senin=1 ... Minggu=7, konsisten sama convention di modul lain (clocked, spending)
-function dayOfWeekWib() {
+export function dayOfWeekWib() {
   return getJakartaNow().getUTCDay() || 7;
 }
 
@@ -360,55 +361,11 @@ export async function getLastGymSplit(phone, subType) {
   return sets || [];
 }
 
-// Starter preset per split kalau user belum pernah nge-log split itu sama sekali - pola umum
-// 3x8-15 biar ada titik mulai yang familiar, weight_kg 0 cuma placeholder kosong (user isi beban
-// sendiri pas latihan pertama). Dipakai getGymTemplate sebagai fallback prioritas-2.
-const GYM_SPLIT_PRESETS = {
-  Push: [
-    { exerciseName: "Bench Press / Dumbbell Press", sets: 3, reps: 8 },
-    { exerciseName: "Incline Dumbbell Press", sets: 3, reps: 10 },
-    { exerciseName: "Overhead Shoulder Press", sets: 3, reps: 10 },
-    { exerciseName: "Lateral Raise", sets: 3, reps: 12 },
-    { exerciseName: "Tricep Rope Pushdown", sets: 3, reps: 12 },
-  ],
-  Pull: [
-    { exerciseName: "Lat Pulldown / Pull-Up", sets: 3, reps: 10 },
-    { exerciseName: "Seated Cable Row", sets: 3, reps: 10 },
-    { exerciseName: "Dumbbell Row", sets: 3, reps: 10 },
-    { exerciseName: "Face Pull", sets: 3, reps: 15 },
-    { exerciseName: "Dumbbell / Cable Bicep Curl", sets: 3, reps: 12 },
-  ],
-  Legs: [
-    { exerciseName: "Goblet Squat / Leg Press", sets: 3, reps: 10 },
-    { exerciseName: "Romanian Deadlift (RDL)", sets: 3, reps: 10 },
-    { exerciseName: "Leg Curl", sets: 3, reps: 12 },
-    { exerciseName: "Standing Calf Raise", sets: 3, reps: 15 },
-    { exerciseName: "Plank / Hanging Knee Raise", sets: 3, reps: 12 },
-  ],
-  Upper: [
-    { exerciseName: "Dumbbell Bench Press", sets: 3, reps: 10 },
-    { exerciseName: "Lat Pulldown", sets: 3, reps: 10 },
-    { exerciseName: "Overhead Press", sets: 3, reps: 10 },
-    { exerciseName: "Seated Row", sets: 3, reps: 12 },
-    { exerciseName: "Lateral Raise", sets: 2, reps: 12 },
-  ],
-  "Full Body": [
-    { exerciseName: "Goblet Squat", sets: 3, reps: 10 },
-    { exerciseName: "Dumbbell Bench Press", sets: 3, reps: 10 },
-    { exerciseName: "Lat Pulldown", sets: 3, reps: 10 },
-    { exerciseName: "Romanian Deadlift (RDL)", sets: 3, reps: 10 },
-    { exerciseName: "Overhead Press", sets: 3, reps: 10 },
-  ],
-};
-
+// Starter preset per split kalau user belum pernah nge-log split itu sama sekali - sumber datanya
+// program 4-Day Hybrid Split (lihat gym-program.js), bukan di sini lagi biar nggak dobel sama
+// jadwal mingguan default /hub/grind yang butuh data program yang sama persis.
 function presetGymTemplate(split) {
-  const preset = GYM_SPLIT_PRESETS[split];
-  if (!preset) return [];
-  return preset.map((p) => ({
-    exerciseName: p.exerciseName,
-    lastSummary: null,
-    sets: Array.from({ length: p.sets }, (_, i) => ({ setOrder: i + 1, weightKg: 0, reps: p.reps })),
-  }));
+  return presetExercisesForSplit(split);
 }
 
 // Smart pre-fill form Gym (lihat GET /hub/grind/gym-template) - prioritas 1: gerakan/set/beban/
@@ -437,7 +394,7 @@ export async function getGymTemplate(phone, split) {
     const sets = byExercise.get(exerciseName);
     const heaviest = sets.reduce((max, s) => ((Number(s.weightKg) || 0) > (Number(max.weightKg) || 0) ? s : max), sets[0]);
     const lastSummary = heaviest.weightKg != null ? `Last: ${heaviest.weightKg}kg × ${heaviest.reps ?? "-"}` : null;
-    return { exerciseName, lastSummary, sets };
+    return { exerciseName, lastSummary, restSec: restSecForExerciseName(exerciseName) || 90, sets };
   });
 
   return { source: "history", exercises };

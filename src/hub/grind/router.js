@@ -2,6 +2,7 @@ import express from "express";
 import { requireAuth } from "../../shared/auth.js";
 import {
   todayDateKeyWib,
+  dayOfWeekWib,
   getWeekDateBoundsWib,
   getNextWeekDateBoundsWib,
   getMonthDateBoundsWib,
@@ -29,6 +30,7 @@ import {
 } from "./supabase.js";
 import { renderGrindPage } from "./dashboard.js";
 import { renderGymPage } from "./gym-page.js";
+import { GYM_SPLITS, defaultSplitForDay, injectDefaultGymPlans, defaultGymPlanForDate } from "./gym-program.js";
 
 const WIB_OFFSET_MS = 7 * 60 * 60 * 1000;
 
@@ -36,8 +38,8 @@ const WIB_OFFSET_MS = 7 * 60 * 60 * 1000;
 // validasi di sini biar nggak ada nilai session_type sembarangan yang kesimpen.
 const VALID_SESSION_TYPES = ["EASY", "QUALITY", "LONG RUN", "RACE DAY", "SWIM", "BADMINTON", "TENNIS", "GYM", "REST"];
 
-// Sama persis sama GYM_SPLITS di gym-page.js (pill selector Split di halaman Gym).
-const VALID_GYM_SPLITS = ["Push", "Pull", "Legs", "Upper", "Full Body"];
+// Sama persis sama GYM_SPLITS di gym-program.js (pill selector Split di halaman Gym).
+const VALID_GYM_SPLITS = GYM_SPLITS;
 
 function redirectWithError(res, message) {
   res.redirect(`/hub/grind?err=${encodeURIComponent(message)}`);
@@ -76,11 +78,11 @@ router.get("/hub/grind", requireAuth, async (req, res) => {
     const { startKey: monthStart, endKey: monthEnd } = getMonthDateBoundsWib();
 
     const [
-      todayPlan,
+      rawTodayPlan,
       todaySessions,
       upcomingRace,
-      weekPlans,
-      nextWeekPlans,
+      rawWeekPlans,
+      rawNextWeekPlans,
       weekSessions,
       monthSummary,
       historyLogs,
@@ -96,6 +98,13 @@ router.get("/hub/grind", requireAuth, async (req, res) => {
       getRecentSessions(phone, 30),
       getWeeklyRunTargetKm(phone),
     ]);
+
+    // Jadwal gym default 4-Day Hybrid Split (Push/Pull/Legs/Posterior Chain) - cuma "nongol" kalau
+    // belum ada plan asli (dari import TSV) di tanggal itu, nggak pernah ditulis ke DB (lihat
+    // gym-program.js: injectDefaultGymPlans/defaultGymPlanForDate, semuanya `virtual: true`).
+    const todayPlan = rawTodayPlan || defaultGymPlanForDate(todayKey);
+    const weekPlans = injectDefaultGymPlans(rawWeekPlans, weekStart, weekEnd);
+    const nextWeekPlans = injectDefaultGymPlans(rawNextWeekPlans, nextWeekStart, nextWeekEnd);
 
     let openForm = req.query.form || null;
     let prefill = null;
@@ -395,9 +404,16 @@ router.get("/hub/grind/gym", requireAuth, async (req, res) => {
     const sinceISO = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
     const recentSessions = await getSessionsSince(phone, sinceISO);
 
+    // Prioritas split yang dibuka: ?split= dari query (mis. tombol "Start Gym" di jadwal mingguan)
+    // > default hari ini (Senin=Push dst, lihat gym-program.js) > tab pertama (Push).
+    const defaultSplit = VALID_GYM_SPLITS.includes(req.query.split)
+      ? req.query.split
+      : defaultSplitForDay(dayOfWeekWib()) || GYM_SPLITS[0];
+
     res.send(
       renderGymPage({
         defaultTime: defaultSessionTimeWib(),
+        defaultSplit,
         recoveryHint: buildRecoveryHint(recentSessions),
       })
     );

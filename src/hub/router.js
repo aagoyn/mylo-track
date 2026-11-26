@@ -26,6 +26,7 @@ import {
 import { getTodayClockLog } from "./clocked/supabase.js";
 import { getPlanByDate, getSessionsByDate, getUpcomingRace, todayDateKeyWib as grindTodayDateKeyWib } from "./grind/supabase.js";
 import { grindActivityRow } from "./grind/dashboard.js";
+import { defaultGymPlanForDate } from "./grind/gym-program.js";
 import { renderHubDashboard } from "./dashboard.js";
 import { svgIcon } from "../shared/dashboard-layout.js";
 
@@ -273,11 +274,12 @@ router.get("/hub", requireAuth, async (req, res) => {
     getTodayClockLog(phone),
     (async () => {
       const dateKey = grindTodayDateKeyWib();
-      const [todayPlan, todaySessions, upcomingRace] = await Promise.all([
+      const [rawTodayPlan, todaySessions, upcomingRace] = await Promise.all([
         getPlanByDate(phone, dateKey),
         getSessionsByDate(phone, dateKey),
         getUpcomingRace(phone, dateKey),
       ]);
+      const todayPlan = rawTodayPlan || defaultGymPlanForDate(dateKey);
       return { todayPlan, todaySessions, upcomingRace };
     })(),
     getFrequentExpenses(phone, 30, 5),

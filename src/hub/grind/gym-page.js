@@ -1,12 +1,12 @@
 import { DASHBOARD_CSS, escapeHtml, faviconLink, svgIcon, bottomNavHtml } from "../../shared/dashboard-layout.js";
-import { exerciseGuideScript, exerciseGuideDialogHtml } from "./exercise-guides.js";
+import { exerciseGuideScript, exerciseGuideDialogHtml, exerciseGuideStyles } from "./exercise-guides.js";
+import { GYM_SPLITS } from "./gym-program.js";
 
 // Halaman standalone Gym Workout Tracker ala Strong/Hevy - rep & set tracker dengan live duration
 // timer, floating rest timer, dan auto-save draft ke localStorage. Menggantikan accordion
 // "Log Gym" lama di /hub/grind (lihat grind/dashboard.js todayPlanAndLoggerHtml) tapi tetap
 // nyimpen sesi lewat endpoint POST /hub/grind/sessions/gym yang sudah ada (addGymSets/createSession
 // di grind/supabase.js, tidak berubah).
-const GYM_SPLITS = ["Push", "Pull", "Legs", "Upper", "Full Body"];
 const DRAFT_KEY = "grind_active_gym_draft";
 
 const GYM_PAGE_CSS = `
@@ -137,24 +137,15 @@ const GYM_PAGE_CSS = `
   }
   .exercise-guide-btn:hover { background: var(--surface-hover); color: var(--accent); }
   .exercise-guide-btn .svg-icon { margin: 0; }
-
-  /* Dialog Exercise Form Guide - pakai chrome .modal-dialog/.modal-dialog-body/.modal-dialog-header
-     yang sudah ada (lihat spending/calorie dialog), nambah style khusus konten guide-nya aja. */
-  .guide-muscle-badge { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
-  .guide-diagram-wrap { color: var(--text-muted); margin: 14px 0; }
-  .guide-diagram-wrap svg { display: block; }
-  .guide-section-label { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .03em; color: var(--text-dim); margin-bottom: 6px; }
-  .guide-steps { margin: 0 0 12px; padding-left: 18px; display: flex; flex-direction: column; gap: 6px; font-size: 13px; color: var(--text); }
-  .guide-avoid-box {
-    font-size: 12.5px; line-height: 1.5; color: var(--text-muted); background: var(--surface-hover);
-    border-radius: 10px; padding: 10px 12px;
-  }
-  .guide-avoid-box strong { color: var(--danger); }
 `;
+// Style konten dialog Exercise Form Guide (muscle badge, diagram animasi, steps, avoid/note box)
+// di-export dari exercise-guides.js sendiri (exerciseGuideStyles) - dipakai di renderGymPage,
+// bukan dobel ditulis di sini, biar modul guide tetap mandiri/portable.
 
-function splitPillsHtml() {
+function splitPillsHtml(defaultSplit) {
+  const active = GYM_SPLITS.includes(defaultSplit) ? defaultSplit : GYM_SPLITS[0];
   const pills = GYM_SPLITS.map(
-    (s, i) => `<button type="button" class="segmented-tab${i === 0 ? " active" : ""}" data-split="${s}">${s}</button>`
+    (s) => `<button type="button" class="segmented-tab${s === active ? " active" : ""}" data-split="${s}">${s}</button>`
   ).join("");
   return `<div class="segmented-tabs gym-split-pills" id="gym-split-pills">${pills}</div>`;
 }
@@ -303,7 +294,9 @@ function gymPageScript() {
           checkBtn.classList.toggle("checked", isDone);
           if (isDone) {
             if (!started) startWorkout();
-            showRestTimer(90);
+            var card = row.closest(".exercise-card");
+            var restSec = card ? parseInt(card.dataset.restSec || "90", 10) : 90;
+            showRestTimer(restSec || 90);
           }
           saveDraft();
         });
@@ -311,9 +304,10 @@ function gymPageScript() {
         return row;
       }
 
-      function makeExerciseCard(name, sets) {
+      function makeExerciseCard(name, sets, restSec) {
         var card = document.createElement("div");
         card.className = "card glass-card exercise-card";
+        card.dataset.restSec = restSec || 90;
         card.innerHTML =
           '<div class="exercise-card-head">' +
             '<input type="text" class="exercise-name-input" placeholder="Nama gerakan" required>' +
@@ -357,20 +351,31 @@ function gymPageScript() {
       function renderExercises(exercises) {
         container.innerHTML = "";
         if (!exercises || !exercises.length) {
-          container.appendChild(makeExerciseCard("", null));
+          container.appendChild(makeExerciseCard("", null, 90));
           return;
         }
-        exercises.forEach(function (ex) { container.appendChild(makeExerciseCard(ex.name, ex.sets)); });
+        exercises.forEach(function (ex) { container.appendChild(makeExerciseCard(ex.name, ex.sets, ex.restSec)); });
+      }
+
+      // targetReps (preset, mis. "6–8") ditampilin sebagai sub-label "Target: 6–8 reps" di kolom
+      // Previous - beda sama riwayat sesi terakhir (lastSummary/"Last: 40kg × 8") yang muncul per
+      // set kalau split-nya udah pernah dilog (lihat getGymTemplate, grind/supabase.js).
+      function targetLabel(targetReps) {
+        if (!targetReps) return null;
+        var isDuration = /s$/i.test(targetReps) && /\d/.test(targetReps);
+        return "Target: " + targetReps + (isDuration ? "" : " reps");
       }
 
       function templateToExercises(templateExercises) {
         return (templateExercises || []).map(function (ex) {
+          var presetLabel = targetLabel(ex.targetReps);
           return {
             name: ex.exerciseName,
+            restSec: ex.restSec || 90,
             sets: (ex.sets || []).map(function (s) {
               var hasPrevious = s.weightKg != null && Number(s.weightKg) > 0;
               return {
-                previousText: hasPrevious ? s.weightKg + "kg × " + (s.reps != null ? s.reps : "-") : null,
+                previousText: presetLabel || (hasPrevious ? s.weightKg + "kg × " + (s.reps != null ? s.reps : "-") : null),
                 weight: "",
                 reps: "",
                 done: false,
@@ -390,7 +395,11 @@ function gymPageScript() {
               done: row.classList.contains("set-row-done"),
             };
           });
-          return { name: card.querySelector(".exercise-name-input").value, sets: sets };
+          return {
+            name: card.querySelector(".exercise-name-input").value,
+            restSec: parseInt(card.dataset.restSec || "90", 10),
+            sets: sets,
+          };
         });
         return {
           split: getActiveSplit(),
@@ -519,7 +528,8 @@ function gymPageScript() {
   </script>`;
 }
 
-export function renderGymPage({ defaultTime, recoveryHint }) {
+export function renderGymPage({ defaultTime, defaultSplit, recoveryHint }) {
+  const activeSplit = GYM_SPLITS.includes(defaultSplit) ? defaultSplit : GYM_SPLITS[0];
   return `<!doctype html>
 <html lang="en">
 <head>
@@ -529,6 +539,7 @@ export function renderGymPage({ defaultTime, recoveryHint }) {
 ${faviconLink("/icons/grind-icon.png")}
 <style>${DASHBOARD_CSS}</style>
 <style>${GYM_PAGE_CSS}</style>
+<style>${exerciseGuideStyles()}</style>
 </head>
 <body>
   <div class="container">
@@ -544,7 +555,7 @@ ${faviconLink("/icons/grind-icon.png")}
         </div>
       </div>
       <div class="gym-split-pills-row">
-        ${splitPillsHtml()}
+        ${splitPillsHtml(activeSplit)}
       </div>
     </header>
 
@@ -558,7 +569,7 @@ ${faviconLink("/icons/grind-icon.png")}
 
     <form method="POST" action="/hub/grind/sessions/gym" id="gym-page-form">
       <input type="hidden" name="session_time" id="gym-session-time-hidden" value="${defaultTime === "PM" ? "PM" : "AM"}">
-      <input type="hidden" name="sub_type" id="gym-sub-type-hidden" value="${GYM_SPLITS[0]}">
+      <input type="hidden" name="sub_type" id="gym-sub-type-hidden" value="${activeSplit}">
       <input type="hidden" name="duration_min" id="gym-duration-min-hidden" value="1">
 
       <div id="gym-exercises-container"><div class="empty-state">Loading template...</div></div>

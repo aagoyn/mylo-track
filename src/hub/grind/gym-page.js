@@ -68,9 +68,19 @@ const GYM_PAGE_CSS = `
   .exercise-remove-btn:hover { background: var(--surface-hover); color: var(--danger); }
 
   .set-table-header, .set-row {
-    display: grid; grid-template-columns: 32px 1fr 76px 76px 40px; gap: 6px; align-items: center;
+    display: grid; grid-template-columns: 32px 1fr 76px 76px 40px 24px; gap: 6px; align-items: center;
   }
-  .set-row.set-row-duration { grid-template-columns: 32px 1fr 56px 92px 40px; }
+  .set-row.set-row-duration { grid-template-columns: 32px 1fr 56px 92px 40px 24px; }
+  /* Hapus 1 baris set (fitur baru) - kecil, abu netral, baru kelihatan nyolok pas di-hover/tap
+     (hindari kesan "tombol bahaya" nongol tiap saat di tiap baris). Disembunyiin total kalau
+     cuma tersisa 1 set (minimal harus ada 1 baris per gerakan), lihat makeSetRow(). */
+  .set-remove-btn {
+    width: 24px; height: 24px; border-radius: 6px; border: none; background: transparent;
+    color: var(--text-dim); cursor: pointer; display: flex; align-items: center; justify-content: center;
+    font-family: inherit; font-size: 13px; line-height: 1; padding: 0;
+  }
+  .set-remove-btn:hover { background: var(--surface-hover); color: var(--danger); }
+  .set-remove-btn[hidden] { display: none; }
   .set-table-header {
     font-size: 10px; color: var(--text-dim); text-transform: uppercase; letter-spacing: .03em; padding: 0 2px 4px;
   }
@@ -456,9 +466,12 @@ function gymPageScript(runFatigue) {
       }
 
       function renumber(card) {
-        card.querySelectorAll(".set-row").forEach(function (row, i) {
+        var rows = card.querySelectorAll(".set-row");
+        rows.forEach(function (row, i) {
           row.dataset.orderNum = i + 1;
           applySetTypeBadge(row);
+          var removeBtn = row.querySelector(".set-remove-btn");
+          if (removeBtn) removeBtn.hidden = rows.length <= 1;
         });
       }
 
@@ -539,13 +552,27 @@ function gymPageScript(runFatigue) {
             '<input type="text" inputmode="numeric" class="set-input set-reps-input" placeholder="reps">' +
             '<button type="button" class="sec-timer-btn" aria-label="Mulai hitung mundur" hidden>${svgIcon("play", { size: 13 })}</button>' +
           '</div>' +
-          '<button type="button" class="set-check-btn' + (done ? " checked" : "") + '" aria-label="Set selesai">${svgIcon("check", { size: 16 })}</button>';
+          '<button type="button" class="set-check-btn' + (done ? " checked" : "") + '" aria-label="Set selesai">${svgIcon("check", { size: 16 })}</button>' +
+          '<button type="button" class="set-remove-btn" aria-label="Hapus set">✕</button>';
 
         var kgInput = row.querySelector(".set-kg-input");
         var repsInput = row.querySelector(".set-reps-input");
         var checkBtn = row.querySelector(".set-check-btn");
         var typeBtn = row.querySelector(".set-index");
         var secBtn = row.querySelector(".sec-timer-btn");
+        var removeBtn = row.querySelector(".set-remove-btn");
+
+        // Hapus 1 set (misal "+ Add Set" kepencet nggak sengaja) - minimal nyisain 1 baris per
+        // gerakan, jadi tombolnya disembunyiin kalau cuma tinggal 1 set (lihat renumber()).
+        removeBtn.addEventListener("click", function () {
+          var card = row.closest(".exercise-card");
+          row.remove();
+          if (card) {
+            renumber(card);
+            updateGuardrailAlert(card);
+          }
+          saveDraft();
+        });
         kgInput.value = weight || "";
         repsInput.value = reps || "";
 
@@ -691,7 +718,7 @@ function gymPageScript(runFatigue) {
             '<button type="button" class="exercise-guide-btn" aria-label="Panduan gerakan">${svgIcon("helpCircle", { size: 16 })}</button>' +
             '<button type="button" class="exercise-remove-btn" aria-label="Hapus gerakan">✕</button>' +
           '</div>' +
-          '<div class="set-table-header"><span>Set</span><span>Previous</span><span>Kg</span><span>Reps</span><span></span></div>' +
+          '<div class="set-table-header"><span>Set</span><span>Previous</span><span>Kg</span><span>Reps</span><span></span><span></span></div>' +
           '<div class="set-rows"></div>' +
           '<button type="button" class="add-set-btn">+ Add Set</button>' +
           '<div class="exercise-guardrail-alert" hidden><span class="exercise-guardrail-icon">${svgIcon("alertCircle", { size: 13 })}</span><span class="exercise-guardrail-text"></span></div>';

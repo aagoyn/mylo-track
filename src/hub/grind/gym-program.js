@@ -149,13 +149,51 @@ function dayOfWeekForDateKey(dateKey) {
   return d.getUTCDay() || 7;
 }
 
+function timeToMinutes(hhmm) {
+  const m = /^(\d{1,2}):(\d{2})$/.exec(hhmm || "");
+  if (!m) return null;
+  const h = parseInt(m[1], 10);
+  const mi = parseInt(m[2], 10);
+  if (h > 23 || mi > 59) return null;
+  return h * 60 + mi;
+}
+
+// Validasi override jam latihan sebelum disimpan (lihat router.js POST /hub/grind/gym-schedule/
+// override) - aturan dasar DEFAULT_GYM_SCHEDULE harus tetap kejaga: format HH:MM yang valid, jam
+// selesai > jam mulai, dan nggak boleh bentrok sama jam kerja Senin-Jumat (09:00-18:00). Return
+// null kalau valid, atau pesan error (string) kalau nggak.
+export function validateGymScheduleOverride(dateKey, startTime, endTime) {
+  const startMin = timeToMinutes(startTime);
+  const endMin = timeToMinutes(endTime);
+  if (startMin == null || endMin == null) return "Format jam harus HH:MM.";
+  if (endMin <= startMin) return "Jam selesai harus setelah jam mulai.";
+
+  const dow = dayOfWeekForDateKey(dateKey);
+  const isWeekday = dow >= 1 && dow <= 5;
+  if (isWeekday) {
+    const workStart = 9 * 60;
+    const workEnd = 18 * 60;
+    if (startMin < workEnd && endMin > workStart) {
+      return "Jam latihan nggak boleh bentrok sama jam kerja (09:00–18:00) di hari kerja.";
+    }
+  }
+  return null;
+}
+
 // Plan virtual (id: null, "virtual: true") dipakai cuma buat DITAMPILKAN kalau belum ada plan GYM
 // asli (dari DB/import TSV) di tanggal itu - nggak pernah disimpan ke grind_plans. Jangan dikira
 // plan asli: rendering (dashboard.js) & router HARUS cek `.virtual` sebelum nge-assume ada plan.id
 // yang valid buat endpoint complete/skip/edit/move-to-today.
-export function defaultGymPlanForDate(dateKey) {
+//
+// `override` ({ start_time, end_time }, opsional) datang dari grind_gym_schedule_overrides (lihat
+// supabase.js: getGymScheduleOverrides) - kalau ADA, jam itu yang dipakai & `tentative: false`;
+// kalau TIDAK ADA, pakai jam default DEFAULT_GYM_SCHEDULE & `tentative: true` (saran perencanaan,
+// bukan jadwal pasti - lihat scheduleDayHtml buat indikator "Tentative"-nya).
+export function defaultGymPlanForDate(dateKey, override) {
   const entry = DEFAULT_GYM_SCHEDULE.find((e) => e.dayOfWeek === dayOfWeekForDateKey(dateKey));
   if (!entry) return null;
+  const startTime = override ? override.start_time : entry.startTime;
+  const endTime = override ? override.end_time : entry.endTime;
   return {
     id: null,
     plan_date: dateKey,
@@ -167,9 +205,10 @@ export function defaultGymPlanForDate(dateKey) {
     target_hr: null,
     instructions: entry.subtitle,
     title: entry.title,
-    start_time: entry.startTime,
-    end_time: entry.endTime,
-    scheduled_time: formatScheduledTime(entry.startTime, entry.endTime),
+    start_time: startTime,
+    end_time: endTime,
+    scheduled_time: formatScheduledTime(startTime, endTime),
+    tentative: !override,
     virtual: true,
   };
 }
@@ -179,14 +218,16 @@ export function defaultGymPlanForDate(dateKey) {
 // viewer). BEDA dari versi lama: cuma dicek session_type === "GYM" (bukan "ada plan APAPUN di
 // tanggal itu"), jadi sesi lain yang udah dijadwalin di tanggal yang sama (mis. Badminton Sabtu)
 // tetap tampil BERDAMPINGAN sebagai item terpisah, bukan nimpa/nyembunyiin jadwal Gym default.
-export function injectDefaultGymPlans(plans, startKey, endKey) {
+// `overrides` (opsional): array hasil getGymScheduleOverrides, dipetakan per plan_date di sini.
+export function injectDefaultGymPlans(plans, startKey, endKey, overrides) {
   const gymDates = new Set(plans.filter((p) => p.session_type === "GYM").map((p) => p.plan_date));
+  const overrideByDate = new Map((overrides || []).map((o) => [o.plan_date, o]));
   const merged = [...plans];
   let cursor = startKey;
   let guard = 0;
   while (guard < 31) {
     if (!gymDates.has(cursor)) {
-      const virtualPlan = defaultGymPlanForDate(cursor);
+      const virtualPlan = defaultGymPlanForDate(cursor, overrideByDate.get(cursor));
       if (virtualPlan) merged.push(virtualPlan);
     }
     if (cursor === endKey) break;

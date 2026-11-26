@@ -146,6 +146,39 @@ export async function setWeeklyRunTargetKm(phone, km) {
   if (error) throw error;
 }
 
+// ---------- Gym Schedule Override (jam "Tentative" di Schedule This Week, lihat gym-program.js) ----------
+
+export async function getGymScheduleOverrides(phone, startKey, endKey) {
+  const { data, error } = await supabase
+    .from("grind_gym_schedule_overrides")
+    .select("plan_date, start_time, end_time")
+    .eq("phone", phone)
+    .gte("plan_date", startKey)
+    .lte("plan_date", endKey);
+  if (error) throw error;
+  return data || [];
+}
+
+// Dipanggil dari form "Edit jam" per tanggal - upsert by (phone, plan_date), jadi override lama
+// di tanggal yang sama ikut terganti (ini memang satu-satunya cara user "ganti jam override-nya
+// sendiri"), TAPI nggak pernah nimpa plan GYM asli di grind_plans (tabel beda sama sekali).
+export async function setGymScheduleOverride(phone, planDate, startTime, endTime) {
+  const { error } = await supabase
+    .from("grind_gym_schedule_overrides")
+    .upsert({ phone, plan_date: planDate, start_time: startTime, end_time: endTime }, { onConflict: "phone,plan_date" });
+  if (error) throw error;
+}
+
+// "Reset to Tentative" - balik ke jam default DEFAULT_GYM_SCHEDULE buat tanggal itu.
+export async function deleteGymScheduleOverride(phone, planDate) {
+  const { error } = await supabase
+    .from("grind_gym_schedule_overrides")
+    .delete()
+    .eq("phone", phone)
+    .eq("plan_date", planDate);
+  if (error) throw error;
+}
+
 export async function getSessionsByDate(phone, dateKey) {
   const { data, error } = await supabase
     .from("grind_sessions")

@@ -377,3 +377,18 @@ create table if not exists grind_settings (
   updated_at timestamptz not null default now()
 );
 alter table grind_settings enable row level security;
+
+-- Override jam latihan Gym per TANGGAL (bukan per hari-dalam-minggu) - dipakai buat nimpa jam
+-- "Tentative" dari DEFAULT_GYM_SCHEDULE (gym-program.js) kalau user udah ngatur jam sendiri buat
+-- tanggal itu (lihat scheduleDayHtml di dashboard.js: "Edit jam" + "Reset to Tentative"). Nggak
+-- pernah nimpa plan GYM asli (grind_plans) - ini cuma override tampilan jam buat jadwal virtual.
+create table if not exists grind_gym_schedule_overrides (
+  id bigserial primary key,
+  phone text not null,
+  plan_date date not null,
+  start_time text not null,
+  end_time text not null,
+  created_at timestamptz not null default now(),
+  unique (phone, plan_date)
+);
+alter table grind_gym_schedule_overrides enable row level security;

@@ -29,10 +29,20 @@ import {
   setWeeklyRunTargetKm,
   getAllRunSessions,
   getAllGymSessionsWithSets,
+  getGymScheduleOverrides,
+  setGymScheduleOverride,
+  deleteGymScheduleOverride,
 } from "./supabase.js";
 import { renderGrindPage } from "./dashboard.js";
 import { renderGymPage } from "./gym-page.js";
-import { GYM_SPLITS, defaultSplitForDay, injectDefaultGymPlans, defaultGymPlanForDate, markCompletedGymPlans } from "./gym-program.js";
+import {
+  GYM_SPLITS,
+  defaultSplitForDay,
+  injectDefaultGymPlans,
+  defaultGymPlanForDate,
+  markCompletedGymPlans,
+  validateGymScheduleOverride,
+} from "./gym-program.js";
 import { computeRunningPBs, computeGymPRs } from "./personal-best.js";
 
 const WIB_OFFSET_MS = 7 * 60 * 60 * 1000;
@@ -90,6 +100,8 @@ router.get("/hub/grind", requireAuth, async (req, res) => {
       weekTargetKm,
       allRunSessions,
       allGymSessions,
+      weekGymScheduleOverrides,
+      nextWeekGymScheduleOverrides,
     ] = await Promise.all([
       getPlanByDate(phone, todayKey),
       getSessionsByDate(phone, todayKey),
@@ -102,6 +114,8 @@ router.get("/hub/grind", requireAuth, async (req, res) => {
       getWeeklyRunTargetKm(phone),
       getAllRunSessions(phone),
       getAllGymSessionsWithSets(phone),
+      getGymScheduleOverrides(phone, weekStart, weekEnd),
+      getGymScheduleOverrides(phone, nextWeekStart, nextWeekEnd),
     ]);
 
     // Personal Bests (lari) & Personal Records (gym) - dihitung dari SELURUH riwayat (bukan cuma
@@ -119,8 +133,11 @@ router.get("/hub/grind", requireAuth, async (req, res) => {
     // GYM beneran di tanggal itu minggu ini (lihat gym-program.js markCompletedGymPlans) - nggak
     // pernah ditulis ke DB, semuanya tetap `virtual: true`.
     const todayPlan = rawTodayPlan || defaultGymPlanForDate(todayKey);
-    const weekPlans = markCompletedGymPlans(injectDefaultGymPlans(rawWeekPlans, weekStart, weekEnd), weekSessions);
-    const nextWeekPlans = injectDefaultGymPlans(rawNextWeekPlans, nextWeekStart, nextWeekEnd);
+    const weekPlans = markCompletedGymPlans(
+      injectDefaultGymPlans(rawWeekPlans, weekStart, weekEnd, weekGymScheduleOverrides),
+      weekSessions
+    );
+    const nextWeekPlans = injectDefaultGymPlans(rawNextWeekPlans, nextWeekStart, nextWeekEnd, nextWeekGymScheduleOverrides);
 
     let openForm = req.query.form || null;
     let prefill = null;
@@ -259,6 +276,44 @@ router.post("/hub/grind/settings/weekly-target", requireAuth, async (req, res) =
   } catch (err) {
     console.error(err);
     redirectWithError(res, `Gagal update target mingguan: ${err.message}`);
+  }
+});
+
+// Override jam "Tentative" di jadwal Gym default (lihat gym-program.js DEFAULT_GYM_SCHEDULE) buat
+// satu tanggal spesifik - cuma nyimpen ke grind_gym_schedule_overrides, nggak pernah nyentuh/
+// nimpa grind_plans (plan GYM asli tetap diprioritaskan, lihat injectDefaultGymPlans).
+router.post("/hub/grind/gym-schedule/override", requireAuth, async (req, res) => {
+  const planDate = (req.body.plan_date || "").trim();
+  const startTime = (req.body.start_time || "").trim();
+  const endTime = (req.body.end_time || "").trim();
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(planDate)) {
+    return redirectWithError(res, "Tanggal tidak valid.");
+  }
+
+  const validationError = validateGymScheduleOverride(planDate, startTime, endTime);
+  if (validationError) return redirectWithError(res, validationError);
+
+  try {
+    await setGymScheduleOverride(req.user.phone, planDate, startTime, endTime);
+    res.redirect("/hub/grind?ok=1");
+  } catch (err) {
+    console.error(err);
+    redirectWithError(res, `Gagal simpan jam latihan: ${err.message}`);
+  }
+});
+
+router.post("/hub/grind/gym-schedule/reset", requireAuth, async (req, res) => {
+  const planDate = (req.body.plan_date || "").trim();
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(planDate)) {
+    return redirectWithError(res, "Tanggal tidak valid.");
+  }
+
+  try {
+    await deleteGymScheduleOverride(req.user.phone, planDate);
+    res.redirect("/hub/grind?ok=1");
+  } catch (err) {
+    console.error(err);
+    redirectWithError(res, `Gagal reset jam latihan: ${err.message}`);
   }
 });
 

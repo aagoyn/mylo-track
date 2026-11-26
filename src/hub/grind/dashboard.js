@@ -292,6 +292,14 @@ const GRIND_PAGE_CSS = `
   .schedule-done-badge { color: var(--accent); font-weight: 700; margin-left: 6px; }
   .schedule-done-text { color: var(--accent); font-weight: 600; }
 
+  /* Pill "Tentative" - jam default DEFAULT_GYM_SCHEDULE itu saran perencanaan, bukan jadwal
+     pasti, jadi style-nya sengaja lembut/muted (beda dari badge Completed yang aksen warna). */
+  .schedule-tentative-pill {
+    display: inline-block; margin-left: 6px; padding: 1px 6px; border-radius: 999px;
+    font-size: 9.5px; font-weight: 600; text-transform: uppercase; letter-spacing: .03em;
+    color: var(--text-dim); background: var(--surface-hover);
+  }
+
   /* ---------- Personal Bests (PB lari & PR gym) ---------- */
   .pb-card { margin-bottom: 4px; }
   .pb-tabs { margin-bottom: 14px; }
@@ -577,9 +585,15 @@ function scheduleDayHtml(plan, todayKey) {
     const dayAbbrev = WEEKDAYS[new Date(`${plan.plan_date}T00:00:00Z`).getUTCDay()];
     const timeLabel = plan.scheduled_time ? `${dayAbbrev} · ${plan.scheduled_time}` : dayAbbrev;
     const isDone = plan.status === "DONE";
+    // "Tentative" (fitur baru) - jam default DEFAULT_GYM_SCHEDULE itu cuma SARAN, bukan jadwal
+    // pasti, jadi dikasih pill muted selama belum ada override jam kustom user di tanggal itu
+    // (lihat gym-program.js: defaultGymPlanForDate `tentative` flag). Completed TETAP cuma dari
+    // log GYM beneran (markCompletedGymPlans) - jam terjadwal lewat TIDAK pernah bikin auto-done.
+    const tentativePill = plan.tentative ? `<span class="schedule-tentative-pill">Tentative</span>` : "";
+
     return `<details class="log-item">
       <summary>
-        <span class="log-time tabular-nums">${timeLabel}</span>
+        <span class="log-time tabular-nums">${timeLabel}${tentativePill}</span>
         <span class="log-name">${svgIcon("dumbbell", { size: 16 })} ${escapeHtml(plan.title || `${badge}`)}${isDone ? '<span class="schedule-done-badge">✓</span>' : ""}</span>
       </summary>
       <div class="log-detail-body">
@@ -591,6 +605,27 @@ function scheduleDayHtml(plan, todayKey) {
           <a class="btn-primary btn-sm" href="/hub/grind/gym?split=${encodeURIComponent(plan.sub_type)}">${svgIconLabel("dumbbell", "Start", { size: 14 })}</a>
         </div>`
         }
+        <details class="inline-toggle" style="margin-top:8px;">
+          <summary>Edit jam${plan.tentative ? " (Tentative)" : ""}</summary>
+          <div class="inline-toggle-body">
+            <form method="POST" action="/hub/grind/gym-schedule/override">
+              <input type="hidden" name="plan_date" value="${plan.plan_date}">
+              <label>Mulai</label>
+              <input type="time" name="start_time" value="${escapeHtml(plan.start_time || "")}" required>
+              <label>Selesai</label>
+              <input type="time" name="end_time" value="${escapeHtml(plan.end_time || "")}" required>
+              <button type="submit">Simpan Jam</button>
+            </form>
+            ${
+              plan.tentative
+                ? ""
+                : `<form method="POST" action="/hub/grind/gym-schedule/reset" style="margin-top:6px;">
+                     <input type="hidden" name="plan_date" value="${plan.plan_date}">
+                     <button type="submit" class="btn-secondary btn-sm">Reset to Tentative</button>
+                   </form>`
+            }
+          </div>
+        </details>
       </div>
     </details>`;
   }

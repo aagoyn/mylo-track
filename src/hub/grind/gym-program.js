@@ -5,11 +5,57 @@
 // nge-import training plan custom di tanggal itu (lihat router.js: injectDefaultGymPlans).
 export const GYM_SPLITS = ["Push", "Pull", "Legs", "Posterior Chain", "Custom"];
 
-// Senin=1 ... Minggu=7, konsisten sama convention dayOfWeekWib di modul lain.
-export const SPLIT_BY_DAY = { 1: "Push", 2: "Pull", 4: "Legs", 6: "Posterior Chain" };
+// ---------- Gym Schedule & Time Configuration (terpusat, bukan hardcoded di dashboard.js) ----------
+// Senin=1 ... Minggu=7, konsisten sama convention dayOfWeekWib di modul lain. Jam latihan sengaja
+// SELALU di luar jam kerja Senin-Jumat (09:00-18:00): pagi sebelum kerja (Push) atau malam setelah
+// kerja selesai, >=18:15 (Pull/Legs) - KECUALI Sabtu (Posterior Chain) yang ringkas (45 menit) &
+// ditaruh sore terpisah dari jadwal Badminton, biar recovery tetap kejaga buat Long Run Minggu.
+export const DEFAULT_GYM_SCHEDULE = [
+  {
+    dayOfWeek: 1,
+    split: "Push",
+    title: "Gym — Push",
+    subtitle: "Chest, Shoulders, Triceps (7 exercises)",
+    startTime: "06:00",
+    endTime: "07:15",
+  },
+  {
+    dayOfWeek: 2,
+    split: "Pull",
+    title: "Gym — Pull",
+    subtitle: "Back, Rear Delts, Biceps (7 exercises)",
+    startTime: "18:45",
+    endTime: "20:00",
+  },
+  {
+    dayOfWeek: 4,
+    split: "Legs",
+    title: "Gym — Legs",
+    subtitle: "Quads, Glutes, Hamstrings, Calves (7 exercises)",
+    startTime: "18:45",
+    endTime: "20:00",
+  },
+  {
+    dayOfWeek: 6,
+    split: "Posterior Chain",
+    title: "Gym — Posterior Chain",
+    subtitle: "Deadlift & Posterior Chain · RPE 6–7 (7 exercises)",
+    startTime: "15:00",
+    endTime: "15:45",
+  },
+];
+
+// Derived dari DEFAULT_GYM_SCHEDULE (bukan daftar terpisah) biar satu-satunya sumber jadwal cuma
+// DEFAULT_GYM_SCHEDULE - nggak ada 2 tempat yang bisa kebablasan nggak sinkron kalau jadwalnya
+// diubah lagi nanti.
+export const SPLIT_BY_DAY = Object.fromEntries(DEFAULT_GYM_SCHEDULE.map((e) => [e.dayOfWeek, e.split]));
 
 export function defaultSplitForDay(dayOfWeek) {
   return SPLIT_BY_DAY[dayOfWeek] || null;
+}
+
+function formatScheduledTime(startTime, endTime) {
+  return `${startTime}–${endTime}`;
 }
 
 export const GYM_PROGRAM = {
@@ -92,13 +138,6 @@ export function restSecForExerciseName(name) {
   return null;
 }
 
-const DEFAULT_GYM_PLAN_INSTRUCTIONS = {
-  Push: "Upper Body: Chest, Shoulders, Triceps · 7 exercises",
-  Pull: "Upper Body: Back, Rear Delts, Biceps · 7 exercises",
-  Legs: "Lower Body: Quads, Glutes, Hamstrings, Calves · 7 exercises",
-  "Posterior Chain": "Deadlift Day · RPE 6–7, jaga recovery untuk Long Run Minggu · 7 exercises",
-};
-
 function addDaysToKey(dateKey, days) {
   const d = new Date(`${dateKey}T00:00:00Z`);
   d.setUTCDate(d.getUTCDate() + days);
@@ -110,36 +149,43 @@ function dayOfWeekForDateKey(dateKey) {
   return d.getUTCDay() || 7;
 }
 
-// Plan virtual (id: null, "virtual: true") dipakai cuma buat DITAMPILKAN kalau belum ada plan
+// Plan virtual (id: null, "virtual: true") dipakai cuma buat DITAMPILKAN kalau belum ada plan GYM
 // asli (dari DB/import TSV) di tanggal itu - nggak pernah disimpan ke grind_plans. Jangan dikira
 // plan asli: rendering (dashboard.js) & router HARUS cek `.virtual` sebelum nge-assume ada plan.id
 // yang valid buat endpoint complete/skip/edit/move-to-today.
 export function defaultGymPlanForDate(dateKey) {
-  const split = defaultSplitForDay(dayOfWeekForDateKey(dateKey));
-  if (!split) return null;
+  const entry = DEFAULT_GYM_SCHEDULE.find((e) => e.dayOfWeek === dayOfWeekForDateKey(dateKey));
+  if (!entry) return null;
   return {
     id: null,
     plan_date: dateKey,
     session_type: "GYM",
-    sub_type: split,
+    sub_type: entry.split,
     status: "PENDING",
     target_distance_km: null,
     target_pace: null,
     target_hr: null,
-    instructions: DEFAULT_GYM_PLAN_INSTRUCTIONS[split] || null,
+    instructions: entry.subtitle,
+    title: entry.title,
+    start_time: entry.startTime,
+    end_time: entry.endTime,
+    scheduled_time: formatScheduledTime(entry.startTime, entry.endTime),
     virtual: true,
   };
 }
 
 // Sisipkan plan gym default ke daftar plan 1 minggu (dari DB) buat tanggal-tanggal yang belum
-// punya plan sama sekali - dipakai weekPlans/nextWeekPlans di GET /hub/grind (Schedule viewer).
+// punya plan GYM sama sekali - dipakai weekPlans/nextWeekPlans di GET /hub/grind (Schedule
+// viewer). BEDA dari versi lama: cuma dicek session_type === "GYM" (bukan "ada plan APAPUN di
+// tanggal itu"), jadi sesi lain yang udah dijadwalin di tanggal yang sama (mis. Badminton Sabtu)
+// tetap tampil BERDAMPINGAN sebagai item terpisah, bukan nimpa/nyembunyiin jadwal Gym default.
 export function injectDefaultGymPlans(plans, startKey, endKey) {
-  const existingDates = new Set(plans.map((p) => p.plan_date));
+  const gymDates = new Set(plans.filter((p) => p.session_type === "GYM").map((p) => p.plan_date));
   const merged = [...plans];
   let cursor = startKey;
   let guard = 0;
   while (guard < 31) {
-    if (!existingDates.has(cursor)) {
+    if (!gymDates.has(cursor)) {
       const virtualPlan = defaultGymPlanForDate(cursor);
       if (virtualPlan) merged.push(virtualPlan);
     }
@@ -147,6 +193,25 @@ export function injectDefaultGymPlans(plans, startKey, endKey) {
     cursor = addDaysToKey(cursor, 1);
     guard++;
   }
-  merged.sort((a, b) => (a.plan_date < b.plan_date ? -1 : a.plan_date > b.plan_date ? 1 : 0));
+  // Kronologis: tanggal dulu, baru jam mulai (scheduled_time/start_time) dalam hari yang sama -
+  // item tanpa jam spesifik (plan asli lama belum punya kolom waktu) ditaruh duluan sebelum item
+  // yang punya jam pasti, biar nggak nebak-nebak urutannya.
+  merged.sort((a, b) => {
+    if (a.plan_date !== b.plan_date) return a.plan_date < b.plan_date ? -1 : 1;
+    if (a.start_time && b.start_time) return a.start_time < b.start_time ? -1 : a.start_time > b.start_time ? 1 : 0;
+    if (a.start_time && !b.start_time) return 1;
+    if (!a.start_time && b.start_time) return -1;
+    return 0;
+  });
   return merged;
+}
+
+// Auto-Complete Check: kalau di tanggal plan Gym virtual itu udah ada log sesi GYM beneran
+// (dari grind_sessions, APAPUN split-nya - orang bisa aja ganti split pas latihan), tandain
+// status-nya "DONE" tanpa user perlu nge-complete manual (plan virtual kan nggak pernah ada
+// tombol Complete sungguhan karena nggak ada plan.id). Dipakai di router.js buat weekPlans
+// (weekSessions-nya emang cuma ada buat minggu berjalan, minggu depan nggak mungkin ada log).
+export function markCompletedGymPlans(plans, sessions) {
+  const loggedGymDates = new Set((sessions || []).filter((s) => s.type === "GYM").map((s) => s.session_date));
+  return plans.map((p) => (p.virtual && p.session_type === "GYM" && loggedGymDates.has(p.plan_date) ? { ...p, status: "DONE" } : p));
 }

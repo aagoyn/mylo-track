@@ -32,7 +32,7 @@ import {
 } from "./supabase.js";
 import { renderGrindPage } from "./dashboard.js";
 import { renderGymPage } from "./gym-page.js";
-import { GYM_SPLITS, defaultSplitForDay, injectDefaultGymPlans, defaultGymPlanForDate } from "./gym-program.js";
+import { GYM_SPLITS, defaultSplitForDay, injectDefaultGymPlans, defaultGymPlanForDate, markCompletedGymPlans } from "./gym-program.js";
 import { computeRunningPBs, computeGymPRs } from "./personal-best.js";
 
 const WIB_OFFSET_MS = 7 * 60 * 60 * 1000;
@@ -112,11 +112,14 @@ router.get("/hub/grind", requireAuth, async (req, res) => {
       gym: computeGymPRs(allGymSessions),
     };
 
-    // Jadwal gym default 4-Day Hybrid Split (Push/Pull/Legs/Posterior Chain) - cuma "nongol" kalau
-    // belum ada plan asli (dari import TSV) di tanggal itu, nggak pernah ditulis ke DB (lihat
-    // gym-program.js: injectDefaultGymPlans/defaultGymPlanForDate, semuanya `virtual: true`).
+    // Jadwal gym default 4-Day Hybrid Split (Push/Pull/Legs/Posterior Chain) - selalu digabung
+    // (BUKAN cuma nongol kalau tabel plan kosong) sama plan asli minggu ini, kecuali tanggal itu
+    // udah ada plan GYM asli sendiri; sesi lain yang beda tanggal yang sama (mis. Badminton Sabtu)
+    // tetap tampil terpisah berdampingan. Auto-Complete: ditandain DONE otomatis kalau udah ada log
+    // GYM beneran di tanggal itu minggu ini (lihat gym-program.js markCompletedGymPlans) - nggak
+    // pernah ditulis ke DB, semuanya tetap `virtual: true`.
     const todayPlan = rawTodayPlan || defaultGymPlanForDate(todayKey);
-    const weekPlans = injectDefaultGymPlans(rawWeekPlans, weekStart, weekEnd);
+    const weekPlans = markCompletedGymPlans(injectDefaultGymPlans(rawWeekPlans, weekStart, weekEnd), weekSessions);
     const nextWeekPlans = injectDefaultGymPlans(rawNextWeekPlans, nextWeekStart, nextWeekEnd);
 
     let openForm = req.query.form || null;

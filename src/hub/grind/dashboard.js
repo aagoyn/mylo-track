@@ -287,6 +287,11 @@ const GRIND_PAGE_CSS = `
     color: #fff; font-size: 15px; font-weight: 700; cursor: pointer; font-family: inherit;
   }
 
+  /* Badge/teks "Completed" otomatis (Auto-Complete Check) di item Schedule This Week - aksen
+     warm amber (var(--accent) di tema ini emang udah warna coklat-amber hangat). */
+  .schedule-done-badge { color: var(--accent); font-weight: 700; margin-left: 6px; }
+  .schedule-done-text { color: var(--accent); font-weight: 600; }
+
   /* ---------- Personal Bests (PB lari & PR gym) ---------- */
   .pb-card { margin-bottom: 4px; }
   .pb-tabs { margin-bottom: 14px; }
@@ -562,17 +567,30 @@ function scheduleDayHtml(plan, todayKey) {
     plan.status === "DONE" ? " ✅" : plan.status === "SKIPPED" ? " ⏭" : "";
   const summary = planSummaryLine(plan);
 
-  // Plan gym default (jadwal 4-Day Hybrid Split, belum ada di DB sama sekali) - cuma kebagian
-  // tombol "Start Gym" langsung ke template hari itu, nggak ada Edit/Move/Skip karena nggak ada
-  // plan.id yang bisa di-update (lihat gym-program.js: defaultGymPlanForDate).
+  // Plan gym default (jadwal 4-Day Hybrid Split, belum ada plan GYM asli di DB di tanggal itu) -
+  // cuma kebagian tombol "Start" langsung ke split terkait, nggak ada Edit/Move/Skip karena nggak
+  // ada plan.id yang bisa di-update (lihat gym-program.js: defaultGymPlanForDate). scheduled_time
+  // (dari DEFAULT_GYM_SCHEDULE, satu-satunya sumber jadwal/jam) ditampilin berdampingan sama
+  // judul - status DONE datang dari Auto-Complete Check (markCompletedGymPlans di router.js),
+  // bukan user nge-complete manual, jadi nggak ada tombol apa-apa lagi selain lihat detail.
   if (plan.virtual) {
+    const dayAbbrev = WEEKDAYS[new Date(`${plan.plan_date}T00:00:00Z`).getUTCDay()];
+    const timeLabel = plan.scheduled_time ? `${dayAbbrev} · ${plan.scheduled_time}` : dayAbbrev;
+    const isDone = plan.status === "DONE";
     return `<details class="log-item">
-      <summary><span class="log-name">${dateLabel(plan.plan_date)} — ${badge}</span></summary>
+      <summary>
+        <span class="log-time tabular-nums">${timeLabel}</span>
+        <span class="log-name">${svgIcon("dumbbell", { size: 16 })} ${escapeHtml(plan.title || `${badge}`)}${isDone ? '<span class="schedule-done-badge">✓</span>' : ""}</span>
+      </summary>
       <div class="log-detail-body">
         ${plan.instructions ? `<div class="card-sub">${escapeHtml(plan.instructions)}</div>` : ""}
-        <div class="button-row" style="margin-top:8px;">
-          <a class="btn-primary btn-sm" href="/hub/grind/gym?split=${encodeURIComponent(plan.sub_type)}">${svgIconLabel("dumbbell", "Start Gym", { size: 14 })}</a>
-        </div>
+        ${
+          isDone
+            ? `<div class="card-sub schedule-done-text" style="margin-top:8px;">✓ Completed</div>`
+            : `<div class="button-row" style="margin-top:8px;">
+          <a class="btn-primary btn-sm" href="/hub/grind/gym?split=${encodeURIComponent(plan.sub_type)}">${svgIconLabel("dumbbell", "Start", { size: 14 })}</a>
+        </div>`
+        }
       </div>
     </details>`;
   }

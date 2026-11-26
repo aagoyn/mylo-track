@@ -1,4 +1,5 @@
 import { DASHBOARD_CSS, escapeHtml, faviconLink, svgIcon, bottomNavHtml } from "../../shared/dashboard-layout.js";
+import { exerciseGuideScript, exerciseGuideDialogHtml } from "./exercise-guides.js";
 
 // Halaman standalone Gym Workout Tracker ala Strong/Hevy - rep & set tracker dengan live duration
 // timer, floating rest timer, dan auto-save draft ke localStorage. Menggantikan accordion
@@ -109,6 +110,46 @@ const GYM_PAGE_CSS = `
     color: var(--text); font-size: 12px; cursor: pointer; font-family: inherit;
   }
   .rest-timer-bar button:hover { background: var(--border-hover); }
+
+  /* Quick Tip Banner - dismissible 1x (localStorage grind_gym_tip_dismissed), fade+collapse halus. */
+  .gym-tip-banner {
+    display: flex; align-items: flex-start; gap: 10px; padding: 12px 14px; margin-bottom: 14px;
+    font-size: 12.5px; line-height: 1.5; color: var(--text-muted);
+    transition: opacity .25s ease, transform .25s ease, max-height .25s ease, padding .25s ease, margin .25s ease;
+    max-height: 120px; overflow: hidden;
+  }
+  .gym-tip-banner[hidden] { display: none; }
+  .gym-tip-banner.gym-tip-dismissing {
+    opacity: 0; transform: translateY(-6px); max-height: 0; padding-top: 0; padding-bottom: 0; margin-bottom: 0;
+  }
+  .gym-tip-banner .svg-icon { flex-shrink: 0; margin-top: 1px; color: var(--accent); }
+  .gym-tip-text { flex: 1; }
+  .gym-tip-close {
+    flex-shrink: 0; width: 22px; height: 22px; border-radius: 50%; border: none; background: transparent;
+    color: var(--text-dim); font-size: 13px; line-height: 1; cursor: pointer; font-family: inherit;
+  }
+  .gym-tip-close:hover { background: var(--surface-hover); color: var(--text); }
+
+  /* Tombol Guide (?) di header kartu - di kiri tombol hapus. */
+  .exercise-guide-btn {
+    width: 28px; height: 28px; border-radius: 50%; border: none; background: transparent;
+    color: var(--text-dim); cursor: pointer; flex-shrink: 0; display: flex; align-items: center; justify-content: center;
+  }
+  .exercise-guide-btn:hover { background: var(--surface-hover); color: var(--accent); }
+  .exercise-guide-btn .svg-icon { margin: 0; }
+
+  /* Dialog Exercise Form Guide - pakai chrome .modal-dialog/.modal-dialog-body/.modal-dialog-header
+     yang sudah ada (lihat spending/calorie dialog), nambah style khusus konten guide-nya aja. */
+  .guide-muscle-badge { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+  .guide-diagram-wrap { color: var(--text-muted); margin: 14px 0; }
+  .guide-diagram-wrap svg { display: block; }
+  .guide-section-label { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .03em; color: var(--text-dim); margin-bottom: 6px; }
+  .guide-steps { margin: 0 0 12px; padding-left: 18px; display: flex; flex-direction: column; gap: 6px; font-size: 13px; color: var(--text); }
+  .guide-avoid-box {
+    font-size: 12.5px; line-height: 1.5; color: var(--text-muted); background: var(--surface-hover);
+    border-radius: 10px; padding: 10px 12px;
+  }
+  .guide-avoid-box strong { color: var(--danger); }
 `;
 
 function splitPillsHtml() {
@@ -139,6 +180,24 @@ function gymPageScript() {
       var restBar = document.getElementById("rest-timer-bar");
       var restTimeEl = document.getElementById("rest-timer-time");
       if (!container || !splitPillsEl || !form) return;
+
+      // Quick Tip Banner - tampil 1x doang (cek localStorage), ditutup via tombol ✕ dengan
+      // animasi fade+collapse (CSS transition di .gym-tip-dismissing), baru hidden setelah selesai.
+      var TIP_DISMISSED_KEY = "grind_gym_tip_dismissed";
+      var tipBanner = document.getElementById("gym-tip-banner");
+      var tipCloseBtn = document.getElementById("gym-tip-close");
+      if (tipBanner) {
+        try {
+          if (localStorage.getItem(TIP_DISMISSED_KEY) !== "true") tipBanner.hidden = false;
+        } catch (e) { tipBanner.hidden = false; }
+        if (tipCloseBtn) {
+          tipCloseBtn.addEventListener("click", function () {
+            try { localStorage.setItem(TIP_DISMISSED_KEY, "true"); } catch (e) {}
+            tipBanner.classList.add("gym-tip-dismissing");
+            setTimeout(function () { tipBanner.hidden = true; }, 260);
+          });
+        }
+      }
 
       // Timer nggak auto-jalan pas halaman dibuka (beda dari versi sebelumnya) - baru mulai pas
       // user klik "Start Workout" ATAU centang set pertama (auto-start), lihat startWorkout().
@@ -258,6 +317,7 @@ function gymPageScript() {
         card.innerHTML =
           '<div class="exercise-card-head">' +
             '<input type="text" class="exercise-name-input" placeholder="Nama gerakan" required>' +
+            '<button type="button" class="exercise-guide-btn" aria-label="Panduan gerakan">${svgIcon("helpCircle", { size: 16 })}</button>' +
             '<button type="button" class="exercise-remove-btn" aria-label="Hapus gerakan">✕</button>' +
           '</div>' +
           '<div class="set-table-header"><span>Set</span><span>Previous</span><span>Kg</span><span>Reps</span><span></span></div>' +
@@ -274,6 +334,9 @@ function gymPageScript() {
         renumber(card);
 
         nameInput.addEventListener("input", saveDraft);
+        card.querySelector(".exercise-guide-btn").addEventListener("click", function () {
+          if (window.openExerciseGuide) window.openExerciseGuide(nameInput.value);
+        });
         card.querySelector(".exercise-remove-btn").addEventListener("click", function () {
           card.remove();
           saveDraft();
@@ -487,6 +550,12 @@ ${faviconLink("/icons/grind-icon.png")}
 
     ${recoveryHint ? `<div class="recovery-banner recovery-banner-gym">${escapeHtml(recoveryHint)}</div>` : ""}
 
+    <div class="card glass-card gym-tip-banner" id="gym-tip-banner" hidden>
+      ${svgIcon("helpCircle", { size: 16 })}
+      <span class="gym-tip-text">Isi beban (kg) & reps → tap <strong>✓</strong> untuk mulai rest timer otomatis → tap <strong>Finish Workout</strong> setelah selesai.</span>
+      <button type="button" class="gym-tip-close" id="gym-tip-close" aria-label="Tutup tip">✕</button>
+    </div>
+
     <form method="POST" action="/hub/grind/sessions/gym" id="gym-page-form">
       <input type="hidden" name="session_time" id="gym-session-time-hidden" value="${defaultTime === "PM" ? "PM" : "AM"}">
       <input type="hidden" name="sub_type" id="gym-sub-type-hidden" value="${GYM_SPLITS[0]}">
@@ -504,7 +573,9 @@ ${faviconLink("/icons/grind-icon.png")}
     </div>
   </div>
   ${bottomNavHtml("/hub/grind/gym")}
+  ${exerciseGuideDialogHtml()}
   ${gymPageScript()}
+  ${exerciseGuideScript()}
 </body>
 </html>`;
 }

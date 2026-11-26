@@ -901,6 +901,7 @@ const SVG_ICON_PATHS = {
   home: '<path d="M3 11.5 12 4l9 7.5"/><path d="M5 10v10a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1V10"/>',
   umbrella: '<path d="M12 2a9 9 0 0 1 9 9H3a9 9 0 0 1 9-9Z"/><line x1="12" y1="2" x2="12" y2="4"/><path d="M12 11v9a2 2 0 0 1-4 0"/>',
   dot: '<circle cx="12" cy="12" r="6" fill="currentColor" stroke="none"/>',
+  helpCircle: '<circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 0 1 4.8 1c0 1.5-2.3 1.8-2.3 3.5"/><line x1="12" y1="17" x2="12.01" y2="17"/>',
 };
 
 // size dalam px (18-20 direkomendasikan biar sejajar sama teks di sampingnya, lihat .svg-icon).

@@ -1,4 +1,5 @@
 import { DASHBOARD_CSS, escapeHtml, navHeader, faviconLink, svgIcon, svgIconLabel, iconBadgeHtml, bottomNavHtml } from "../../shared/dashboard-layout.js";
+import { BIG_LIFT_EXERCISES, formatDurationSec } from "./personal-best.js";
 
 const WIB_OFFSET_MS = 7 * 60 * 60 * 1000;
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -56,6 +57,14 @@ const SESSION_TYPE_OPTIONS = [
 function dateLabel(dateKey) {
   const d = new Date(`${dateKey}T00:00:00Z`);
   return `${WEEKDAYS[d.getUTCDay()]}, ${d.getUTCDate()} ${MONTHS[d.getUTCMonth()]}`;
+}
+
+// "dd MMM yyyy" - dipakai di kartu Personal Bests (butuh tahun, beda dari dateLabel yang cuma
+// "Weekday, D Mon" buat baris History harian yang konteksnya udah jelas "tahun ini").
+function pbDateLabel(dateKey) {
+  if (!dateKey) return "—";
+  const d = new Date(`${dateKey}T00:00:00Z`);
+  return `${String(d.getUTCDate()).padStart(2, "0")} ${MONTHS[d.getUTCMonth()]} ${d.getUTCFullYear()}`;
 }
 
 function daysUntil(dateKey) {
@@ -277,6 +286,33 @@ const GRIND_PAGE_CSS = `
     padding: 14px 22px; border-radius: 999px;
     color: #fff; font-size: 15px; font-weight: 700; cursor: pointer; font-family: inherit;
   }
+
+  /* ---------- Personal Bests (PB lari & PR gym) ---------- */
+  .pb-card { margin-bottom: 4px; }
+  .pb-tabs { margin-bottom: 14px; }
+  .pb-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .pb-stat-cell { background: var(--bg); border-radius: 12px; padding: 12px; text-align: center; }
+  .pb-stat-label { font-size: 11px; color: var(--text-muted); margin-bottom: 4px; }
+  .pb-stat-value { font-size: 17px; font-weight: 700; color: var(--text); }
+  .pb-stat-date { font-size: 10.5px; color: var(--text-dim); margin-top: 2px; }
+  .pb-gym-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .pb-gym-card { background: var(--bg); border-radius: 12px; padding: 10px 12px; }
+  .pb-gym-name { font-size: 12px; font-weight: 600; color: var(--text); margin-bottom: 4px; }
+  .pb-gym-value { font-size: 15px; font-weight: 700; color: var(--text); }
+  .pb-gym-sub { font-size: 10.5px; color: var(--text-dim); margin-top: 2px; }
+
+  /* Badge PB/PR otomatis di History - warm amber/terracotta, konsisten sama badge NEW PR di
+     halaman Gym standalone (lihat gym-page.js .summary-pr-badge). */
+  .log-badge-pb, .log-badge-pr {
+    display: inline-flex; align-items: center; flex-shrink: 0; padding: 1px 7px; margin-left: 6px;
+    border-radius: 999px; font-size: 10px; font-weight: 700; letter-spacing: .02em;
+    background: linear-gradient(135deg, #D9A441, #C97368); color: #fff; vertical-align: middle;
+  }
+  .log-item-info-pr { background: rgba(217, 164, 65, .14); border-radius: 6px; padding: 2px 6px; margin: -2px -6px; }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) .log-item-info-pr { background: rgba(232, 167, 158, .14); }
+  }
+  :root[data-theme="dark"] .log-item-info-pr { background: rgba(232, 167, 158, .14); }
 `;
 
 function importPlanFabHtml() {
@@ -673,6 +709,94 @@ function sportSummaryToggleScript() {
   </script>`;
 }
 
+// ---------- Personal Bests (PB lari & PR gym) ----------
+// Section ditaruh tepat di atas History (lihat renderGrindPage) - datanya (personalBests) sudah
+// dihitung sekali di router.js dari SELURUH riwayat (lihat personal-best.js), bukan di sini.
+
+function pbStatCellHtml(label, valueHtml, dateHtml) {
+  return `<div class="pb-stat-cell">
+    <div class="pb-stat-label">${label}</div>
+    <div class="pb-stat-value tabular-nums">${valueHtml}</div>
+    <div class="pb-stat-date tabular-nums">${dateHtml}</div>
+  </div>`;
+}
+
+function runPBsGridHtml(run) {
+  const best5k = run.milestones["5K"];
+  const best10k = run.milestones["10K"];
+  return `<div class="pb-grid">
+    ${pbStatCellHtml("Longest Distance", run.longestDistance ? `${run.longestDistance.km.toFixed(1)}km` : "—", run.longestDistance ? pbDateLabel(run.longestDistance.date) : "—")}
+    ${pbStatCellHtml("Fastest Pace", run.fastestPace ? `${run.fastestPace.pace}/km` : "—", run.fastestPace ? pbDateLabel(run.fastestPace.date) : "—")}
+    ${pbStatCellHtml("Best 5K", best5k ? formatDurationSec(best5k.timeSec) : "—", best5k ? pbDateLabel(best5k.date) : "—")}
+    ${pbStatCellHtml("Best 10K", best10k ? formatDurationSec(best10k.timeSec) : "—", best10k ? pbDateLabel(best10k.date) : "—")}
+  </div>`;
+}
+
+function gymPRCardHtml(exerciseName, rec) {
+  return `<div class="pb-gym-card">
+    <div class="pb-gym-name">${escapeHtml(exerciseName)}</div>
+    <div class="pb-gym-value tabular-nums">${rec.maxWeight.kg}kg × ${rec.maxWeight.reps}</div>
+    <div class="pb-gym-sub">Est. 1RM ${Math.round(rec.best1RM.est)}kg · ${pbDateLabel(rec.maxWeight.date)}</div>
+  </div>`;
+}
+
+function gymPRsListHtml(gym) {
+  const entries = Object.entries(gym.records).filter(([, rec]) => rec.maxWeight);
+  if (!entries.length) return `<div class="empty-state">Belum ada data beban.</div>`;
+
+  const bigLiftEntries = entries.filter(([name]) => BIG_LIFT_EXERCISES.includes(name));
+  const otherEntries = entries
+    .filter(([name]) => !BIG_LIFT_EXERCISES.includes(name))
+    .sort((a, b) => b[1].best1RM.est - a[1].best1RM.est);
+
+  const bigLiftsHtml = bigLiftEntries.length
+    ? `<div class="pb-gym-grid">${bigLiftEntries.map(([name, rec]) => gymPRCardHtml(name, rec)).join("")}</div>`
+    : `<div class="empty-state">Belum ada rekor di gerakan utama.</div>`;
+
+  const othersHtml = otherEntries.length
+    ? `<details class="inline-toggle" style="margin-top:10px;">
+         <summary>Gerakan lainnya (${otherEntries.length})</summary>
+         <div class="pb-gym-grid" style="margin-top:8px;">${otherEntries.map(([name, rec]) => gymPRCardHtml(name, rec)).join("")}</div>
+       </details>`
+    : "";
+
+  return `${bigLiftsHtml}${othersHtml}`;
+}
+
+function personalBestsSectionHtml(personalBests) {
+  const { run, gym } = personalBests;
+  return `<div class="section-header">
+    <h2>${svgIconLabel("trophy", "Personal Bests", { size: 18 })}</h2>
+  </div>
+  <div class="card glass-card pb-card">
+    <div class="segmented-tabs pb-tabs" id="pb-tabs">
+      <button type="button" class="segmented-tab active" data-pb-tab="run">Run</button>
+      <button type="button" class="segmented-tab" data-pb-tab="gym">Gym</button>
+    </div>
+    <div id="pb-panel-run">${runPBsGridHtml(run)}</div>
+    <div id="pb-panel-gym" hidden>${gymPRsListHtml(gym)}</div>
+  </div>`;
+}
+
+function personalBestsTabScript() {
+  return `<script>
+    (function () {
+      var tabs = document.getElementById("pb-tabs");
+      var runPanel = document.getElementById("pb-panel-run");
+      var gymPanel = document.getElementById("pb-panel-gym");
+      if (!tabs || !runPanel || !gymPanel) return;
+      tabs.querySelectorAll(".segmented-tab").forEach(function (btn) {
+        btn.addEventListener("click", function () {
+          tabs.querySelectorAll(".segmented-tab").forEach(function (b) { b.classList.toggle("active", b === btn); });
+          var isGym = btn.dataset.pbTab === "gym";
+          runPanel.hidden = isGym;
+          gymPanel.hidden = !isGym;
+        });
+      });
+    })();
+  </script>`;
+}
+
 // ---------- History Log ----------
 
 // Field jarak/pace cuma relevan buat sport yang ngukur jarak (Run & Swim) - Badminton/Tennis/Gym/
@@ -680,22 +804,45 @@ function sportSummaryToggleScript() {
 // yang selalu kosong.
 const DISTANCE_SPORT_TYPES = ["RUN", "SWIM"];
 
-function historyRowHtml(s) {
+// Badge PB (Run)/PR (Gym) otomatis - personalBests dihitung sekali di router.js dari SELURUH
+// riwayat (lihat personal-best.js), di sini cuma lookup by session id buat tau sesi mana yang
+// mecahin rekor & baris set mana yang di-highlight (kolom "Gym Personal Records" di History).
+function historyBadgeHtml(s, personalBests) {
+  if (!personalBests) return "";
+  if (s.type === "RUN") {
+    const reasons = personalBests.run.sessionBadges[s.id];
+    if (!reasons || !reasons.length) return "";
+    return `<span class="log-badge-pb">PB · ${escapeHtml(reasons[0])}</span>`;
+  }
+  if (s.type === "GYM") {
+    const prs = personalBests.gym.sessionPRs[s.id];
+    if (!prs || !prs.length) return "";
+    const first = prs[0];
+    return `<span class="log-badge-pr">PR · ${escapeHtml(first.exerciseName)} ${first.kg}kg</span>`;
+  }
+  return "";
+}
+
+function historyRowHtml(s, personalBests) {
   const facts = sessionFacts(s);
   const isDistanceSport = DISTANCE_SPORT_TYPES.includes(s.type);
   const isSwim = s.type === "SWIM";
   const distanceValue = isSwim && s.distance_km != null ? Math.round(s.distance_km * 1000) : (s.distance_km ?? "");
+  const brokenSets = (personalBests && personalBests.gym.setBreaks[s.id]) || null;
 
   const setsHtml = s.gymSets.length
     ? `<div class="log-item-row">${s.gymSets
-        .map((g) => `<div class="log-item-info"><span>${escapeHtml(g.exercise_name)} (set ${g.set_order})</span><span>${g.weight_kg ?? "-"}kg × ${g.reps ?? "-"}</span></div>`)
+        .map((g) => {
+          const broke = brokenSets && brokenSets.has(`${g.exercise_name}|${g.set_order}`);
+          return `<div class="log-item-info${broke ? " log-item-info-pr" : ""}"><span>${escapeHtml(g.exercise_name)} (set ${g.set_order})</span><span>${g.weight_kg ?? "-"}kg × ${g.reps ?? "-"}</span></div>`;
+        })
         .join("")}</div>`
     : "";
 
   return `<details class="log-item">
     <summary>
       <span class="log-time">${dateLabel(s.session_date)} ${s.session_time}</span>
-      <span class="log-name">${TYPE_ICON[s.type] || "•"} ${escapeHtml(s.sub_type || s.type)}</span>
+      <span class="log-name">${TYPE_ICON[s.type] || "•"} ${escapeHtml(s.sub_type || s.type)}${historyBadgeHtml(s, personalBests)}</span>
       <span class="log-calories">${facts.join(" · ")}</span>
     </summary>
     <div class="log-detail-body">
@@ -739,13 +886,13 @@ function historyRowHtml(s) {
 
 const HISTORY_VISIBLE_COUNT = 7;
 
-function historyLogHtml(historyLogs) {
+function historyLogHtml(historyLogs, personalBests) {
   if (!historyLogs.length) return `<h2>History</h2><div class="empty-state">Belum ada histori latihan.</div>`;
 
-  const visibleRows = historyLogs.slice(0, HISTORY_VISIBLE_COUNT).map(historyRowHtml).join("");
+  const visibleRows = historyLogs.slice(0, HISTORY_VISIBLE_COUNT).map((s) => historyRowHtml(s, personalBests)).join("");
   const restLogs = historyLogs.slice(HISTORY_VISIBLE_COUNT);
   const restRows = restLogs.length
-    ? `<div id="history-rest" hidden>${restLogs.map(historyRowHtml).join("")}</div>
+    ? `<div id="history-rest" hidden>${restLogs.map((s) => historyRowHtml(s, personalBests)).join("")}</div>
        <button type="button" class="btn-secondary btn-sm" id="history-show-all"
          data-more-label="Show All (${restLogs.length} more)" data-less-label="Show Less"
          style="width:100%; margin-top:4px;">Show All (${restLogs.length} more)</button>`
@@ -847,6 +994,7 @@ export function renderGrindPage({
   weekTargetKm,
   monthSummary,
   historyLogs,
+  personalBests,
   flash,
   openForm,
   prefill,
@@ -876,7 +1024,8 @@ ${faviconLink("/icons/grind-icon.png")}
     ${weeklyProgressHtml({ weekPlans, weekSessions, weekTargetKm })}
     ${scheduleViewerHtml({ weekPlans, nextWeekPlans, todayKey })}
     ${sportSummaryHtml(monthSummary)}
-    ${historyLogHtml(historyLogs)}
+    ${personalBestsSectionHtml(personalBests)}
+    ${historyLogHtml(historyLogs, personalBests)}
   </div>
   ${bottomNavHtml("/hub/grind")}
   ${importPlanFabHtml()}
@@ -886,6 +1035,7 @@ ${faviconLink("/icons/grind-icon.png")}
   ${importModalScript()}
   ${sportSummaryToggleScript()}
   ${historyShowAllScript()}
+  ${personalBestsTabScript()}
 </body>
 </html>`;
 }

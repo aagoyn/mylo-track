@@ -330,9 +330,59 @@ export async function addGymSets(sessionId, sets) {
     set_order: s.setOrder,
     weight_kg: s.weightKg ?? null,
     reps: s.reps ?? null,
+    set_type: s.setType || "working",
+    rpe: s.rpe ?? null,
   }));
   const { error } = await supabase.from("grind_gym_sets").insert(rows);
   if (error) throw error;
+}
+
+// ---------- Personal Best / Personal Record (lihat personal-best.js) ----------
+// Dua query terpisah di bawah ini NGGAK pakai batas tanggal/limit (beda dari getRecentSessions)
+// soalnya rekor "sepanjang masa" harus mindai SELURUH riwayat, bukan cuma N sesi terakhir -
+// urutannya WAJIB kronologis ascending (session_date lalu created_at) biar sessionBadges/setBreaks
+// (penanda "sesi mana yang mecahin rekor SAAT itu") kehitung bener.
+
+export async function getAllRunSessions(phone) {
+  const { data, error } = await supabase
+    .from("grind_sessions")
+    .select("id, session_date, distance_km, avg_pace, duration_min")
+    .eq("phone", phone)
+    .eq("type", "RUN")
+    .order("session_date", { ascending: true })
+    .order("created_at", { ascending: true });
+  if (error) throw error;
+  return data || [];
+}
+
+export async function getAllGymSessionsWithSets(phone) {
+  const { data: sessions, error } = await supabase
+    .from("grind_sessions")
+    .select("id, session_date")
+    .eq("phone", phone)
+    .eq("type", "GYM")
+    .order("session_date", { ascending: true })
+    .order("created_at", { ascending: true });
+  if (error) throw error;
+  if (!sessions.length) return [];
+
+  const { data: sets, error: setsErr } = await supabase
+    .from("grind_gym_sets")
+    .select("session_id, exercise_name, set_order, weight_kg, reps, set_type")
+    .in("session_id", sessions.map((s) => s.id));
+  if (setsErr) throw setsErr;
+
+  const setsBySession = {};
+  for (const s of sets || []) {
+    (setsBySession[s.session_id] = setsBySession[s.session_id] || []).push({
+      exerciseName: s.exercise_name,
+      setOrder: s.set_order,
+      weightKg: s.weight_kg,
+      reps: s.reps,
+      setType: s.set_type || "working",
+    });
+  }
+  return sessions.map((s) => ({ id: s.id, session_date: s.session_date, sets: setsBySession[s.id] || [] }));
 }
 
 // "Clone Last Split" - ambil gerakan dari sesi GYM terakhir dengan sub_type yang sama, biar form

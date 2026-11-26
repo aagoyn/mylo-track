@@ -27,10 +27,13 @@ import {
   importTrainingPlan,
   getWeeklyRunTargetKm,
   setWeeklyRunTargetKm,
+  getAllRunSessions,
+  getAllGymSessionsWithSets,
 } from "./supabase.js";
 import { renderGrindPage } from "./dashboard.js";
 import { renderGymPage } from "./gym-page.js";
 import { GYM_SPLITS, defaultSplitForDay, injectDefaultGymPlans, defaultGymPlanForDate } from "./gym-program.js";
+import { computeRunningPBs, computeGymPRs } from "./personal-best.js";
 
 const WIB_OFFSET_MS = 7 * 60 * 60 * 1000;
 
@@ -97,6 +100,8 @@ router.get("/hub/grind", requireAuth, async (req, res) => {
       monthSummary,
       historyLogs,
       weekTargetKm,
+      allRunSessions,
+      allGymSessions,
     ] = await Promise.all([
       getPlanByDate(phone, todayKey),
       getSessionsByDate(phone, todayKey),
@@ -107,7 +112,17 @@ router.get("/hub/grind", requireAuth, async (req, res) => {
       getMonthSummary(phone, monthStart, monthEnd),
       getRecentSessions(phone, 30),
       getWeeklyRunTargetKm(phone),
+      getAllRunSessions(phone),
+      getAllGymSessionsWithSets(phone),
     ]);
+
+    // Personal Bests (lari) & Personal Records (gym) - dihitung dari SELURUH riwayat (bukan cuma
+    // 30 sesi terakhir di historyLogs), biar rekor "sepanjang masa" akurat & badge PB/PR di History
+    // tetap bener walau sesi yang mecahin rekornya udah lewat dari 30 sesi terakhir.
+    const personalBests = {
+      run: computeRunningPBs(allRunSessions),
+      gym: computeGymPRs(allGymSessions),
+    };
 
     // Jadwal gym default 4-Day Hybrid Split (Push/Pull/Legs/Posterior Chain) - cuma "nongol" kalau
     // belum ada plan asli (dari import TSV) di tanggal itu, nggak pernah ditulis ke DB (lihat
@@ -150,6 +165,7 @@ router.get("/hub/grind", requireAuth, async (req, res) => {
         weekTargetKm,
         monthSummary,
         historyLogs,
+        personalBests,
         flash,
         openForm,
         prefill,
@@ -324,6 +340,8 @@ router.post("/hub/grind/sessions/gym", requireAuth, async (req, res) => {
   const setOrders = [].concat(req.body["set_order[]"] || []);
   const weights = [].concat(req.body["weight_kg[]"] || []);
   const reps = [].concat(req.body["reps[]"] || []);
+  const setTypes = [].concat(req.body["set_type[]"] || []);
+  const rpes = [].concat(req.body["rpe[]"] || []);
 
   try {
     const sessionId = await createSession(req.user.phone, {
@@ -342,6 +360,8 @@ router.post("/hub/grind/sessions/gym", requireAuth, async (req, res) => {
         setOrder: parseInt(setOrders[i], 10) || i + 1,
         weightKg: weights[i] ? parseFloat(weights[i]) : null,
         reps: reps[i] ? parseInt(reps[i], 10) : null,
+        setType: ["working", "warmup", "failure"].includes(setTypes[i]) ? setTypes[i] : "working",
+        rpe: rpes[i] ? parseFloat(rpes[i]) : null,
       }))
       .filter((s) => s.exerciseName);
 

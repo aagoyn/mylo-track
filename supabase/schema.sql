@@ -363,6 +363,12 @@ create table if not exists grind_gym_sets (
 );
 alter table grind_gym_sets enable row level security;
 
+-- Tipe set ("working"/"warmup"/"failure", lihat gym-page.js badge SET) & target RPE per set -
+-- dipakai mesin Personal Record (personal-best.js) buat ngecualiin warm-up dari perhitungan rekor
+-- beban/1RM. default 'working' biar baris lama (sebelum kolom ini ada) tetap ikut terhitung.
+alter table grind_gym_sets add column if not exists set_type text not null default 'working';
+alter table grind_gym_sets add column if not exists rpe numeric(3,1);
+
 -- Pengaturan per-user buat Grind - sejauh ini cuma target lari mingguan (default 21km kalau
 -- belum pernah diset, lihat getWeeklyRunTargetKm di grind/supabase.js).
 create table if not exists grind_settings (

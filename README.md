@@ -59,6 +59,22 @@ tiap halaman punya favicon sendiri (file PNG di `public/icons/`, di-serve lewat
 - `/dashboard/calorie` — kalori & makro (protein/karbo/lemak/gula) hari ini, log hari ini,
   rekap 7 hari, riwayat berat badan, form catat makanan (teks/foto), catat berat badan, set
   target kalori/makro
+- `/hub/grind` — Grind: tracker olahraga mingguan (weekly plan, skip/move-to-today, target
+  mingguan, import template), log sesi gym maupun rest day. Halaman standalone
+  `/hub/grind/gym` adalah workout tracker interaktif dengan:
+  - **Tap PREVIOUS untuk auto-fill set** — tap nilai `Xkg × Y` dari sesi sebelumnya langsung
+    isi input KG/REPS baris itu
+  - **Mode SEC + mini stopwatch** untuk gerakan berbasis durasi (mis. Plank) — header REPS
+    otomatis jadi SEC, ada tombol stopwatch 28×28 yang hitung mundur, auto-isi durasi, getar +
+    beep, dan auto-centang set saat selesai
+  - **Tipe set interaktif (Working/Warm-up/Failure)** — tap badge nomor set buat ganti tipe,
+    plus pill **RPE** per gerakan (popover pilih 6–10)
+  - **Quick Swap Exercise** — ganti nama gerakan ke alternatif alat setara (peta ada di
+    `exercise-guides.js`) atau nama custom, tanpa menghapus set yang udah diisi
+  - **Post-Workout Summary & New PR Detection** — begitu `Finish Workout` sukses disimpan,
+    muncul modal ringkasan (durasi, total volume, total working sets) + badge **NEW PR** untuk
+    gerakan yang estimasi 1RM-nya ngelewatin rekor sebelumnya, sebelum redirect ke `/hub/grind`
+  - **Exercise Form Guide** — tombol `?` di tiap kartu gerakan buka panduan animasi + quick tip
 
 ## Struktur Project
 
@@ -117,6 +133,18 @@ src/
                              data yang udah di-approve, nggak pernah manggil AI/milih acak
       dashboard.js         render HTML Skincare (today's routine, products, AI suggestion
                              review, rules)
+    grind/
+      router.js          route /hub/grind (weekly plan) + /hub/grind/gym (standalone workout
+                             tracker) + session CRUD (gym/rest), import template, settings
+      supabase.js          query grind_sessions, grind_weekly_plan, grind_settings, dll
+      parse.js               parsing input form sesi jadi struktur set/exercise
+      gym-program.js         definisi template program (mis. 4-Day Hybrid Split) + weekly plan
+      gym-page.js            render HTML + client script halaman standalone /hub/grind/gym:
+                             auto-fill PREVIOUS, mode SEC/stopwatch durasi, tipe set & RPE,
+                             quick swap exercise, post-workout summary & PR detection
+      exercise-guides.js     panduan form gerakan (animasi + quick tip) & peta alternatif
+                             alat setara (dipakai fitur Quick Swap)
+      dashboard.js         render HTML Grind weekly plan overview
 scripts/
   add-user.js         CLI buat nambah akun baru (shared, satu untuk kedua bot)
 supabase/
@@ -235,3 +263,6 @@ bisa dipakai di production begitu di-run, tidak perlu redeploy.
 - **"Analyze with AI" / "Analyze my skincare routine" di Skincare error atau gagal** — pastiin
   `GEMINI_API_KEY` valid dan belum kena limit — pesan errornya biasanya udah nunjukin
   penyebabnya (lihat `shared/gemini-json.js`).
+- **`/hub/grind` atau `/hub/grind/gym` error pas load/save** — pastiin tabel Supabase terkait
+  Grind (`grind_sessions`, `grind_weekly_plan`, `grind_settings`, dst — lihat
+  `supabase/schema.sql`) udah ada di project Supabase kamu.

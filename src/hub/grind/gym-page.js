@@ -1,4 +1,4 @@
-import { DASHBOARD_CSS, escapeHtml, faviconLink, svgIcon, svgIconLabel, bottomNavHtml } from "../../shared/dashboard-layout.js";
+import { DASHBOARD_CSS, faviconLink, svgIcon, svgIconLabel, bottomNavHtml } from "../../shared/dashboard-layout.js";
 import { exerciseGuideScript, exerciseGuideDialogHtml, exerciseGuideStyles, exerciseAlternativesScript } from "./exercise-guides.js";
 import { GYM_SPLITS } from "./gym-program.js";
 
@@ -20,16 +20,19 @@ const GYM_PAGE_CSS = `
      biar nggak sesak kayak sebelumnya (semua numpuk 1 baris, "Full Body" ketekan). */
   .gym-header-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
   .gym-header-left, .gym-header-right { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+  .gym-header-right { margin-left: auto; }
   .gym-back-link {
     display: inline-flex; align-items: center; gap: 4px; color: var(--text-muted);
     text-decoration: none; font-size: 13px; flex-shrink: 0;
   }
   .gym-back-link:hover { color: var(--text); }
-  .gym-timer { font-size: 15px; font-weight: 700; }
+  .gym-timer { font-size: 15px; font-weight: 600; }
 
-  /* Action bar Start/Finish/Cancel - dipisah dari header jadi baris sendiri full-width (sebelumnya
-     numpuk kecil di gym-header-right, susah ditekan) - tombol gede & gampang dipencet. */
-  .gym-action-bar { display: flex; align-items: center; gap: 10px; padding: 12px 14px; margin-bottom: 14px; }
+  /* Action bar Start/Finish/Cancel - baris flex ramping TANPA kartu pembungkus (nggak ada
+     padding/border ganda kayak .glass-card), tombolnya sendiri yang gede & gampang dipencet
+     (height 44px) biar nyaman di-tap pas lagi latihan walau barisnya ramping. */
+  .gym-action-bar { display: flex; gap: 10px; margin: 10px 0; }
+  .gym-action-bar .btn-primary, .gym-action-bar .btn-secondary { height: 44px; border-radius: 12px; }
   .gym-action-bar .btn-primary { flex: 2; }
   .gym-action-bar .btn-secondary { flex: 1; }
   .gym-ampm-toggle { gap: 6px; flex-shrink: 0; }
@@ -45,10 +48,9 @@ const GYM_PAGE_CSS = `
   .gym-split-pills::-webkit-scrollbar { display: none; }
   .gym-split-pills.segmented-tabs .segmented-tab {
     flex: 0 0 auto; white-space: nowrap; background: var(--bg); border: 1px solid var(--border);
+    padding: 6px 12px; font-size: 12.5px;
   }
   .gym-split-pills.segmented-tabs .segmented-tab.active { border-color: var(--accent); }
-
-  .recovery-banner-gym { margin-bottom: 12px; }
 
   /* Kartu gerakan dipisah jelas satu sama lain (sebelumnya nempel cuma mengandalkan margin
      default .card) - flex column + gap di container, padding lega di tiap kartu. */
@@ -234,11 +236,13 @@ const GYM_PAGE_CSS = `
     background: linear-gradient(135deg, #D9A441, #C97368); color: #fff;
   }
 
-  /* Dynamic Coach Notice - gantiin Quick Tip Banner statis, isi/prioritas berubah tergantung
-     riwayat lari 3-4 hari terakhir & split/hari aktif (lihat gymPageScript buildCoachNotice()). */
+  /* Dynamic Coach Notice - satu-satunya banner rekomendasi di halaman Gym (banner "Smart Recovery
+     Hint" lama udah dihapus biar nggak dobel), isi/prioritas berubah tergantung riwayat lari 3-4
+     hari terakhir & split/hari aktif (lihat gymPageScript updateCoachNotice()). Dibikin ramping
+     (padding/font kecil) + bisa ditutup (✕) biar kartu gerakan pertama langsung kelihatan. */
   .gym-coach-notice {
-    display: flex; align-items: flex-start; gap: 10px; padding: 12px 14px; margin-bottom: 14px;
-    font-size: 12.5px; line-height: 1.5; color: var(--text);
+    display: flex; align-items: flex-start; gap: 8px; padding: 10px 12px; margin-bottom: 14px;
+    font-size: 12px; line-height: 1.4; color: var(--text);
     border: 1px solid rgba(201, 115, 104, .35);
     background: linear-gradient(135deg, rgba(217, 164, 65, .08), rgba(201, 115, 104, .08));
   }
@@ -250,6 +254,12 @@ const GYM_PAGE_CSS = `
     background: transparent; color: #8a3b31; font-size: 11.5px; font-weight: 700; cursor: pointer; font-family: inherit;
   }
   .gym-coach-reduce-btn:hover { background: rgba(201, 115, 104, .12); }
+  .gym-coach-close-btn {
+    flex-shrink: 0; width: 20px; height: 20px; border-radius: 50%; border: none; background: transparent;
+    color: var(--text-dim); font-size: 12px; line-height: 1; cursor: pointer; font-family: inherit;
+    display: flex; align-items: center; justify-content: center; padding: 0;
+  }
+  .gym-coach-close-btn:hover { background: rgba(201, 115, 104, .14); color: var(--text); }
   @media (prefers-color-scheme: dark) {
     :root:not([data-theme="light"]) .gym-coach-notice-icon { color: #e8a79e; }
     :root:not([data-theme="light"]) .gym-coach-reduce-btn { color: #e8a79e; border-color: rgba(232, 167, 158, .5); }
@@ -313,7 +323,11 @@ function gymPageScript(runFatigue) {
       var coachNoticeEl = document.getElementById("gym-coach-notice");
       var coachNoticeText = document.getElementById("gym-coach-notice-text");
       var coachReduceBtn = document.getElementById("gym-coach-reduce-btn");
+      var coachCloseBtn = document.getElementById("gym-coach-close-btn");
 
+      // updateCoachNotice() dipanggil ulang tiap pindah split (pesannya emang kudu nyesuain) -
+      // makanya tombol ✕ cuma nutup TAMPILAN SAAT INI (bukan dismiss permanen kayak Quick Tip
+      // Banner versi lama), biar pesan baru yang relevan tetap muncul begitu konteksnya berubah.
       function updateCoachNotice(split) {
         if (!coachNoticeEl || !coachNoticeText) return;
         var showReduceBtn = false;
@@ -330,6 +344,13 @@ function gymPageScript(runFatigue) {
         }
         coachNoticeText.textContent = text;
         if (coachReduceBtn) coachReduceBtn.hidden = !showReduceBtn;
+        coachNoticeEl.hidden = false;
+      }
+
+      if (coachCloseBtn) {
+        coachCloseBtn.addEventListener("click", function () {
+          coachNoticeEl.hidden = true;
+        });
       }
 
       // "Kurangi 1 Set" (fitur #1) - hapus 1 working set terakhir di tiap gerakan hari ini,
@@ -1076,7 +1097,7 @@ function gymPageScript(runFatigue) {
   </script>`;
 }
 
-export function renderGymPage({ defaultTime, defaultSplit, recoveryHint, runFatigue }) {
+export function renderGymPage({ defaultTime, defaultSplit, runFatigue }) {
   const activeSplit = GYM_SPLITS.includes(defaultSplit) ? defaultSplit : GYM_SPLITS[0];
   return `<!doctype html>
 <html lang="en">
@@ -1106,17 +1127,16 @@ ${faviconLink("/icons/grind-icon.png")}
       </div>
     </header>
 
-    <div class="card glass-card gym-action-bar">
+    <div class="gym-action-bar">
       <button type="button" class="btn-secondary" id="gym-cancel-btn" hidden>Cancel</button>
       <button type="button" class="btn-primary" id="gym-start-finish-btn" data-state="start">Start Workout</button>
     </div>
-
-    ${recoveryHint ? `<div class="recovery-banner recovery-banner-gym">${escapeHtml(recoveryHint)}</div>` : ""}
 
     <div class="card glass-card gym-coach-notice" id="gym-coach-notice">
       <div class="gym-coach-notice-icon" id="gym-coach-notice-icon">${svgIcon("activity", { size: 16 })}</div>
       <span class="gym-coach-notice-text" id="gym-coach-notice-text"></span>
       <button type="button" class="gym-coach-reduce-btn" id="gym-coach-reduce-btn" hidden>Kurangi 1 Set</button>
+      <button type="button" class="gym-coach-close-btn" id="gym-coach-close-btn" aria-label="Tutup notice">✕</button>
     </div>
 
     <form method="POST" action="/hub/grind/sessions/gym" id="gym-page-form">

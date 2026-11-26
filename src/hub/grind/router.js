@@ -59,21 +59,9 @@ function sportForSessionType(sessionType) {
 
 const PLAN_TYPE_TO_SUBTYPE = { EASY: "Easy", QUALITY: "Tempo", "LONG RUN": "Long Run", "RACE DAY": "Race" };
 
-// "Baru aja Run (>=5km) atau Badminton" dalam 24 jam terakhir -> saranin fokus Upper Body
-// malam ini daripada Heavy Legs (Smart Recovery Hint di form Gym).
-function buildRecoveryHint(recentSessions) {
-  const heavyRun = recentSessions.find((s) => s.type === "RUN" && Number(s.distance_km) >= 5);
-  const highIntensity = recentSessions.find((s) => s.type === "BADMINTON" || s.type === "TENNIS");
-  if (heavyRun) return "Kamu baru aja Run - malam ini disarankan fokus Upper Body (Push/Pull) daripada Heavy Legs.";
-  if (highIntensity)
-    return `Kamu baru aja ${highIntensity.type === "TENNIS" ? "Tennis" : "Badminton"} - malam ini disarankan fokus Upper Body (Push/Pull) daripada Heavy Legs.`;
-  return null;
-}
-
 // Dynamic Hybrid Training Guardrails (fitur #1 Dynamic Coach Notice) - "beban lari tinggi" dalam
-// 3-4 hari terakhir dianggap kalau ada Long Run berat (>=8km) ATAU Run cukup sering (>=3x), lebih
-// ketat daripada buildRecoveryHint (24 jam, cuma >=5km) karena ini nge-trigger prioritas tertinggi
-// di banner Gym (nyaranin kurangi volume gym, bukan cuma ganti fokus split).
+// 3-4 hari terakhir dianggap kalau ada Long Run berat (>=8km) ATAU Run cukup sering (>=3x), jadi
+// prioritas tertinggi di banner Gym (nyaranin kurangi volume gym, bukan cuma ganti fokus split).
 function hasHighRunFatigue(recentSessions) {
   const runs = recentSessions.filter((s) => s.type === "RUN");
   if (runs.length >= 3) return true;
@@ -431,12 +419,10 @@ router.post("/hub/grind/sessions/:id/delete", requireAuth, async (req, res) => {
 router.get("/hub/grind/gym", requireAuth, async (req, res) => {
   try {
     const phone = req.user.phone;
-    const sinceISO = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-    const recentSessions = await getSessionsSince(phone, sinceISO);
 
-    // Running Fatigue Check (fitur #1 Dynamic Coach Notice) - dicek terpisah dari recoveryHint
-    // 24 jam di atas, soalnya window-nya lebih panjang (3-4 hari) & jadi prioritas tertinggi di
-    // banner, bukan cuma saran ganti fokus split.
+    // Running Fatigue Check (fitur #1 Dynamic Coach Notice) - satu-satunya banner rekomendasi di
+    // halaman Gym sekarang (banner "Smart Recovery Hint" 24 jam lama udah dihapus biar nggak
+    // dobel peringatan, lihat buildCoachNotice di gym-page.js).
     const since4dISO = new Date(Date.now() - 4 * 24 * 60 * 60 * 1000).toISOString();
     const recentSessions4d = await getSessionsSince(phone, since4dISO);
 
@@ -450,7 +436,6 @@ router.get("/hub/grind/gym", requireAuth, async (req, res) => {
       renderGymPage({
         defaultTime: defaultSessionTimeWib(),
         defaultSplit,
-        recoveryHint: buildRecoveryHint(recentSessions),
         runFatigue: hasHighRunFatigue(recentSessions4d),
       })
     );

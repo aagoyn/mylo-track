@@ -19,6 +19,7 @@ import {
   getWeeklyBudget,
   safeToSpendPerDayFrom,
   searchExpenseLogs,
+  searchTransactions,
   getRecentExpenseLogs,
   getWeekExpenseLogs,
   getDayBoundsWib,
@@ -477,6 +478,22 @@ router.get("/dashboard/spending", requireAuth, async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).send(`Gagal load dashboard: ${escapeHtml(err.message)}`);
+  }
+});
+
+// Dipanggil AJAX dari txnFilterScript (dashboard.js) tiap user ngetik di kolom search Recent
+// Transactions - nyari minimal 30 hari ke belakang, bukan cuma transaksi bulan aktif.
+router.get("/dashboard/spending/search", requireAuth, async (req, res) => {
+  try {
+    const chatId = req.user.phone;
+    const q = (req.query.q || "").trim();
+    if (!q) return res.json({ html: "" });
+    const results = await searchTransactions(chatId, q, 30, 50);
+    const html = results.map(transactionItemHtml).join("") || `<div class="empty-state">No transactions found.</div>`;
+    res.json({ html });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: err.message });
   }
 });
 

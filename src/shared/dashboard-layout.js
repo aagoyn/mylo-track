@@ -896,6 +896,11 @@ const SVG_ICON_PATHS = {
   smile: '<circle cx="12" cy="12" r="9"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/>',
   sparkle: '<path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8Z"/>',
   heart: '<path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.8 1-1a5.5 5.5 0 0 0 0-7.8Z"/>',
+  bell: '<path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/>',
+  building: '<rect x="4" y="2" width="16" height="20" rx="1"/><line x1="8" y1="6" x2="8" y2="6.01"/><line x1="16" y1="6" x2="16" y2="6.01"/><line x1="8" y1="10" x2="8" y2="10.01"/><line x1="16" y1="10" x2="16" y2="10.01"/><line x1="8" y1="14" x2="8" y2="14.01"/><line x1="16" y1="14" x2="16" y2="14.01"/><line x1="9" y1="22" x2="9" y2="18"/><line x1="15" y1="22" x2="15" y2="18"/>',
+  home: '<path d="M3 11.5 12 4l9 7.5"/><path d="M5 10v10a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1V10"/>',
+  umbrella: '<path d="M12 2a9 9 0 0 1 9 9H3a9 9 0 0 1 9-9Z"/><line x1="12" y1="2" x2="12" y2="4"/><path d="M12 11v9a2 2 0 0 1-4 0"/>',
+  dot: '<circle cx="12" cy="12" r="6" fill="currentColor" stroke="none"/>',
 };
 
 // size dalam px (18-20 direkomendasikan biar sejajar sama teks di sampingnya, lihat .svg-icon).
@@ -1206,6 +1211,7 @@ export function stackedBarChartSvg(
       const x = startX + i * pitch;
       const w = barW;
       const total = totals[i];
+      const displayTotal = d.displayTotal != null ? d.displayTotal : total;
       const totalHeightPx = (total / max) * barAreaHeight;
       const yTop = barBaseline - totalHeightPx;
       const clipId = `bar-clip-${instanceId}-${i}`;
@@ -1224,7 +1230,7 @@ export function stackedBarChartSvg(
 
       return `
         ${total > 0 ? `<clipPath id="${clipId}"><rect x="${x}" y="${yTop.toFixed(1)}" width="${w}" height="${totalHeightPx.toFixed(1)}" rx="6" ry="6"/></clipPath>` : ""}
-        ${total > 0 ? `<text class="chart-total-label" x="${x + w / 2}" y="${Math.max(10, yTop - 4)}" font-size="11" text-anchor="middle">${formatValue(total)}</text>` : ""}
+        ${total > 0 ? `<text class="chart-total-label" x="${x + w / 2}" y="${Math.max(10, yTop - 4)}" font-size="11" text-anchor="middle">${formatValue(displayTotal)}</text>` : ""}
         ${total > 0 ? `<g clip-path="url(#${clipId})">${segs}</g>` : ""}
         <text class="chart-axis-label" x="${x + w / 2}" y="${dayLabelY}" font-size="10" text-anchor="middle">${d.label}</text>
       `;

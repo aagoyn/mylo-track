@@ -310,7 +310,7 @@ ${faviconLink("/icons/calorie.png")}
     </div>
 
     <h2>${svgIconLabel("scale", "Weight", { size: 14 })}</h2>
-    <div class="card glass-card">
+    <div class="card glass-card" style="margin-bottom: 16px;">
       <form method="POST" action="/dashboard/calorie/weight" class="weight-input-row">
         <div class="weight-input-wrap">
           <input type="number" step="0.1" inputmode="decimal" name="weight" placeholder="60.0" required>

@@ -290,6 +290,7 @@ router.get("/dashboard/calorie", requireAuth, async (req, res) => {
       .join("");
     const weekChartData = sortedDayKeys.map((key) => ({
       label: formatWibLabel(key),
+      displayTotal: byDay[key],
       values: {
         protein: Math.round(byDayMacroKcal[key].protein),
         carbs: Math.round(byDayMacroKcal[key].carbs),

@@ -1,9 +1,25 @@
-import { DASHBOARD_CSS, escapeHtml, navHeader, faviconLink, iconLabel, bottomNavHtml } from "../../shared/dashboard-layout.js";
+import { DASHBOARD_CSS, escapeHtml, navHeader, faviconLink, svgIcon, svgIconLabel, bottomNavHtml } from "../../shared/dashboard-layout.js";
 
 const WIB_OFFSET_MS = 7 * 60 * 60 * 1000;
 const CLOCK_OUT_AFTER_MS = 9 * 60 * 60 * 1000;
 
-const MODE_ICON = { WFO: "/icons/work-from-office.png", WFH: "/icons/work-from-home.png", OFF: "/icons/day-off.png" };
+// CSS khusus halaman /hub/clocked (badge pill status, tombol Clock In/Out di-center, Duration
+// nggak wrap 2 baris) - dipisah dari DASHBOARD_CSS karena cuma relevan di halaman ini.
+const CLOCKED_PAGE_CSS = `
+  .clocked-reminder-banner { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  .clocked-reminder-banner .card-label { display: flex; align-items: center; gap: 8px; }
+  .clocked-action-row { margin: 12px auto 0; display: flex; justify-content: center; width: min(240px, 100%); }
+  .clocked-action-row button { width: 100%; }
+  .mode-pill {
+    display: inline-flex; align-items: center; gap: 5px; padding: 3px 9px; border-radius: 999px;
+    font-size: 12px; font-weight: 600; background: var(--accent-light); color: var(--accent-deep);
+    white-space: nowrap;
+  }
+  .mode-pill .svg-icon { width: 13px; height: 13px; margin: 0; }
+  .duration-cell { white-space: nowrap; font-size: 12.5px; font-variant-numeric: tabular-nums; }
+`;
+
+const MODE_ICON = { WFO: "building", WFH: "home", OFF: "umbrella" };
 const MODE_LABEL = { WFO: "WFO", WFH: "WFH", OFF: "Off" };
 const MODE_DESCRIPTION = { WFO: "Work from office", WFH: "Work from home", OFF: "Day off" };
 
@@ -24,7 +40,7 @@ function pickCountdownPhrase() {
 
 // rotating wording buat ajakan clock-in/mark WFH/off, sama pola-nya kayak COUNTDOWN_PHRASES
 const MODE_PHRASES = {
-  WFO: ["📅 Scheduled WFO today", "Ready to clock in?", "Off to the office?", "Time to punch in", "Let's get to work"],
+  WFO: ["Scheduled WFO today", "Ready to clock in?", "Off to the office?", "Time to punch in", "Let's get to work"],
   WFH: ["Working from home today?", "Comfy clothes, let's go", "WFH mode: on", "Home office, engage"],
   OFF: ["Enjoy your day off!", "No work today?", "Take it easy today", "Well-deserved break?"],
 };
@@ -47,9 +63,9 @@ const MODE_BUTTON_LABEL = { WFO: "Clock In", WFH: "Mark WFH", OFF: "Mark Day Off
 // Tombol besar utama, dipakai bareng di kartu Hub & halaman /hub/clocked (state "belum ada log").
 function bigActionButtonHtml(mode, { stopPropagation = false } = {}) {
   const hidden = mode !== "WFO" ? `<input type="hidden" name="mode" value="${mode}">` : "";
-  return `<form method="POST" action="${MODE_ACTION[mode]}" style="margin-top:6px;" ${stopPropagation ? `onclick="event.stopPropagation()"` : ""}>
+  return `<form method="POST" action="${MODE_ACTION[mode]}" class="clocked-action-row" ${stopPropagation ? `onclick="event.stopPropagation()"` : ""}>
     ${hidden}
-    <button type="submit" class="btn-primary btn-wide-short">${iconLabel(MODE_ICON[mode], MODE_BUTTON_LABEL[mode])}</button>
+    <button type="submit" class="btn-primary btn-wide-short">${svgIconLabel(MODE_ICON[mode], MODE_BUTTON_LABEL[mode])}</button>
   </form>`;
 }
 
@@ -72,6 +88,14 @@ function formatDuration(ms) {
   return `${h}h ${m}m ${s}s`;
 }
 
+// Format ringkas buat tabel HISTORY (tanpa detik) - biar kolom Duration selalu muat 1 baris,
+// nggak kepotong jadi "9h 4m / 29s" kayak formatDuration() yang nyertain detik.
+function formatDurationShort(ms) {
+  const h = Math.floor(ms / 3600000);
+  const m = Math.floor((ms % 3600000) / 60000);
+  return `${h}h ${String(m).padStart(2, "0")}m`;
+}
+
 // dayOfWeekWib: Senin=1 ... Minggu=7 (konsisten sama convention di fitur lain)
 function dayOfWeekWib() {
   const wib = new Date(Date.now() + WIB_OFFSET_MS);
@@ -79,7 +103,7 @@ function dayOfWeekWib() {
 }
 
 function modeIconLabel(mode) {
-  return iconLabel(MODE_ICON[mode] || MODE_ICON.WFO, MODE_LABEL[mode] || mode);
+  return `<span class="mode-pill">${svgIcon(MODE_ICON[mode] || MODE_ICON.WFO, { size: 13 })}${MODE_LABEL[mode] || mode}</span>`;
 }
 
 function countdownScript(elId, btnId, targetMs) {
@@ -126,7 +150,7 @@ export function clockedHubCardHtml(todayLog) {
     const mode = todayLog.work_mode;
     return {
       html: `<div class="card-value">${MODE_LABEL[mode] || mode} today</div>
-             <div class="card-sub">${iconLabel(MODE_ICON[mode] || MODE_ICON.WFO, MODE_DESCRIPTION[mode] || "")}</div>`,
+             <div class="card-sub">${svgIconLabel(MODE_ICON[mode] || MODE_ICON.WFO, MODE_DESCRIPTION[mode] || "")}</div>`,
       script: "",
     };
   }
@@ -171,9 +195,9 @@ function overrideButton(mode, action, label) {
 // tombolnya error/nggak ngerespon pas diklik.
 function overrideSectionHtml(excludeMode, { label = "Change today to" } = {}) {
   const options = [
-    { mode: "WFO", label: iconLabel(MODE_ICON.WFO, "WFO") },
-    { mode: "WFH", label: iconLabel(MODE_ICON.WFH, "WFH") },
-    { mode: "OFF", label: iconLabel(MODE_ICON.OFF, "Off") },
+    { mode: "WFO", label: svgIconLabel(MODE_ICON.WFO, "WFO") },
+    { mode: "WFH", label: svgIconLabel(MODE_ICON.WFH, "WFH") },
+    { mode: "OFF", label: svgIconLabel(MODE_ICON.OFF, "Off") },
   ].filter((o) => o.mode !== excludeMode);
 
   if (!options.length) return "";
@@ -214,7 +238,7 @@ export function clockedFullCardHtml(todayLog) {
         ${ready ? "" : `<div class="card-sub" style="margin-bottom:2px;">${pickCountdownPhrase()}</div>`}
         <div class="card-value" id="clocked-countdown">${ready ? "Ready to go home! 🎉" : formatDuration(targetMs - Date.now())}</div>
         <div class="card-sub" style="margin-top:2px;">In at ${toWibTime(todayLog.clock_in_at)}</div>
-        <form method="POST" action="/hub/clocked/clock-out" style="margin-top:8px;">
+        <form method="POST" action="/hub/clocked/clock-out" class="clocked-action-row">
           <button type="submit" class="btn-primary btn-wide-short" id="clocked-out-btn" ${ready ? "" : "disabled"}>Clock Out</button>
         </form>
       </div>`;
@@ -227,14 +251,14 @@ export function clockedFullCardHtml(todayLog) {
 function historyRowHtml(log) {
   const duration =
     log.clock_in_at && log.clock_out_at
-      ? formatDuration(new Date(log.clock_out_at) - new Date(log.clock_in_at))
+      ? formatDurationShort(new Date(log.clock_out_at) - new Date(log.clock_in_at))
       : "—";
   return `<tr>
     <td class="nowrap">${toWibDateLabel(log.work_date)}</td>
     <td class="nowrap">${modeIconLabel(log.work_mode)}</td>
     <td class="nowrap">${log.clock_in_at ? toWibTime(log.clock_in_at) : "—"}</td>
     <td class="nowrap">${log.clock_out_at ? toWibTime(log.clock_out_at) : "—"}</td>
-    <td>${duration}</td>
+    <td class="duration-cell">${duration}</td>
   </tr>`;
 }
 
@@ -252,6 +276,7 @@ export function renderClockedPage({ logs, flash, todayLog }) {
 <title>Clocked!</title>
 ${faviconLink("/icons/clocked.png")}
 <style>${DASHBOARD_CSS}</style>
+<style>${CLOCKED_PAGE_CSS}</style>
 </head>
 <body>
   <div class="container">
@@ -259,9 +284,9 @@ ${faviconLink("/icons/clocked.png")}
 
     ${flash ? `<div class="flash flash-${flash.type}">${escapeHtml(flash.text)}</div>` : ""}
 
-    <div class="card" style="margin-bottom:12px; display:flex; align-items:center; justify-content:space-between; gap:12px;">
+    <div class="card glass-card clocked-reminder-banner" style="margin-bottom:12px;">
       <div>
-        <div class="card-label">🔔 Reminder Clock In/Out</div>
+        <div class="card-label">${svgIconLabel("bell", "Reminder Clock In/Out", { size: 15 })}</div>
         <div class="card-sub" id="push-status">Mengecek status notifikasi...</div>
       </div>
       <button type="button" class="btn-secondary btn-sm" id="push-toggle-btn" disabled>...</button>
@@ -272,7 +297,7 @@ ${faviconLink("/icons/clocked.png")}
     <h2>History</h2>
     <div class="table-wrap">
       <table>
-        <thead><tr><th>📅 Date</th><th>Mode</th><th>🟢 Clock In</th><th>🔴 Clock Out</th><th>⏱️ Duration</th></tr></thead>
+        <thead><tr><th>${svgIconLabel("calendar", "Date", { size: 13 })}</th><th>Mode</th><th>${svgIconLabel("arrowRight", "Clock In", { size: 13 })}</th><th>${svgIconLabel("arrowLeft", "Clock Out", { size: 13 })}</th><th>${svgIconLabel("clock", "Duration", { size: 13 })}</th></tr></thead>
         <tbody>${historyRows}</tbody>
       </table>
     </div>
@@ -340,8 +365,22 @@ function pushToggleScript() {
             return;
           }
 
-          Notification.requestPermission()
+          if (Notification.permission === "denied") {
+            statusEl.textContent = "Notifikasi diblokir browser. Tap ikon gembok/pengaturan di sebelah URL bar → Permissions → Notifications → Allow, lalu refresh.";
+            btn.disabled = false;
+            return;
+          }
+
+          navigator.serviceWorker.register("/sw.js")
+            .then(function () {
+              return Notification.requestPermission();
+            })
             .then(function (permission) {
+              if (permission === "denied") {
+                statusEl.textContent = "Notifikasi diblokir browser. Tap ikon gembok/pengaturan di sebelah URL bar → Permissions → Notifications → Allow, lalu refresh.";
+                btn.disabled = false;
+                return Promise.reject(null);
+              }
               if (permission !== "granted") throw new Error("Izin notifikasi ditolak.");
               return fetch("/push/public-key").then(function (r) { return r.json(); });
             })
@@ -368,6 +407,7 @@ function pushToggleScript() {
               btn.disabled = false;
             })
             .catch(function (err) {
+              if (!err) return;
               console.error(err);
               statusEl.textContent = "Gagal aktifin reminder: " + err.message;
               btn.disabled = false;

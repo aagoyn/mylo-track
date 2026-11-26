@@ -272,6 +272,22 @@ export async function getFrequentExpenses(phone, days = 30, limit = 5) {
     .slice(0, limit);
 }
 
+// Search Recent Transactions di /dashboard/spending - cari minimal 30 hari ke belakang (bukan
+// cuma transaksi bulan aktif yang lagi ditampilin), cocokin ke description ATAU category.
+export async function searchTransactions(phone, keyword, days = 30, limit = 50) {
+  const sinceISO = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
+  const { data, error } = await supabase
+    .from("expense_logs")
+    .select("id, description, category, amount, type, created_at")
+    .eq("phone", phone)
+    .gte("created_at", sinceISO)
+    .or(`description.ilike.%${keyword}%,category.ilike.%${keyword}%`)
+    .order("created_at", { ascending: false })
+    .limit(limit);
+  if (error) throw error;
+  return data;
+}
+
 export async function searchExpenseLogs(phone, keyword, limit = 10) {
   const { data, error } = await supabase
     .from("expense_logs")

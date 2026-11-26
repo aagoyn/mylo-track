@@ -128,24 +128,33 @@ function segmentedTabsScript() {
   </script>`;
 }
 
-// Filter lokal (client-side, bukan request baru ke server) buat nyari transaksi yang udah
-// ke-render di Recent Transactions - cukup buat 15 item terakhir yang emang ditampilin. Baca
-// langsung dari teks nama transaksi yang udah ditampilin (.txn-title), bukan dari data-attribute
-// terpisah, biar nggak ada 2 sumber data yang bisa beda (dan nggak kena masalah escaping kalau
-// deskripsinya ada tanda kutip).
+// Search Recent Transactions - query ke GET /dashboard/spending/search (minimal 30 hari ke
+// belakang, bukan cuma transaksi bulan aktif yang lagi ke-render), di-debounce 250ms biar nggak
+// ngirim request tiap ketikan. Query kosong balikin ke daftar transaksi bulan aktif yang asli
+// (disimpan di originalHtml saat halaman di-load).
 function txnFilterScript() {
   return `<script>
     (function () {
       var input = document.getElementById("txn-filter-input");
-      if (!input) return;
-      var items = document.querySelectorAll(".txn-item");
+      var list = document.getElementById("txn-list");
+      if (!input || !list) return;
+      var originalHtml = list.innerHTML;
+      var debounceTimer = null;
       input.addEventListener("input", function () {
-        var q = input.value.trim().toLowerCase();
-        items.forEach(function (item) {
-          var titleEl = item.querySelector(".txn-title");
-          var text = titleEl ? titleEl.textContent.toLowerCase() : "";
-          item.hidden = q.length > 0 && text.indexOf(q) === -1;
-        });
+        var q = input.value.trim();
+        if (debounceTimer) clearTimeout(debounceTimer);
+        if (!q) {
+          list.innerHTML = originalHtml;
+          return;
+        }
+        debounceTimer = setTimeout(function () {
+          fetch("/dashboard/spending/search?q=" + encodeURIComponent(q))
+            .then(function (r) { return r.json(); })
+            .then(function (data) {
+              list.innerHTML = data.html || '<div class="empty-state">No transactions found.</div>';
+            })
+            .catch(function () {});
+        }, 250);
       });
     })();
   </script>`;
@@ -290,7 +299,7 @@ ${faviconLink("/icons/spending.png")}
       ${svgIcon("search", { size: 15 })}
       <input type="text" id="txn-filter-input" placeholder="Search transactions...">
     </div>
-    <div class="txn-list">${transactionItemsHtml || `<div class="empty-state">No transactions yet.</div>`}</div>
+    <div class="txn-list" id="txn-list">${transactionItemsHtml || `<div class="empty-state">No transactions yet.</div>`}</div>
   </div>
 
   ${bottomNavHtml("/dashboard/spending")}

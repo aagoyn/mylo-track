@@ -28,6 +28,7 @@ import {
   setWeeklyRunTargetKm,
 } from "./supabase.js";
 import { renderGrindPage } from "./dashboard.js";
+import { renderGymPage } from "./gym-page.js";
 
 const WIB_OFFSET_MS = 7 * 60 * 60 * 1000;
 
@@ -35,7 +36,7 @@ const WIB_OFFSET_MS = 7 * 60 * 60 * 1000;
 // validasi di sini biar nggak ada nilai session_type sembarangan yang kesimpen.
 const VALID_SESSION_TYPES = ["EASY", "QUALITY", "LONG RUN", "RACE DAY", "SWIM", "BADMINTON", "TENNIS", "GYM", "REST"];
 
-// Sama persis sama GYM_SUBTYPES di dashboard.js (dropdown "Split" di form Gym).
+// Sama persis sama GYM_SPLITS di gym-page.js (pill selector Split di halaman Gym).
 const VALID_GYM_SPLITS = ["Push", "Pull", "Legs", "Upper", "Full Body"];
 
 function redirectWithError(res, message) {
@@ -73,7 +74,6 @@ router.get("/hub/grind", requireAuth, async (req, res) => {
     const { startKey: weekStart, endKey: weekEnd } = getWeekDateBoundsWib();
     const { startKey: nextWeekStart, endKey: nextWeekEnd } = getNextWeekDateBoundsWib();
     const { startKey: monthStart, endKey: monthEnd } = getMonthDateBoundsWib();
-    const sinceISO = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
 
     const [
       todayPlan,
@@ -84,7 +84,6 @@ router.get("/hub/grind", requireAuth, async (req, res) => {
       weekSessions,
       monthSummary,
       historyLogs,
-      recentSessions,
       weekTargetKm,
     ] = await Promise.all([
       getPlanByDate(phone, todayKey),
@@ -95,7 +94,6 @@ router.get("/hub/grind", requireAuth, async (req, res) => {
       getSessionsInRange(phone, weekStart, weekEnd),
       getMonthSummary(phone, monthStart, monthEnd),
       getRecentSessions(phone, 30),
-      getSessionsSince(phone, sinceISO),
       getWeeklyRunTargetKm(phone),
     ]);
 
@@ -133,7 +131,6 @@ router.get("/hub/grind", requireAuth, async (req, res) => {
         weekTargetKm,
         monthSummary,
         historyLogs,
-        recoveryHint: buildRecoveryHint(recentSessions),
         flash,
         openForm,
         prefill,
@@ -389,9 +386,30 @@ router.post("/hub/grind/sessions/:id/delete", requireAuth, async (req, res) => {
   }
 });
 
-// Auto-load template form Gym (lihat gymFormScript di dashboard.js) - dipanggil tiap user
-// pilih/ganti Split, prioritas sesi terakhir dengan split sama, fallback starter preset kalau
-// belum pernah (lihat getGymTemplate).
+// Halaman standalone Gym Workout Tracker (lihat gym-page.js) - menggantikan accordion "Log Gym"
+// yang dulu nempel di /hub/grind. Recovery hint ("baru aja Run berat, fokus upper body") yang
+// dulu ada di accordion itu ikut dipindah ke sini.
+router.get("/hub/grind/gym", requireAuth, async (req, res) => {
+  try {
+    const phone = req.user.phone;
+    const sinceISO = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+    const recentSessions = await getSessionsSince(phone, sinceISO);
+
+    res.send(
+      renderGymPage({
+        defaultTime: defaultSessionTimeWib(),
+        recoveryHint: buildRecoveryHint(recentSessions),
+      })
+    );
+  } catch (err) {
+    console.error(err);
+    res.status(500).send(`Gagal load halaman Gym: ${err.message}`);
+  }
+});
+
+// Auto-load template form Gym (lihat gym-page.js) - dipanggil tiap user pilih/ganti Split,
+// prioritas sesi terakhir dengan split sama, fallback starter preset kalau belum pernah (lihat
+// getGymTemplate).
 router.get("/hub/grind/gym-template", requireAuth, async (req, res) => {
   if (!VALID_GYM_SPLITS.includes(req.query.split)) {
     return res.status(400).json({ error: "Split tidak valid." });

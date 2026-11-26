@@ -37,7 +37,6 @@ const SESSION_TYPE_LABEL_TEXT = {
 };
 const RUN_SUBTYPES = ["Easy", "Tempo", "Intervals", "Long Run", "Race"];
 const BADMINTON_SUBTYPES = ["Fun", "Sparring", "Competitive"];
-const GYM_SUBTYPES = ["Push", "Pull", "Legs", "Upper", "Full Body"];
 const TENNIS_SUBTYPES = ["Fun", "Sparring", "Competitive", "Coaching"];
 
 // Opsi "ubah jenis sesi" di Edit plan (Schedule) - value-nya harus sama persis sama session_type
@@ -196,7 +195,7 @@ function raceRibbonHtml(upcomingRace) {
 const QUICK_ADD_SPORTS_HUB = [
   { form: "run", svg: "activity", label: "Run" },
   { form: "badminton", svg: "racket", label: "Badminton" },
-  { form: "gym", svg: "dumbbell", label: "Gym" },
+  { form: "gym", svg: "dumbbell", label: "Gym", href: "/hub/grind/gym" },
 ];
 
 // Di /hub/grind sendiri semua 5 olahraga dapet tile (grid 3 kolom x 2 baris bareng Rest).
@@ -205,7 +204,7 @@ const QUICK_ADD_SPORTS_FULL = [
   { form: "swim", svg: "waves", label: "Swim" },
   { form: "badminton", svg: "racket", label: "Badminton" },
   { form: "tennis", svg: "tennisBall", label: "Tennis" },
-  { form: "gym", svg: "dumbbell", label: "Gym" },
+  { form: "gym", svg: "dumbbell", label: "Gym", href: "/hub/grind/gym" },
 ];
 
 function restTileHtml({ stopPropagation = false } = {}) {
@@ -214,13 +213,15 @@ function restTileHtml({ stopPropagation = false } = {}) {
     </form>`;
 }
 
-// Dipakai di card Grind /hub - tiap tile navigate ke /hub/grind (forms-nya cuma ada di sana).
+// Dipakai di card Grind /hub - tiap tile navigate ke /hub/grind (forms-nya cuma ada di sana),
+// kecuali Gym yang sekarang punya halaman standalone sendiri (lihat gym-page.js) - href eksplisit
+// override query-string trigger di bawah.
 // Kartu Grind di /hub sendiri udah bisa diklik ke /hub/grind (lihat grindHubCardHtml), jadi tiap
 // tile di sini butuh stopPropagation biar klik tile-nya nggak ikut ke-tangkep sama onclick kartu.
 function quickAddTilesHub() {
   const tiles = QUICK_ADD_SPORTS_HUB.map(
     (s) =>
-      `<a class="sport-tile sport-btn" href="/hub/grind?form=${s.form}#today-logger" onclick="event.stopPropagation()">${iconBadgeHtml(svgIcon(s.svg, { size: 20 }))}<span class="sport-tile-label">${s.label}</span></a>`
+      `<a class="sport-tile sport-btn" href="${s.href || `/hub/grind?form=${s.form}#today-logger`}" onclick="event.stopPropagation()">${iconBadgeHtml(svgIcon(s.svg, { size: 20 }))}<span class="sport-tile-label">${s.label}</span></a>`
   ).join("");
 
   return `<div class="card-sub" style="margin:10px 0 6px;">Or log a session</div>
@@ -231,11 +232,12 @@ function quickAddTilesHub() {
 }
 
 // Dipakai di /hub/grind sendiri - tiap tile nge-trigger buka form yang pas di tempat (lihat
-// quickAddScript), bukan navigate ke section lain.
+// quickAddScript), KECUALI Gym yang navigate ke halaman standalone /hub/grind/gym (s.href).
 function quickAddTilesGrindPage() {
-  const tiles = QUICK_ADD_SPORTS_FULL.map(
-    (s) =>
-      `<button type="button" class="sport-tile sport-btn" data-target="form-${s.form}">${iconBadgeHtml(svgIcon(s.svg, { size: 20 }))}<span class="sport-tile-label">${s.label}</span></button>`
+  const tiles = QUICK_ADD_SPORTS_FULL.map((s) =>
+    s.href
+      ? `<a class="sport-tile sport-btn" href="${s.href}">${iconBadgeHtml(svgIcon(s.svg, { size: 20 }))}<span class="sport-tile-label">${s.label}</span></a>`
+      : `<button type="button" class="sport-tile sport-btn" data-target="form-${s.form}">${iconBadgeHtml(svgIcon(s.svg, { size: 20 }))}<span class="sport-tile-label">${s.label}</span></button>`
   ).join("");
 
   return `<div class="card-sub" style="margin:10px 0 6px;">Or log a session</div>
@@ -439,45 +441,10 @@ function tennisFormHtml({ open, prefill, defaultTime }) {
   });
 }
 
-function gymFormHtml({ open, prefill, defaultTime, recoveryHint }) {
-  return `<details class="form-card" id="form-gym" ${open ? "open" : ""}>
-    ${sportFormSummaryHtml("dumbbell", "Gym")}
-    ${recoveryHint ? `<div class="recovery-banner">💡 ${escapeHtml(recoveryHint)}</div>` : ""}
-    <form method="POST" action="/hub/grind/sessions/gym" id="gym-form">
-      ${hiddenPlanId(prefill)}
-      ${sessionTimeRadios("session_time", defaultTime)}
-      <label>Split</label>
-      <div class="gym-subtype-row">
-        <select name="sub_type" id="gym-subtype">${subtypeOptions(GYM_SUBTYPES, prefill?.subType)}</select>
-        <button type="button" class="btn-secondary btn-sm" id="gym-reset-template" hidden>Reset to Template</button>
-      </div>
-
-      <div id="gym-exercises-container"><div class="empty-state">Loading template...</div></div>
-      <div class="button-row" style="margin:8px 0;">
-        <button type="button" class="btn-secondary btn-sm" id="gym-add-exercise">+ Add Exercise</button>
-      </div>
-
-      <div class="card-sub" style="margin-bottom:4px;">Rest Timer</div>
-      <div class="button-row" style="margin-bottom:8px;">
-        <button type="button" class="btn-secondary btn-sm" onclick="grindStartRestTimer(45)">45s</button>
-        <button type="button" class="btn-secondary btn-sm" onclick="grindStartRestTimer(60)">60s</button>
-        <button type="button" class="btn-secondary btn-sm" onclick="grindStartRestTimer(90)">90s</button>
-      </div>
-      <div class="card-sub" id="gym-rest-timer-display"></div>
-
-      <label style="margin-top:8px;">Durasi total (menit, opsional)</label>
-      <input type="number" name="duration_min">
-      <label>Catatan</label>
-      <textarea name="notes" rows="2"></textarea>
-      <button type="submit">Simpan</button>
-    </form>
-  </details>`;
-}
-
 // ---------- Today's Plan + Interactive Quick Logger (gabungan, biar nggak perlu scroll ke
 // section terpisah buat nge-log - lihat quickAddScript buat wiring klik tile -> buka form) ----------
 
-function todayPlanAndLoggerHtml({ todayPlan, todaySessions, upcomingRace, openForm, prefill, defaultTime, recoveryHint }) {
+function todayPlanAndLoggerHtml({ todayPlan, todaySessions, upcomingRace, openForm, prefill, defaultTime }) {
   const raceLine = raceRibbonHtml(upcomingRace);
 
   let body;
@@ -513,7 +480,6 @@ function todayPlanAndLoggerHtml({ todayPlan, todaySessions, upcomingRace, openFo
   const formsHtml = `<div class="forms" style="margin-top:12px;">
     ${runFormHtml({ open: openForm === "run", prefill: prefillFor("run"), defaultTime })}
     ${badmintonFormHtml({ open: openForm === "badminton", prefill: prefillFor("badminton"), defaultTime })}
-    ${gymFormHtml({ open: openForm === "gym", prefill: prefillFor("gym"), defaultTime, recoveryHint })}
     ${swimFormHtml({ open: openForm === "swim", prefill: prefillFor("swim"), defaultTime })}
     ${tennisFormHtml({ open: openForm === "tennis", prefill: prefillFor("tennis"), defaultTime })}
   </div>`;
@@ -867,276 +833,6 @@ function pacecalcScript() {
   </script>`;
 }
 
-// Form Gym: card per gerakan (nama editable, badge "Last: Xkg × Y" dari sesi terakhir kalau ada,
-// + Copy Set yang nyalin angka dari baris terakhir) biar nyatet latihan beban nggak perlu ngetik
-// gerakan/set satu-satu tiap kali. Ganti Split -> auto-fetch GET /hub/grind/gym-template (prioritas
-// sesi terakhir, fallback starter preset - lihat getGymTemplate di supabase.js), KECUALI ada draft
-// aktif buat split yang sama di localStorage ("grind_active_gym_draft") - draft dimenangkan biar
-// progres yang lagi diisi nggak ketiban template setiap re-render, tombol "Reset to Template"
-// disediakan buat yang mau sengaja muat ulang. Checklist "selesai" per set otomatis mulai Rest
-// Timer 90s + getar pas abis. Semua state (termasuk checklist) di-autosave tiap ada perubahan,
-// baru dihapus begitu form ini disubmit.
-function gymFormScript() {
-  return `<script>
-    (function () {
-      var container = document.getElementById("gym-exercises-container");
-      var subtypeSelect = document.getElementById("gym-subtype");
-      var resetBtn = document.getElementById("gym-reset-template");
-      var addExerciseBtn = document.getElementById("gym-add-exercise");
-      var form = document.getElementById("gym-form");
-      var durationInput = form ? form.querySelector('input[name="duration_min"]') : null;
-      var notesInput = form ? form.querySelector('textarea[name="notes"]') : null;
-      if (!container || !form || !subtypeSelect) return;
-
-      var DRAFT_KEY = ${JSON.stringify("grind_active_gym_draft")};
-
-      function startRestTimerIfAvailable() {
-        if (typeof grindStartRestTimer === "function") grindStartRestTimer(90);
-      }
-
-      function renumberSets(card) {
-        card.querySelectorAll(".gym-set-row").forEach(function (row, i) {
-          row.querySelector(".gym-set-index").textContent = i + 1;
-          row.querySelector(".gym-set-order-hidden").value = i + 1;
-        });
-      }
-
-      function syncExerciseName(card) {
-        var name = card.querySelector(".gym-exercise-name").value;
-        card.querySelectorAll(".gym-exercise-name-hidden").forEach(function (el) { el.value = name; });
-      }
-
-      function makeSetRow(weightKg, reps, done) {
-        var row = document.createElement("div");
-        row.className = "gym-set-row";
-        row.innerHTML =
-          '<span class="gym-set-index"></span>' +
-          '<input type="hidden" class="gym-exercise-name-hidden" name="exercise_name[]">' +
-          '<input type="hidden" class="gym-set-order-hidden" name="set_order[]">' +
-          '<div class="gym-set-field">' +
-            '<button type="button" class="stepper-btn" data-step="-2.5">−2.5</button>' +
-            '<input type="text" inputmode="decimal" class="gym-weight-input" name="weight_kg[]">' +
-            '<button type="button" class="stepper-btn" data-step="2.5">+2.5</button>' +
-          '</div>' +
-          '<div class="gym-set-field">' +
-            '<button type="button" class="stepper-btn" data-step="-1">−1</button>' +
-            '<input type="text" inputmode="numeric" class="gym-reps-input" name="reps[]">' +
-            '<button type="button" class="stepper-btn" data-step="1">+1</button>' +
-          '</div>' +
-          '<label class="gym-set-done-label"><input type="checkbox" class="gym-set-done-checkbox"></label>';
-
-        var weightInput = row.querySelector(".gym-weight-input");
-        var repsInput = row.querySelector(".gym-reps-input");
-        var doneCheckbox = row.querySelector(".gym-set-done-checkbox");
-        weightInput.value = weightKg != null && weightKg !== "" ? weightKg : "";
-        repsInput.value = reps != null && reps !== "" ? reps : "";
-        if (done) {
-          doneCheckbox.checked = true;
-          row.classList.add("gym-set-done-row");
-        }
-
-        row.querySelectorAll(".stepper-btn[data-step]").forEach(function (btn) {
-          btn.addEventListener("click", function () {
-            var step = parseFloat(btn.dataset.step);
-            var targetInput = btn.parentElement.querySelector("input");
-            var current = parseFloat(targetInput.value) || 0;
-            var next = Math.round((current + step) * 100) / 100;
-            if (next < 0) next = 0;
-            targetInput.value = next;
-            saveDraft();
-          });
-        });
-        weightInput.addEventListener("input", saveDraft);
-        repsInput.addEventListener("input", saveDraft);
-        doneCheckbox.addEventListener("change", function () {
-          row.classList.toggle("gym-set-done-row", doneCheckbox.checked);
-          if (doneCheckbox.checked) startRestTimerIfAvailable();
-          saveDraft();
-        });
-
-        return row;
-      }
-
-      function makeExerciseCard(exerciseName, lastSummary, sets) {
-        var card = document.createElement("div");
-        card.className = "gym-exercise-card";
-        card.innerHTML =
-          '<div class="gym-exercise-head">' +
-            '<input type="text" class="gym-exercise-name" placeholder="Nama gerakan" required>' +
-            '<span class="gym-last-badge"></span>' +
-            '<button type="button" class="gym-exercise-remove" aria-label="Hapus gerakan">✕</button>' +
-          '</div>' +
-          '<div class="gym-set-header-row">' +
-            '<span></span><span class="gym-set-col-label">kg</span><span class="gym-set-col-label">reps</span><span></span>' +
-          '</div>' +
-          '<div class="gym-set-rows"></div>' +
-          '<button type="button" class="btn-secondary btn-sm gym-copy-set">+ Copy Set</button>';
-
-        var nameInput = card.querySelector(".gym-exercise-name");
-        var badge = card.querySelector(".gym-last-badge");
-        var rowsContainer = card.querySelector(".gym-set-rows");
-
-        nameInput.value = exerciseName || "";
-        if (lastSummary) {
-          badge.textContent = lastSummary;
-        } else {
-          badge.hidden = true;
-        }
-
-        (sets && sets.length ? sets : [{ weightKg: "", reps: "" }]).forEach(function (s) {
-          rowsContainer.appendChild(makeSetRow(s.weightKg, s.reps, s.done));
-        });
-        renumberSets(card);
-        syncExerciseName(card);
-
-        nameInput.addEventListener("input", function () { syncExerciseName(card); saveDraft(); });
-        card.querySelector(".gym-exercise-remove").addEventListener("click", function () {
-          card.remove();
-          saveDraft();
-        });
-        card.querySelector(".gym-copy-set").addEventListener("click", function () {
-          var rows = rowsContainer.querySelectorAll(".gym-set-row");
-          var last = rows[rows.length - 1];
-          var lastWeight = last ? last.querySelector(".gym-weight-input").value : "";
-          var lastReps = last ? last.querySelector(".gym-reps-input").value : "";
-          rowsContainer.appendChild(makeSetRow(lastWeight, lastReps, false));
-          renumberSets(card);
-          syncExerciseName(card);
-          saveDraft();
-        });
-
-        return card;
-      }
-
-      function renderExercises(exercises) {
-        container.innerHTML = "";
-        if (!exercises || !exercises.length) {
-          container.appendChild(makeExerciseCard("", null, [{ weightKg: "", reps: "" }]));
-          return;
-        }
-        exercises.forEach(function (ex) {
-          container.appendChild(makeExerciseCard(ex.exerciseName, ex.lastSummary, ex.sets));
-        });
-      }
-
-      // ---------- draft persistence ----------
-
-      function collectState() {
-        var exercises = Array.prototype.map.call(container.querySelectorAll(".gym-exercise-card"), function (card) {
-          var badge = card.querySelector(".gym-last-badge");
-          var sets = Array.prototype.map.call(card.querySelectorAll(".gym-set-row"), function (row) {
-            return {
-              weightKg: row.querySelector(".gym-weight-input").value,
-              reps: row.querySelector(".gym-reps-input").value,
-              done: row.querySelector(".gym-set-done-checkbox").checked,
-            };
-          });
-          return {
-            exerciseName: card.querySelector(".gym-exercise-name").value,
-            lastSummary: badge.hidden ? null : badge.textContent,
-            sets: sets,
-          };
-        });
-        return {
-          split: subtypeSelect.value,
-          durationMin: durationInput ? durationInput.value : "",
-          notes: notesInput ? notesInput.value : "",
-          exercises: exercises,
-        };
-      }
-
-      function saveDraft() {
-        try { localStorage.setItem(DRAFT_KEY, JSON.stringify(collectState())); } catch (e) {}
-      }
-
-      function clearDraft() {
-        try { localStorage.removeItem(DRAFT_KEY); } catch (e) {}
-      }
-
-      function readDraft() {
-        try { return JSON.parse(localStorage.getItem(DRAFT_KEY) || "null"); } catch (e) { return null; }
-      }
-
-      // ---------- template loading ----------
-
-      function loadTemplate(split) {
-        container.innerHTML = '<div class="empty-state">Loading template...</div>';
-        if (resetBtn) resetBtn.hidden = true;
-        fetch("/hub/grind/gym-template?split=" + encodeURIComponent(split))
-          .then(function (r) { return r.json(); })
-          .then(function (data) { renderExercises(data.exercises); saveDraft(); })
-          .catch(function () { renderExercises([]); });
-      }
-
-      function loadForSplit(split, forceTemplate) {
-        var draft = !forceTemplate ? readDraft() : null;
-        if (draft && draft.split === split && draft.exercises && draft.exercises.length) {
-          renderExercises(draft.exercises);
-          if (durationInput && draft.durationMin) durationInput.value = draft.durationMin;
-          if (notesInput && draft.notes) notesInput.value = draft.notes;
-          if (resetBtn) resetBtn.hidden = false;
-          return;
-        }
-        loadTemplate(split);
-      }
-
-      subtypeSelect.addEventListener("change", function () { loadForSplit(subtypeSelect.value, false); });
-      if (resetBtn) resetBtn.addEventListener("click", function () { loadForSplit(subtypeSelect.value, true); });
-      if (addExerciseBtn) {
-        addExerciseBtn.addEventListener("click", function () {
-          container.appendChild(makeExerciseCard("", null, [{ weightKg: "", reps: "" }]));
-          saveDraft();
-        });
-      }
-      if (durationInput) durationInput.addEventListener("input", saveDraft);
-      if (notesInput) notesInput.addEventListener("input", saveDraft);
-
-      form.addEventListener("submit", clearDraft);
-
-      loadForSplit(subtypeSelect.value, false);
-    })();
-
-    // Berbasis timestamp (bukan counter yang dikurangin tiap tick) biar nggak meleset kalau
-    // setInterval di-throttle pas tab background/layar mati - skenario paling umum pas nunggu
-    // rest timer gym. navigator.vibrate() sendiri kemungkinan besar DIBLOKIR browser kalau
-    // halaman lagi nggak keliatan (itu alasan utama "udah selesai tapi nggak getar") - makanya
-    // ada listener visibilitychange di bawah yang nyoba getar ULANG begitu user balik buka
-    // tabnya kalau ternyata timer udah lewat waktu dia ninggalin halaman.
-    function grindStartRestTimer(seconds) {
-      var display = document.getElementById("gym-rest-timer-display");
-      if (!display) return;
-      if (window.__grindRestTimerInterval) clearInterval(window.__grindRestTimerInterval);
-      window.__grindRestTimerEndAt = Date.now() + seconds * 1000;
-      window.__grindRestTimerVibrated = false;
-
-      function tick() {
-        var remainingMs = window.__grindRestTimerEndAt - Date.now();
-        if (remainingMs <= 0) {
-          clearInterval(window.__grindRestTimerInterval);
-          display.textContent = "Rest done!";
-          if (!window.__grindRestTimerVibrated && navigator.vibrate) {
-            window.__grindRestTimerVibrated = navigator.vibrate([200, 100, 200]);
-          }
-          return;
-        }
-        display.textContent = "Rest: " + Math.ceil(remainingMs / 1000) + "s";
-      }
-
-      tick();
-      window.__grindRestTimerInterval = setInterval(tick, 250);
-    }
-
-    document.addEventListener("visibilitychange", function () {
-      if (document.visibilityState !== "visible" || !window.__grindRestTimerEndAt) return;
-      var display = document.getElementById("gym-rest-timer-display");
-      if (display && Date.now() >= window.__grindRestTimerEndAt && !window.__grindRestTimerVibrated) {
-        display.textContent = "Rest done!";
-        if (navigator.vibrate) window.__grindRestTimerVibrated = navigator.vibrate([200, 100, 200]);
-      }
-    });
-  </script>`;
-}
-
 // ---------- Page ----------
 
 export function renderGrindPage({
@@ -1149,7 +845,6 @@ export function renderGrindPage({
   weekTargetKm,
   monthSummary,
   historyLogs,
-  recoveryHint,
   flash,
   openForm,
   prefill,
@@ -1175,7 +870,7 @@ ${faviconLink("/icons/grind-icon.png")}
 
     ${flash ? `<div class="flash flash-${flash.type}">${escapeHtml(flash.text)}</div>` : ""}
 
-    ${todayPlanAndLoggerHtml({ todayPlan, todaySessions, upcomingRace, openForm, prefill, defaultTime, recoveryHint })}
+    ${todayPlanAndLoggerHtml({ todayPlan, todaySessions, upcomingRace, openForm, prefill, defaultTime })}
     ${weeklyProgressHtml({ weekPlans, weekSessions, weekTargetKm })}
     ${scheduleViewerHtml({ weekPlans, nextWeekPlans, todayKey })}
     ${sportSummaryHtml(monthSummary)}
@@ -1185,7 +880,6 @@ ${faviconLink("/icons/grind-icon.png")}
   ${importPlanFabHtml()}
   ${importModalHtml()}
   ${pacecalcScript()}
-  ${gymFormScript()}
   ${quickAddScript()}
   ${importModalScript()}
   ${sportSummaryToggleScript()}

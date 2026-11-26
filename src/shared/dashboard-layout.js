@@ -150,7 +150,12 @@ export const DASHBOARD_CSS = `
   @media (max-width: 520px) { .macro-cards { grid-template-columns: repeat(2, 1fr); } }
   .card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; }
   a.card { display: block; color: inherit; text-decoration: none; }
-  a.card:hover { background: var(--surface-hover); }
+  a.card:not(.card-accent):not(.card-tint-danger):hover { background: var(--surface-hover); }
+  /* Kartu accent (Spending) sengaja dapet hover sendiri (gelapin --accent, BUKAN pindah ke
+     --surface-hover yang terang/krem - itu yang bikin teks putihnya ilang kebaca) - --accent-hover
+     udah lebih gelap di light mode & lebih terang di dark mode (lihat .card.card-accent di bawah,
+     teks dibalik jadi gelap buat varian dark), jadi kontras malah makin aman di kedua tema. */
+  a.card.card-accent:hover { background: var(--accent-hover); border-color: var(--accent-hover); }
   /* Permukaan kaca hangat - cuma buat kartu utama & elemen melayang (bento grid, card Grind,
      TODAY/WEEKLY PLAN, dialog, FAB) di atas ambient mesh gradient body, BUKAN buat list item
      (Recent/History/Schedule pakai --glass-list-bg yang lebih ringan, tanpa blur, lihat
@@ -160,6 +165,23 @@ export const DASHBOARD_CSS = `
     box-shadow: var(--glass-shadow); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
   }
   a.glass-card:hover { background: var(--glass-bg) !important; filter: brightness(1.03); }
+  /* Dark mode: hover kartu glass/bento cuma naikin opacity permukaan kaca dikit, JANGAN
+     ganti ke warna terang/krem (lihat a.card:not(.card-accent) di atas - itu juga udah
+     di-exclude dari kartu accent). Teks tetap pakai var(--text) yang kontras tinggi. */
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) .bento-card.glass-card:hover,
+    :root:not([data-theme="light"]) a.bento-card.glass-card:hover {
+      background: rgba(52, 47, 43, 0.82) !important;
+      border-color: rgba(214, 188, 160, 0.35) !important;
+      filter: none;
+    }
+  }
+  :root[data-theme="dark"] .bento-card.glass-card:hover,
+  :root[data-theme="dark"] a.bento-card.glass-card:hover {
+    background: rgba(52, 47, 43, 0.82) !important;
+    border-color: rgba(214, 188, 160, 0.35) !important;
+    filter: none;
+  }
   .card-label { font-size: 12px; color: var(--text-muted); margin-bottom: 4px; }
   .card-value { font-size: 18px; font-weight: 600; overflow-wrap: break-word; }
   .card-value.card-value-compact { font-size: 15px; }
@@ -559,13 +581,13 @@ export const DASHBOARD_CSS = `
   .txn-amount { font-weight: 600; font-size: 14px; white-space: nowrap; }
   .txn-amount.txn-income { color: var(--success); }
 
-  /* Floating bottom nav - kapsul 3 tab melayang, dipakai di /hub, /hub/grind, /dashboard/spending
-     (lihat bottomNavHtml). Blur 16px (bukan 12px default .glass-card) biar sama kuatnya kayak
-     FAB/dialog, bukan permukaan "kartu biasa" yang numpang lewat. */
+  /* Floating bottom nav - kapsul 4 tab melayang, dipakai di /hub, /hub/grind, /hub/grind/gym,
+     /dashboard/spending (lihat bottomNavHtml). Blur 16px (bukan 12px default .glass-card) biar
+     sama kuatnya kayak FAB/dialog, bukan permukaan "kartu biasa" yang numpang lewat. */
   .bottom-nav {
     position: fixed; bottom: calc(12px + env(safe-area-inset-bottom)); left: 50%; transform: translateX(-50%); z-index: 45;
-    border-radius: 999px; padding: 6px; width: min(360px, calc(100% - 32px));
-    display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px;
+    border-radius: 999px; padding: 6px; width: min(400px, calc(100% - 32px));
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px;
     backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
   }
   .bottom-nav a {
@@ -832,6 +854,16 @@ const SVG_ICON_PATHS = {
   edit: '<path d="M17 3a2.83 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/>',
   search: '<circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>',
   layoutGrid: '<rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/>',
+  target: '<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/>',
+  camera: '<path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/>',
+  scale: '<path d="M12 3v18"/><path d="M5 7h14"/><path d="m5 7-3 9a5 5 0 0 0 6 0Z"/><path d="m19 7-3 9a5 5 0 0 0 6 0Z"/>',
+  wheat: '<path d="M12 22V12"/><path d="M12 12a4 4 0 0 1 4-4"/><path d="M12 12a4 4 0 0 0-4-4"/><path d="M12 8a4 4 0 0 1 4-4"/><path d="M12 8a4 4 0 0 0-4-4"/>',
+  droplet: '<path d="M12 2s6 7 6 12a6 6 0 0 1-12 0c0-5 6-12 6-12Z"/>',
+  cube: '<path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/>',
+  refresh: '<path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/><path d="M8 16H3v5"/>',
+  trash: '<path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>',
+  arrowLeft: '<line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/>',
+  check: '<polyline points="20 6 9 17 4 12"/>',
 };
 
 // size dalam px (18-20 direkomendasikan biar sejajar sama teks di sampingnya, lihat .svg-icon).
@@ -854,14 +886,17 @@ export function iconBadgeHtml(innerHtml) {
   return `<span class="icon-badge">${innerHtml}</span>`;
 }
 
-// Floating bottom nav (kapsul 3 tab: Home/Grind/Spend) - dipanggil eksplisit di tiap halaman yang
-// mau pakai (/hub, /hub/grind, /dashboard/spending sejauh ini), BUKAN auto-inject global lewat
-// middleware, biar halaman lain (Vault/Clocked/Mood/dst) nggak kena efek samping tanpa diminta.
+// Floating bottom nav (kapsul 4 tab: Home/Grind/Gym/Spend) - dipanggil eksplisit di tiap halaman
+// yang mau pakai (/hub, /hub/grind, /hub/grind/gym, /dashboard/spending sejauh ini), BUKAN
+// auto-inject global lewat middleware, biar halaman lain (Vault/Clocked/Mood/dst) nggak kena efek
+// samping tanpa diminta.
 // currentPath: path halaman yang lagi dibuka (hardcode per call site, bukan dari req) - dipakai
-// buat nentuin tab mana yang "active".
+// buat nentuin tab mana yang "active". Grind sengaja exclude /hub/grind/gym (match-nya sendiri)
+// biar pas lagi di halaman Gym, tab yang nyala cuma Gym - bukan dua-duanya.
 const BOTTOM_NAV_ITEMS = [
   { href: "/hub", label: "Home", icon: "layoutGrid", match: (p) => p === "/hub" },
-  { href: "/hub/grind", label: "Grind", icon: "activity", match: (p) => p.startsWith("/hub/grind") },
+  { href: "/hub/grind", label: "Grind", icon: "activity", match: (p) => p.startsWith("/hub/grind") && !p.startsWith("/hub/grind/gym") },
+  { href: "/hub/grind/gym", label: "Gym", icon: "dumbbell", match: (p) => p.startsWith("/hub/grind/gym") },
   { href: "/dashboard/spending", label: "Spend", icon: "wallet", match: (p) => p.startsWith("/dashboard/spending") },
 ];
 

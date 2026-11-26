@@ -2,6 +2,30 @@ import { DASHBOARD_CSS, escapeHtml, navHeader, faviconLink, iconLabel, svgIcon, 
 import { clockedHubCardHtml } from "./clocked/dashboard.js";
 import { grindHubCardHtml } from "./grind/dashboard.js";
 
+// Semua halaman/mini-app sekunder yang ada di src/ (selain Calories/Spending/Grind yang udah
+// kebagian kartu bento + section tersendiri di atas) - lihat masing-masing src/hub/<nama>/router.js
+// buat route persisnya. Grind sendiri nggak diulang di sini, tapi Gym (sub-halaman standalone
+// Grind, src/hub/grind/gym-page.js) ikut nongol karena belum ada link langsung ke situ dari /hub.
+const MINI_APPS = [
+  { icon: "shieldCheck", label: "Vault", href: "/hub/vault" },
+  { icon: "clock", label: "Clocked!", href: "/hub/clocked" },
+  { icon: "book", label: "Journal", href: "/hub/journal" },
+  { icon: "dumbbell", label: "Gym", href: "/hub/grind/gym" },
+  { icon: "smile", label: "Mood", href: "/hub/mood" },
+  { icon: "sparkle", label: "Skincare", href: "/hub/skincare" },
+  { icon: "heart", label: "Wishlist", href: "/hub/wishlist" },
+];
+
+function miniAppsGridHtml() {
+  const tiles = MINI_APPS.map(
+    (app) => `<a class="card glass-card mini-app-tile" href="${app.href}">
+      <span class="mini-app-icon">${svgIcon(app.icon, { size: 19 })}</span>
+      <span class="mini-app-label">${escapeHtml(app.label)}</span>
+    </a>`
+  ).join("");
+  return `<div class="mini-apps-grid">${tiles}</div>`;
+}
+
 function formatRupiah(amount) {
   return `Rp${Math.round(amount).toLocaleString("id-ID")}`;
 }
@@ -93,6 +117,21 @@ const HUB_PAGE_CSS = `
     from { opacity: 0; transform: translate(-50%, -12px); }
     to { opacity: 1; transform: translate(-50%, 0); }
   }
+
+  /* Grid app launcher "Mini Apps & Tools" - 3 kolom simetris, ganti dari 2 kolom .hub-nav-links
+     lama (yang nyisain ruang kosong janggal di kanan kalau jumlah item ganjil). */
+  .mini-apps-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+  .mini-app-tile {
+    padding: 14px 8px; display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 8px; text-align: center; text-decoration: none; color: var(--text);
+  }
+  .mini-app-tile:active { transform: scale(0.96); transition: transform 0.1s ease; }
+  .mini-app-icon {
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    width: 38px; height: 38px; border-radius: 50%; background: var(--accent-deep); color: var(--accent-light);
+  }
+  .mini-app-icon .svg-icon { margin: 0; }
+  .mini-app-label { font-size: 12.5px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
 `;
 
 // Dialog Quick Expense + wiring-nya: FAB buka dialog (autofocus input), chip 1-tap langsung
@@ -162,7 +201,7 @@ function quickExpenseScript() {
         var row = document.createElement("div");
         row.className = "activity-row";
         row.innerHTML =
-          '<div class="activity-icon">💰</div>' +
+          '<div class="activity-icon">${svgIcon("wallet", { size: 16 })}</div>' +
           '<div class="activity-main"><div class="activity-title"></div><div class="activity-subtitle"></div></div>' +
           '<div class="activity-time"></div>';
         row.querySelector(".activity-title").textContent = item.description;
@@ -328,24 +367,10 @@ ${faviconLink("/icons/hub.png")}
     <div class="card bento-card glass-card" onclick="location.href='/hub/grind'" style="cursor:pointer;">${grindCard}</div>
 
     <h2>Recent</h2>
-    <div class="activity-list" id="recent-activity-list">${recentRows}</div>
+    <div class="card glass-card recent-card-list" id="recent-activity-list">${recentRows}</div>
 
-    <div class="hub-nav-group">
-      <h2>Trackers</h2>
-      <div class="hub-nav-links">
-        <a class="hub-nav-item" href="/dashboard/calorie">${iconLabel("/icons/calorie.png", "Calories")}</a>
-        <a class="hub-nav-item" href="/dashboard/spending">${iconLabel("/icons/spending.png", "Spending")}</a>
-        <a class="hub-nav-item" href="/hub/grind">${iconLabel("/icons/grind-icon.png", "Grind")}</a>
-      </div>
-    </div>
-    <div class="hub-nav-group">
-      <h2>Mini Apps</h2>
-      <div class="hub-nav-links">
-        <a class="hub-nav-item" href="/hub/vault">${iconLabel("/icons/vault.png", "Vault")}</a>
-        <a class="hub-nav-item" href="/hub/clocked">${iconLabel("/icons/clocked.png", "Clocked!")}</a>
-        <a class="hub-nav-item" href="/hub/journal">${iconLabel("/icons/journal.png", "Journal")}</a>
-      </div>
-    </div>
+    <h2>Mini Apps & Tools</h2>
+    ${miniAppsGridHtml()}
   </div>
   ${bottomNavHtml("/hub")}
   ${quickExpenseDialogHtml(frequentExpenses)}

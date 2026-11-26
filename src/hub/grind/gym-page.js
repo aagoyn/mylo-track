@@ -15,19 +15,38 @@ const GYM_PAGE_CSS = `
     position: sticky; top: 0; z-index: 30; margin: -24px -16px 16px; padding: calc(12px + env(safe-area-inset-top)) 16px 12px;
     border-radius: 0 0 16px 16px;
   }
+  /* Baris 1: back+AM/PM di kiri, timer+tombol aksi di kanan - dipisah dari pills Split (baris 2)
+     biar nggak sesak kayak sebelumnya (semua numpuk 1 baris, "Full Body" ketekan). */
   .gym-header-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+  .gym-header-left, .gym-header-right { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
   .gym-back-link {
     display: inline-flex; align-items: center; gap: 4px; color: var(--text-muted);
     text-decoration: none; font-size: 13px; flex-shrink: 0;
   }
   .gym-back-link:hover { color: var(--text); }
-  .gym-timer { font-size: 15px; font-weight: 700; flex: 1; text-align: center; }
-  .gym-header-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 10px; }
-  .gym-split-pills { flex: 1; min-width: 160px; }
+  .gym-timer { font-size: 15px; font-weight: 700; }
   .gym-ampm-toggle { gap: 6px; flex-shrink: 0; }
   .gym-ampm-toggle label { padding: 5px 10px; font-size: 12px; }
 
+  /* Baris 2: pills Split full-width, scrollable horizontal (bukan segmented-tab stretch default)
+     biar "Full Body" tetap 1 baris utuh, nggak ketekan jadi 2 baris/kepotong. */
+  .gym-split-pills-row { margin-top: 10px; width: 100%; }
+  .gym-split-pills {
+    display: flex; gap: 6px; width: 100%; overflow-x: auto; scrollbar-width: none;
+    background: transparent; padding: 0;
+  }
+  .gym-split-pills::-webkit-scrollbar { display: none; }
+  .gym-split-pills.segmented-tabs .segmented-tab {
+    flex: 0 0 auto; white-space: nowrap; background: var(--bg); border: 1px solid var(--border);
+  }
+  .gym-split-pills.segmented-tabs .segmented-tab.active { border-color: var(--accent); }
+
   .recovery-banner-gym { margin-bottom: 12px; }
+
+  /* Kartu gerakan dipisah jelas satu sama lain (sebelumnya nempel cuma mengandalkan margin
+     default .card) - flex column + gap di container, padding lega di tiap kartu. */
+  #gym-exercises-container { display: flex; flex-direction: column; gap: 16px; }
+  .exercise-card { padding: 16px; }
 
   .exercise-card-head { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
   .exercise-name-input {
@@ -66,7 +85,7 @@ const GYM_PAGE_CSS = `
   .set-check-btn.checked { background: var(--success); border-color: var(--success); color: #fff; }
 
   .add-set-btn {
-    width: 100%; padding: 8px; margin-top: 2px; border-radius: 8px; border: 1px dashed var(--border);
+    width: 100%; padding: 8px; margin-top: 8px; border-radius: 8px; border: 1px dashed var(--border);
     background: transparent; color: var(--text-muted); font-size: 13px; cursor: pointer; font-family: inherit;
   }
   .add-set-btn:hover { background: var(--surface-hover); color: var(--text); }
@@ -116,25 +135,53 @@ function gymPageScript() {
       var form = document.getElementById("gym-page-form");
       var durationHidden = document.getElementById("gym-duration-min-hidden");
       var timerDisplay = document.getElementById("gym-duration");
+      var startFinishBtn = document.getElementById("gym-start-finish-btn");
       var restBar = document.getElementById("rest-timer-bar");
       var restTimeEl = document.getElementById("rest-timer-time");
       if (!container || !splitPillsEl || !form) return;
 
-      var startTime = Date.now();
+      // Timer nggak auto-jalan pas halaman dibuka (beda dari versi sebelumnya) - baru mulai pas
+      // user klik "Start Workout" ATAU centang set pertama (auto-start), lihat startWorkout().
+      var started = false;
+      var startTime = null;
+      var tickInterval = null;
       var restEndAt = null;
       var restInterval = null;
 
       function pad(n) { return String(n).padStart(2, "0"); }
 
       function tickDuration() {
+        if (!started || !startTime) return;
         var elapsed = Math.floor((Date.now() - startTime) / 1000);
         var mm = Math.floor(elapsed / 60);
         var ss = elapsed % 60;
         timerDisplay.textContent = pad(mm) + ":" + pad(ss);
         if (durationHidden) durationHidden.value = Math.max(1, Math.round(elapsed / 60));
       }
-      setInterval(tickDuration, 1000);
-      tickDuration();
+
+      function startWorkout(resumeStartTime) {
+        if (started) return;
+        started = true;
+        startTime = resumeStartTime || Date.now();
+        if (startFinishBtn) {
+          startFinishBtn.textContent = "Finish Workout";
+          startFinishBtn.dataset.state = "finish";
+        }
+        tickDuration();
+        if (tickInterval) clearInterval(tickInterval);
+        tickInterval = setInterval(tickDuration, 1000);
+        saveDraft();
+      }
+
+      if (startFinishBtn) {
+        startFinishBtn.addEventListener("click", function () {
+          if (!started) {
+            startWorkout();
+          } else {
+            form.requestSubmit();
+          }
+        });
+      }
 
       function showRestTimer(seconds) {
         restEndAt = Date.now() + seconds * 1000;
@@ -195,7 +242,10 @@ function gymPageScript() {
           var isDone = !row.classList.contains("set-row-done");
           row.classList.toggle("set-row-done", isDone);
           checkBtn.classList.toggle("checked", isDone);
-          if (isDone) showRestTimer(90);
+          if (isDone) {
+            if (!started) startWorkout();
+            showRestTimer(90);
+          }
           saveDraft();
         });
 
@@ -282,6 +332,7 @@ function gymPageScript() {
         return {
           split: getActiveSplit(),
           sessionTime: getActiveAmPm(),
+          started: started,
           startTime: startTime,
           exercises: exercises,
         };
@@ -383,7 +434,6 @@ function gymPageScript() {
       // ---------- Initial load: draft wins over auto-loaded template ----------
       var draft = readDraft();
       if (draft && draft.exercises && draft.exercises.length) {
-        startTime = draft.startTime || startTime;
         setActiveSplit(draft.split || ${JSON.stringify(GYM_SPLITS[0])});
         var amPmRadio = document.querySelector('input[name="gym_session_time"][value="' + (draft.sessionTime || "AM") + '"]');
         if (amPmRadio) {
@@ -395,6 +445,10 @@ function gymPageScript() {
         var sessionTimeHidden = document.getElementById("gym-session-time-hidden");
         if (sessionTimeHidden) sessionTimeHidden.value = getActiveAmPm();
         renderExercises(draft.exercises);
+        // Resume timer cuma kalau workout itu udah di-"Start" sebelumnya (draft.started) - draft
+        // yang baru dari auto-load template doang (belum ada set dicentang/Start ditekan) TETAP
+        // diam di 00:00/"Start Workout", sesuai niat "jangan auto-start pas halaman dibuka".
+        if (draft.started && draft.startTime) startWorkout(draft.startTime);
       } else {
         loadTemplate(getActiveSplit());
       }
@@ -417,13 +471,17 @@ ${faviconLink("/icons/grind-icon.png")}
   <div class="container">
     <header class="gym-header glass-card">
       <div class="gym-header-top">
-        <a class="gym-back-link" href="/hub/grind">${svgIcon("arrowLeft", { size: 16 })}Grind</a>
-        <div class="gym-timer tabular-nums" id="gym-duration">00:00</div>
-        <button type="submit" form="gym-page-form" class="btn-primary btn-sm">Finish Workout</button>
+        <div class="gym-header-left">
+          <a class="gym-back-link" href="/hub/grind">${svgIcon("arrowLeft", { size: 16 })}Grind</a>
+          ${ampmToggleHtml(defaultTime)}
+        </div>
+        <div class="gym-header-right">
+          <div class="gym-timer tabular-nums" id="gym-duration">00:00</div>
+          <button type="button" class="btn-primary btn-sm" id="gym-start-finish-btn" data-state="start">Start Workout</button>
+        </div>
       </div>
-      <div class="gym-header-controls">
+      <div class="gym-split-pills-row">
         ${splitPillsHtml()}
-        ${ampmToggleHtml(defaultTime)}
       </div>
     </header>
 

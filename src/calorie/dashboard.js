@@ -1,18 +1,45 @@
-import { DASHBOARD_CSS, escapeHtml, navHeader, stackedBarChartSvg, faviconLink, svgIcon, svgIconLabel, progressFormScript, bottomNavHtml } from "../shared/dashboard-layout.js";
+import { DASHBOARD_CSS, escapeHtml, navHeader, stackedBarChartSvg, chartLegendHtml, faviconLink, svgIcon, svgIconLabel, progressFormScript, bottomNavHtml } from "../shared/dashboard-layout.js";
 
+// Palet warm muted Mylo Track (ganti dari oranye/kuning/ungu neon default) - konsisten sama
+// nuansa taupe/terracotta tema Warm Graphite di seluruh app.
 const MACRO_SERIES = [
-  { key: "protein", name: "Protein", color: "#f97316" },
-  { key: "carbs", name: "Carbs", color: "#eab308" },
-  { key: "fat", name: "Fat", color: "#a855f7" },
+  { key: "protein", name: "Protein", color: "#C97368" },
+  { key: "carbs", name: "Carbs", color: "#D49B6A" },
+  { key: "fat", name: "Fat", color: "#8B82B8" },
 ];
 
 const CALORIE_PAGE_CSS = `
+  /* Header "Calorie Tracker" pakai badge SVG custom (lihat navHeader iconHtml di
+     renderCalorieDashboard) - bukan <img class="header-icon"> PNG default, biar seragam sama
+     treatment icon-badge di tempat lain (36x36, warm taupe, bukan 40x40 default .icon-badge). */
+  .calorie-header-badge { width: 36px; height: 36px; border-radius: 10px; }
+
+  /* Jarak lega & konsisten antar-kartu di bagian atas (Calories Today -> macro grid -> Log Food) -
+     sebelumnya cuma margin-top 12px dari .macro-cards, nempel ke Log Food di bawahnya. */
+  .calorie-top-stack { display: flex; flex-direction: column; gap: 14px; }
+  .calorie-top-stack .macro-cards { margin: 0; }
+
   .target-edit-btn { margin-left: auto; }
   .card-header-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
-  .weight-log-row { display: flex; gap: 8px; align-items: center; }
-  .weight-log-row input { margin-bottom: 0 !important; }
-  .weight-log-row button { width: auto !important; flex-shrink: 0; padding: 9px 14px; }
   .log-food-tabs .tab-panel[hidden] { display: none; }
+
+  /* Form Log Weight: 1 baris input+suffix "kg" di dalam kotak + tombol Save setinggi input,
+     dibungkus .glass-card tersendiri (bukan nempel di .section-header kayak sebelumnya). */
+  .weight-input-row { display: flex; align-items: center; gap: 8px; }
+  .weight-input-wrap { flex: 1; position: relative; display: flex; align-items: center; }
+  .weight-input-wrap input {
+    width: 100%; height: 42px !important; padding: 0 34px 0 12px !important; margin-bottom: 0 !important;
+    font-size: 16px; font-weight: 600;
+  }
+  .weight-input-suffix {
+    position: absolute; right: 12px; color: var(--text-dim); font-size: 13px; font-variant-numeric: tabular-nums;
+    pointer-events: none;
+  }
+  .weight-save-btn {
+    width: auto; flex-shrink: 0; height: 42px; padding: 0 18px; border: none; border-radius: 8px;
+    background: var(--fab-gradient); color: #fff; font-size: 14px; font-weight: 600; cursor: pointer; font-family: inherit;
+  }
+  .weight-save-btn:hover { filter: brightness(1.08); }
 `;
 
 // isi salah satu field (weight ATAU calories), yang lain ikut ke-scale proporsional di server -
@@ -204,29 +231,31 @@ ${faviconLink("/icons/calorie.png")}
 <body>
   <div class="container">
     ${navHeader({
-      icon: "/icons/calorie.png",
+      iconHtml: `<span class="icon-badge calorie-header-badge">${svgIcon("flame", { size: 20 })}</span>`,
       title: "Calorie Tracker",
     })}
 
     ${flash ? `<div class="flash flash-${flash.type}">${escapeHtml(flash.text)}</div>` : ""}
 
-    <div class="card glass-card">
-      <div class="card-header-row">
-        <div class="card-label">${svgIconLabel("flame", "Calories Today", { size: 16 })}</div>
-        <button type="button" class="icon-btn target-edit-btn" id="open-targets-dialog" aria-label="Edit Targets">${svgIcon("target", { size: 16 })}</button>
+    <div class="calorie-top-stack">
+      <div class="card glass-card">
+        <div class="card-header-row">
+          <div class="card-label">${svgIconLabel("flame", "Calories Today", { size: 16 })}</div>
+          <button type="button" class="icon-btn target-edit-btn" id="open-targets-dialog" aria-label="Edit Targets">${svgIcon("target", { size: 16 })}</button>
+        </div>
+        <div class="card-value tabular-nums">${total}${target != null ? ` / ${target}` : ""} kcal</div>
+        ${
+          remaining != null
+            ? `<div class="card-sub tabular-nums">${remaining >= 0 ? `${remaining} left` : `${Math.abs(remaining)} over`} kcal</div>`
+            : ""
+        }
       </div>
-      <div class="card-value tabular-nums">${total}${target != null ? ` / ${target}` : ""} kcal</div>
-      ${
-        remaining != null
-          ? `<div class="card-sub tabular-nums">${remaining >= 0 ? `${remaining} left` : `${Math.abs(remaining)} over`} kcal</div>`
-          : ""
-      }
-    </div>
-    <section class="cards macro-cards">
-      ${macroCards}
-    </section>
+      <section class="cards macro-cards">
+        ${macroCards}
+      </section>
 
-    ${logFoodTabsHtml()}
+      ${logFoodTabsHtml()}
+    </div>
 
     <h2>${svgIconLabel("receipt", "Today's Log", { size: 14 })}</h2>
     <p class="card-sub" style="margin:-4px 0 8px;">Click a log to see its item breakdown, re-analyze
@@ -242,7 +271,7 @@ ${faviconLink("/icons/calorie.png")}
     <h2>${svgIconLabel("barChart", "7-Day Recap (calories from Protein/Carbs/Fat)", { size: 14 })}</h2>
     ${
       weekChartData?.length
-        ? `<div class="chart-card">${stackedBarChartSvg(weekChartData, MACRO_SERIES, { itemsPerRow: 6 })}</div>`
+        ? `<div class="chart-card glass-card">${stackedBarChartSvg(weekChartData, MACRO_SERIES)}${chartLegendHtml(MACRO_SERIES, { center: true })}</div>`
         : ""
     }
     <div class="table-wrap">
@@ -252,11 +281,14 @@ ${faviconLink("/icons/calorie.png")}
       </table>
     </div>
 
-    <div class="section-header">
-      <h2 style="margin:0;">${svgIconLabel("scale", "Weight", { size: 14 })}</h2>
-      <form method="POST" action="/dashboard/calorie/weight" class="weight-log-row">
-        <input type="number" step="0.1" name="weight" placeholder="kg" required style="width:90px;">
-        <button type="submit" class="btn-primary btn-sm">Save</button>
+    <h2>${svgIconLabel("scale", "Weight", { size: 14 })}</h2>
+    <div class="card glass-card">
+      <form method="POST" action="/dashboard/calorie/weight" class="weight-input-row">
+        <div class="weight-input-wrap">
+          <input type="number" step="0.1" inputmode="decimal" name="weight" placeholder="60.0" required>
+          <span class="weight-input-suffix">kg</span>
+        </div>
+        <button type="submit" class="weight-save-btn">Save</button>
       </form>
     </div>
     <div class="table-wrap">

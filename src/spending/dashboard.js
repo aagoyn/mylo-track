@@ -3,6 +3,7 @@ import {
   escapeHtml,
   themeToggleHtml,
   horizontalStackedBarChartSvg,
+  chartLegendHtml,
   faviconLink,
   svgIcon,
   svgIconLabel,
@@ -15,12 +16,43 @@ function formatRupiah(amount) {
   return `Rp${Math.round(amount).toLocaleString("id-ID")}`;
 }
 
-const CATEGORY_COLOR_PALETTE = [
-  "#6366f1", "#22c55e", "#f59e0b", "#ef4444", "#06b6d4",
-  "#a855f7", "#eab308", "#ec4899", "#10b981", "#f97316", "#64748b",
-];
+// Palet warm muted Mylo Track buat kategori yang sering muncul (ganti dari palet neon generik) -
+// kategori lain yang nggak ada di map ini jatuh ke CATEGORY_COLOR_FALLBACK_PALETTE (urut dari
+// total terbesar), biar kategori custom/jarang tetap kebagian warna yang senada.
+const CATEGORY_COLORS = {
+  Food: "#D49B6A",
+  Groceries: "#7BA382",
+  Transport: "#C97368",
+  Coffee: "#9E7B66",
+  Entertainment: "#8B82B8",
+  Other: "#8E867E",
+};
+const CATEGORY_COLOR_FALLBACK_PALETTE = ["#D49B6A", "#7BA382", "#C97368", "#9E7B66", "#8B82B8", "#8E867E", "#B58B5A", "#6E8B7A"];
 
-// warna kategori ditentukan otomatis dari data chart-nya sendiri (urut dari total terbesar)
+// Beberapa sesi lama (sebelum categorize.js diperbaiki) kemungkinan nyimpen kategori dengan typo
+// ("Trarisport") - dinormalisasi di sini (display layer) biar nggak perlu migrasi data, konsisten
+// digabung sama baris "Transport" yang benar di chart/legend.
+const CATEGORY_NAME_FIXES = { Trarisport: "Transport" };
+function normalizeCategoryName(key) {
+  return CATEGORY_NAME_FIXES[key] || key;
+}
+
+// Hasil getWeeklySpendingChartData (atau sejenisnya) bisa punya key kategori mentah dari DB -
+// disamakan dulu di sini (sebelum dipakai buildCategorySeries MAUPUN horizontalStackedBarChartSvg)
+// biar keduanya baca key yang SAMA persis, bukan cuma label tampilannya doang yang kebetulan mirip.
+function normalizeWeekChartData(days) {
+  return days.map((day) => {
+    const values = {};
+    for (const [key, value] of Object.entries(day.values)) {
+      const normalized = normalizeCategoryName(key);
+      values[normalized] = (values[normalized] || 0) + value;
+    }
+    return { ...day, values };
+  });
+}
+
+// warna kategori: pakai palet tetap kalau namanya dikenal (Food/Groceries/dst), fallback ke
+// palet warm muted generik urut dari total terbesar buat kategori lain.
 function buildCategorySeries(days) {
   const totalsByCategory = {};
   for (const day of days) {
@@ -33,7 +65,7 @@ function buildCategorySeries(days) {
     .map(([key], i) => ({
       key,
       name: key,
-      color: CATEGORY_COLOR_PALETTE[i % CATEGORY_COLOR_PALETTE.length],
+      color: CATEGORY_COLORS[key] || CATEGORY_COLOR_FALLBACK_PALETTE[i % CATEGORY_COLOR_FALLBACK_PALETTE.length],
     }));
 }
 
@@ -243,10 +275,13 @@ ${faviconLink("/icons/spending.png")}
     <h2>${svgIconLabel("barChart", "7-Day Spending Trend")}</h2>
     ${
       weekChartData?.length
-        ? `<div class="chart-card glass-card">${horizontalStackedBarChartSvg(weekChartData, buildCategorySeries(weekChartData), {
-            formatValue: (v) => `${Math.round(v / 1000)}k`,
-            itemsPerRow: 4,
-          })}</div>`
+        ? (() => {
+            const normalizedWeekChartData = normalizeWeekChartData(weekChartData);
+            const series = buildCategorySeries(normalizedWeekChartData);
+            return `<div class="chart-card glass-card">${horizontalStackedBarChartSvg(normalizedWeekChartData, series, {
+              formatValue: (v) => `${Math.round(v / 1000)}k`,
+            })}${chartLegendHtml(series)}</div>`;
+          })()
         : ""
     }
 

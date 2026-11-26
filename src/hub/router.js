@@ -27,6 +27,7 @@ import { getTodayClockLog } from "./clocked/supabase.js";
 import { getPlanByDate, getSessionsByDate, getUpcomingRace, todayDateKeyWib as grindTodayDateKeyWib } from "./grind/supabase.js";
 import { grindActivityRow } from "./grind/dashboard.js";
 import { renderHubDashboard } from "./dashboard.js";
+import { svgIcon } from "../shared/dashboard-layout.js";
 
 const WIB_OFFSET_MS = 7 * 60 * 60 * 1000;
 const MOOD_META = {
@@ -316,7 +317,7 @@ router.get("/hub", requireAuth, async (req, res) => {
   if (recentSpendingResult.status === "fulfilled") {
     for (const r of recentSpendingResult.value) {
       recentActivity.push({
-        icon: "💰",
+        icon: svgIcon("wallet", { size: 16 }),
         title: r.description,
         subtitle: formatRupiah(r.amount),
         timestamp: r.created_at,
@@ -326,7 +327,7 @@ router.get("/hub", requireAuth, async (req, res) => {
   if (recentCalorieResult.status === "fulfilled") {
     for (const r of recentCalorieResult.value) {
       recentActivity.push({
-        icon: "🔥",
+        icon: svgIcon("flame", { size: 16 }),
         title: r.food_name,
         subtitle: `${r.calories} kcal`,
         timestamp: r.created_at,
@@ -348,7 +349,7 @@ router.get("/hub", requireAuth, async (req, res) => {
     const preview =
       journalToday.content.length > 60 ? `${journalToday.content.slice(0, 60)}…` : journalToday.content;
     recentActivity.push({
-      icon: "📝",
+      icon: svgIcon("book", { size: 16 }),
       title: "Journal",
       subtitle: `"${preview}"`,
       timestamp: journalToday.updated_at,

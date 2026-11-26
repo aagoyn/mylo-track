@@ -275,11 +275,26 @@ export const DASHBOARD_CSS = `
   .empty-state a:hover { text-decoration: underline; }
   .activity-list { display: flex; flex-direction: column; gap: 8px; }
   .activity-row { display: flex; align-items: center; gap: 12px; background: var(--glass-list-bg); border: 1px solid var(--glass-list-border); border-radius: 12px; padding: 10px 14px; }
-  .activity-icon { font-size: 18px; }
+  /* Badge ikon 34x34 warm taupe/amber - bungkus SVG line-icon (flame/wallet/book dst) ATAU emoji
+     konten (mood) secara seragam, ganti dari sekadar font-size polos sebelumnya. */
+  .activity-icon {
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    width: 34px; height: 34px; border-radius: 10px; background: var(--accent-deep); color: var(--accent-light);
+    font-size: 16px;
+  }
+  .activity-icon .svg-icon { margin: 0; }
   .activity-main { flex: 1; min-width: 0; }
   .activity-title { font-size: 13px; font-weight: 500; }
-  .activity-subtitle { font-size: 12px; color: var(--text-muted); }
-  .activity-time { font-size: 12px; color: var(--text-dim); white-space: nowrap; }
+  .activity-subtitle { font-size: 12px; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+  .activity-time { font-size: 12px; color: var(--text-dim); white-space: nowrap; font-variant-numeric: tabular-nums; }
+  /* Varian "1 kartu terpadu" (RECENT di /hub) - baris jadi flat + separator tipis, bukan kartu
+     glass terpisah per baris (jauh lebih hemat ruang vertikal untuk list pendek). */
+  .recent-card-list { padding: 4px 14px; }
+  .recent-card-list .activity-row {
+    background: none; border: none; border-radius: 0; padding: 10px 0;
+    border-bottom: 1px solid rgba(140, 122, 107, 0.12);
+  }
+  .recent-card-list .activity-row:last-child { border-bottom: none; }
   .hub-nav-group { margin-bottom: 20px; }
   .hub-nav-links { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
   a.hub-nav-item { display: block; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 10px 14px; color: var(--text); text-decoration: none; font-size: 14px; }
@@ -814,6 +829,19 @@ export const DASHBOARD_CSS = `
   .category-dropdown-menu li { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 6px; font-size: 13px; color: var(--text); cursor: pointer; }
   .category-dropdown-menu li:hover { background: var(--surface-hover); }
   .category-dropdown-menu li img { width: 18px; height: 18px; object-fit: contain; border-radius: 3px; flex-shrink: 0; }
+
+  /* Label di dalam inline SVG chart (stackedBarChartSvg/horizontalStackedBarChartSvg) - class,
+     BUKAN hex mentah, biar ikut var(--text)/var(--text-muted) adaptif tema (sebelumnya fill
+     hardcoded #352d29/#85786e bikin angka total nyaris nggak kebaca di dark mode). */
+  .chart-total-label { fill: var(--text); font-weight: 600; font-variant-numeric: tabular-nums; }
+  .chart-axis-label { fill: var(--text-muted); }
+
+  /* Legend chart dirender sebagai HTML biasa (bukan ikut di dalam <svg>) - lihat chartLegendHtml -
+     biar wrapping/gap-nya rapi pakai flexbox asli, bukan dihitung manual per baris di koordinat SVG. */
+  .chart-legend { display: flex; flex-wrap: wrap; gap: 8px 16px; font-size: 12px; color: var(--text-muted); margin-top: 10px; }
+  .chart-legend.chart-legend-center { justify-content: center; }
+  .chart-legend-item { display: inline-flex; align-items: center; gap: 6px; }
+  .chart-legend-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
 `;
 
 export function escapeHtml(str) {
@@ -864,6 +892,10 @@ const SVG_ICON_PATHS = {
   trash: '<path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>',
   arrowLeft: '<line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/>',
   check: '<polyline points="20 6 9 17 4 12"/>',
+  book: '<path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2Z"/>',
+  smile: '<circle cx="12" cy="12" r="9"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/>',
+  sparkle: '<path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8Z"/>',
+  heart: '<path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.8 1-1a5.5 5.5 0 0 0 0-7.8Z"/>',
 };
 
 // size dalam px (18-20 direkomendasikan biar sejajar sama teks di sampingnya, lihat .svg-icon).
@@ -930,15 +962,19 @@ export function faviconLink(iconPath) {
 }
 
 // header dashboard dengan nav-link ke dashboard "pasangan" (same-origin sekarang, bukan cross-app URL lagi)
-// icon: path ke PNG di public/icons (sama yang dipakai buat faviconLink halaman itu)
+// icon: path ke PNG di public/icons (sama yang dipakai buat faviconLink halaman itu) - dirender
+// sebagai <img> polos. iconHtml: override opsional (mis. badge SVG line-icon ala Calorie Tracker,
+// lihat calorie/dashboard.js) kalau sebuah halaman mau tampilan icon judul yang lebih kustom
+// daripada <img> PNG biasa - default-nya tetap <img> biar nggak ngubah halaman lain yang udah ada.
 // Log out sengaja cuma ada di header /hub sendiri (lihat hub/dashboard.js) - tiap sub-halaman
 // lain udah ada link "Home" buat balik ke situ, jadi nggak perlu logout nyebar di tiap halaman.
-export function navHeader({ icon, title, links = [], extra = "" }) {
+export function navHeader({ icon, iconHtml, title, links = [], extra = "" }) {
   const linksHtml = links
     .map((l) => `<a class="nav-link" href="${l.href}">${l.label}</a>`)
     .join("");
+  const iconMarkup = iconHtml || `<img class="header-icon" src="${icon}" alt="">`;
   return `<header>
-      <h1><img class="header-icon" src="${icon}" alt="">${title}</h1>
+      <h1>${iconMarkup}${title}</h1>
       <div class="nav-links">
         ${extra}
         ${linksHtml}
@@ -1117,20 +1153,39 @@ export function ajaxApproveFormScript() {
   </script>`;
 }
 
+// Dipakai stackedBarChartSvg/horizontalStackedBarChartSvg buat id <clipPath> yang unik per
+// instance chart - tanpa ini, 2 chart di halaman yang sama bisa numpuk id "bar-clip-0" dkk dan
+// SVG browser cuma makein clip-path dari elemen PERTAMA yang match id itu (dobel clip salah).
+let chartInstanceSeq = 0;
+
+// Legend chart (dot warna + nama series) - HTML biasa, dirender TERPISAH dari <svg> chart-nya
+// (lihat stackedBarChartSvg/horizontalStackedBarChartSvg yang sekarang nggak include legend lagi)
+// biar wrapping & spacing-nya pakai flexbox asli, bukan dihitung manual per kolom/baris di
+// koordinat SVG. center=true buat chart dengan sedikit series (mis. 3 macro) biar legend-nya
+// rapi di tengah; false (default, wrap kiri) buat chart dengan banyak kategori (spending).
+export function chartLegendHtml(series, { center = false } = {}) {
+  const items = series
+    .map(
+      (s) =>
+        `<span class="chart-legend-item"><span class="chart-legend-dot" style="background:${s.color}"></span>${escapeHtml(s.name)}</span>`
+    )
+    .join("");
+  return `<div class="chart-legend${center ? " chart-legend-center" : ""}">${items}</div>`;
+}
+
 // stacked bar chart simpel via inline SVG, nggak butuh library chart eksternal.
 // days: [{ label, values: { seriesKey: number } }], series: [{ key, name, color }]
 export function stackedBarChartSvg(
   days,
   series,
-  { formatValue = (v) => Math.round(v), itemsPerRow = 4 } = {}
+  { formatValue = (v) => Math.round(v) } = {}
 ) {
+  const instanceId = ++chartInstanceSeq;
   const width = 640;
-  const barAreaHeight = 90;
-  const barBaseline = 100;
+  const barAreaHeight = 78;
+  const barBaseline = 88;
   const dayLabelY = barBaseline + 16;
-  const legendRows = Math.max(1, Math.ceil(series.length / itemsPerRow));
-  const legendStartY = dayLabelY + 14;
-  const height = legendStartY + legendRows * 16 + 6;
+  const height = dayLabelY + 8;
 
   const totals = days.map((d) => series.reduce((sum, s) => sum + (d.values[s.key] || 0), 0));
   const max = Math.max(1, ...totals);
@@ -1139,17 +1194,22 @@ export function stackedBarChartSvg(
   // 70% dari slot-nya sendiri, gap 15% tiap sisi - gap & lebar bar saling melengkapi dari slot
   // yang tetap, jadi nggak bisa dikecilin bareng tanpa nyisain ruang). Sisa ruang yang kebebas
   // dari ngecilin dua-duanya ditaruh sebagai padding di kiri-kanan chart, bukan disebar jadi
-  // gap ekstra antar bar.
+  // gap ekstra antar bar. Dibatasi max 40px juga - kalau datanya baru 1-2 hari, slotPitch jadi
+  // gede banget dan bar bakal melebar jadi kotak raksasa kalau nggak di-cap.
   const slotPitch = width / days.length;
-  const barW = slotPitch * 0.6;
-  const gapEachSide = slotPitch * 0.07;
-  const pitch = barW + gapEachSide * 2;
-  const startX = (width - pitch * days.length) / 2;
+  const barW = Math.min(slotPitch * 0.6, 40);
+  const pitch = barW + Math.min(slotPitch * 0.07, 16) * 2;
+  const startX = (width - pitch * days.length) / 2 + (pitch - barW) / 2;
 
   const bars = days
     .map((d, i) => {
-      const x = startX + i * pitch + gapEachSide;
+      const x = startX + i * pitch;
       const w = barW;
+      const total = totals[i];
+      const totalHeightPx = (total / max) * barAreaHeight;
+      const yTop = barBaseline - totalHeightPx;
+      const clipId = `bar-clip-${instanceId}-${i}`;
+
       let yCursor = barBaseline;
       const segs = series
         .map((s) => {
@@ -1161,34 +1221,17 @@ export function stackedBarChartSvg(
           return `<rect x="${x}" y="${y.toFixed(1)}" width="${w}" height="${segHeight.toFixed(1)}" fill="${s.color}" />`;
         })
         .join("");
-      const total = totals[i];
+
       return `
-        ${total > 0 ? `<text x="${x + w / 2}" y="${Math.max(10, yCursor - 4)}" font-size="10" fill="#352d29" text-anchor="middle">${formatValue(total)}</text>` : ""}
-        ${segs}
-        <text x="${x + w / 2}" y="${dayLabelY}" font-size="10" fill="#85786e" text-anchor="middle">${d.label}</text>
+        ${total > 0 ? `<clipPath id="${clipId}"><rect x="${x}" y="${yTop.toFixed(1)}" width="${w}" height="${totalHeightPx.toFixed(1)}" rx="6" ry="6"/></clipPath>` : ""}
+        ${total > 0 ? `<text class="chart-total-label" x="${x + w / 2}" y="${Math.max(10, yTop - 4)}" font-size="11" text-anchor="middle">${formatValue(total)}</text>` : ""}
+        ${total > 0 ? `<g clip-path="url(#${clipId})">${segs}</g>` : ""}
+        <text class="chart-axis-label" x="${x + w / 2}" y="${dayLabelY}" font-size="10" text-anchor="middle">${d.label}</text>
       `;
     })
     .join("");
 
-  const legend = categoryLegendSvg(series, width, legendStartY, itemsPerRow);
-
-  return `<svg viewBox="0 0 ${width} ${height}" width="100%" height="${height}" role="img" aria-label="Stacked bar chart">${bars}${legend}</svg>`;
-}
-
-// legend dipakai bareng oleh stackedBarChartSvg (vertical) dan horizontalStackedBarChartSvg
-function categoryLegendSvg(series, width, startY, itemsPerRow) {
-  return series
-    .map((s, i) => {
-      const col = i % itemsPerRow;
-      const row = Math.floor(i / itemsPerRow);
-      const x = Math.round(4 + col * (width / itemsPerRow));
-      const y = startY + row * 16;
-      return `
-        <rect x="${x}" y="${y - 8}" width="9" height="9" fill="${s.color}" rx="2" />
-        <text x="${x + 13}" y="${y}" font-size="9" fill="#85786e">${escapeHtml(s.name)}</text>
-      `;
-    })
-    .join("");
+  return `<svg viewBox="0 0 ${width} ${height}" width="100%" height="${height}" role="img" aria-label="Stacked bar chart">${bars}</svg>`;
 }
 
 // Varian horizontal - satu row per hari, bar makin ke kanan makin besar (bukan makin ke atas).
@@ -1198,20 +1241,16 @@ function categoryLegendSvg(series, width, startY, itemsPerRow) {
 export function horizontalStackedBarChartSvg(
   days,
   series,
-  { formatValue = (v) => Math.round(v), itemsPerRow = 4 } = {}
+  { formatValue = (v) => Math.round(v) } = {}
 ) {
   const width = 640;
-  const rowH = 32;
-  const topPad = 6;
+  const rowH = 28;
+  const topPad = 4;
   const labelW = 54;
   const valueW = 52;
   const plotWidth = width - labelW - valueW;
-  const barThickness = 16;
-
-  const legendRows = Math.max(1, Math.ceil(series.length / itemsPerRow));
-  const rowsEndY = topPad + days.length * rowH;
-  const legendStartY = rowsEndY + 18;
-  const height = legendStartY + legendRows * 16 + 6;
+  const barThickness = 13;
+  const height = topPad + days.length * rowH + 4;
 
   const totals = days.map((d) => series.reduce((sum, s) => sum + (d.values[s.key] || 0), 0));
   const max = Math.max(1, ...totals);
@@ -1228,20 +1267,19 @@ export function horizontalStackedBarChartSvg(
           const segWidth = (v / max) * plotWidth;
           const x = xCursor;
           xCursor += segWidth;
-          return `<rect x="${x.toFixed(1)}" y="${barY}" width="${segWidth.toFixed(1)}" height="${barThickness}" fill="${s.color}" rx="2" />`;
+          return `<rect x="${x.toFixed(1)}" y="${barY}" width="${segWidth.toFixed(1)}" height="${barThickness}" fill="${s.color}" rx="6" />`;
         })
         .join("");
       const total = totals[i];
       const labelY = rowY + rowH / 2 + 4;
       return `
-        <text x="${labelW - 8}" y="${labelY}" font-size="11" fill="#85786e" text-anchor="end">${escapeHtml(d.label)}</text>
+        <text class="chart-axis-label" x="${labelW - 8}" y="${labelY}" font-size="11" text-anchor="end">${escapeHtml(d.label)}</text>
+        <rect x="${labelW}" y="${barY}" width="${plotWidth}" height="${barThickness}" rx="6" fill="rgba(140, 122, 107, 0.12)" />
         ${segs}
-        ${total > 0 ? `<text x="${(xCursor + 6).toFixed(1)}" y="${labelY}" font-size="10" fill="#352d29">${formatValue(total)}</text>` : ""}
+        ${total > 0 ? `<text class="chart-total-label" x="${(xCursor + 6).toFixed(1)}" y="${labelY}" font-size="12" text-anchor="start">${formatValue(total)}</text>` : ""}
       `;
     })
     .join("");
 
-  const legend = categoryLegendSvg(series, width, legendStartY, itemsPerRow);
-
-  return `<svg viewBox="0 0 ${width} ${height}" width="100%" height="${height}" role="img" aria-label="Horizontal stacked bar chart">${rows}${legend}</svg>`;
+  return `<svg viewBox="0 0 ${width} ${height}" width="100%" height="${height}" role="img" aria-label="Horizontal stacked bar chart">${rows}</svg>`;
 }

@@ -19,16 +19,42 @@ const CALORIE_PAGE_CSS = `
   .calorie-top-stack { display: flex; flex-direction: column; gap: 14px; }
   .calorie-top-stack .macro-cards { margin: 0; }
 
-  .target-edit-btn { margin-left: auto; }
+  /* Tombol "Edit Targets" - pill yang jelas keklikan (icon+label), ganti dari .icon-btn bulat
+     polos sebelumnya yang nyaris nggak kebaca sebagai tombol. */
+  .target-edit-btn {
+    margin-left: auto; display: inline-flex; align-items: center; gap: 6px; flex-shrink: 0;
+    padding: 6px 12px; border-radius: 999px; font-size: 12px; font-weight: 500; font-family: inherit;
+    background: var(--accent-deep); color: var(--accent-light); border: 1px solid var(--border); cursor: pointer;
+  }
+  .target-edit-btn:hover { background: var(--surface-hover); }
+  .target-edit-btn .svg-icon { margin: 0; }
   .card-header-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
   .log-food-tabs .tab-panel[hidden] { display: none; }
 
+  /* Dialog Edit Targets: input/select/button DEFAULT nggak ke-cover shared CSS (rule-nya di-scope
+     ke .form-card/.glass-card, dialog ini bukan keduanya) - sebelumnya jatuh ke style putih/abu
+     bawaan browser, nggak ngikut tema sama sekali. */
+  #calorie-targets-dialog form { display: flex; flex-direction: column; gap: 10px; }
+  #calorie-targets-dialog input[type="number"] {
+    width: 100%; box-sizing: border-box; padding: 10px 12px; border-radius: 10px;
+    border: 1px solid var(--border); background: var(--bg); color: var(--text); font-size: 14px; margin-bottom: 0;
+  }
+  #calorie-targets-dialog .macro-target-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  #calorie-targets-dialog button[type="submit"] {
+    width: 100%; border: none; border-radius: 10px; padding: 11px 16px; margin-top: 10px;
+    background: var(--fab-gradient); color: #fff; font-size: 14px; font-weight: 600; cursor: pointer; font-family: inherit;
+  }
+  #calorie-targets-dialog button[type="submit"]:hover { filter: brightness(1.08); }
+
   /* Form Log Weight: 1 baris input+suffix "kg" di dalam kotak + tombol Save setinggi input,
-     dibungkus .glass-card tersendiri (bukan nempel di .section-header kayak sebelumnya). */
-  .weight-input-row { display: flex; align-items: center; gap: 8px; }
-  .weight-input-wrap { flex: 1; position: relative; display: flex; align-items: center; }
+     dibungkus .glass-card tersendiri (bukan nempel di .section-header kayak sebelumnya). Tombol
+     Save di-!important karena ".glass-card form button" (shared CSS) spesifisitasnya lebih
+     tinggi dari ".weight-save-btn" doang (2 element selector form+button ngalahin 1 class) -
+     tanpa !important, Save ikut kepaksa width:100% dari rule itu dan meluber selebar kartu. */
+  .weight-input-row { display: flex; align-items: center; gap: 10px; width: 100%; box-sizing: border-box; }
+  .weight-input-wrap { flex: 1 1 auto; min-width: 0; position: relative; display: flex; align-items: center; }
   .weight-input-wrap input {
-    width: 100%; height: 42px !important; padding: 0 34px 0 12px !important; margin-bottom: 0 !important;
+    width: 100%; height: 42px !important; padding: 0 36px 0 12px !important; margin-bottom: 0 !important;
     font-size: 16px; font-weight: 600;
   }
   .weight-input-suffix {
@@ -36,7 +62,7 @@ const CALORIE_PAGE_CSS = `
     pointer-events: none;
   }
   .weight-save-btn {
-    width: auto; flex-shrink: 0; height: 42px; padding: 0 18px; border: none; border-radius: 8px;
+    flex: 0 0 auto; width: auto !important; height: 42px; padding: 0 20px; border: none; border-radius: 8px;
     background: var(--fab-gradient); color: #fff; font-size: 14px; font-weight: 600; cursor: pointer; font-family: inherit;
   }
   .weight-save-btn:hover { filter: brightness(1.08); }
@@ -164,10 +190,12 @@ function targetsDialogHtml(target, macroTargets) {
       </form>
       <form method="POST" action="/dashboard/calorie/target-macro" style="margin-top:14px;">
         <label>Macro Targets (g)</label>
-        <input type="number" step="0.1" name="protein" placeholder="Protein" value="${macroTargets.protein_target_g ?? ""}" required>
-        <input type="number" step="0.1" name="carbs" placeholder="Carbs" value="${macroTargets.carbs_target_g ?? ""}" required>
-        <input type="number" step="0.1" name="fat" placeholder="Fat" value="${macroTargets.fat_target_g ?? ""}" required>
-        <input type="number" step="0.1" name="sugar" placeholder="Sugar (optional)" value="${macroTargets.sugar_target_g ?? ""}">
+        <div class="macro-target-grid">
+          <input type="number" step="0.1" name="protein" placeholder="Protein" value="${macroTargets.protein_target_g ?? ""}" required>
+          <input type="number" step="0.1" name="carbs" placeholder="Carbs" value="${macroTargets.carbs_target_g ?? ""}" required>
+          <input type="number" step="0.1" name="fat" placeholder="Fat" value="${macroTargets.fat_target_g ?? ""}" required>
+          <input type="number" step="0.1" name="sugar" placeholder="Sugar (optional)" value="${macroTargets.sugar_target_g ?? ""}">
+        </div>
         <button type="submit">Save Macro Targets</button>
       </form>
     </div>
@@ -241,7 +269,7 @@ ${faviconLink("/icons/calorie.png")}
       <div class="card glass-card">
         <div class="card-header-row">
           <div class="card-label">${svgIconLabel("flame", "Calories Today", { size: 16 })}</div>
-          <button type="button" class="icon-btn target-edit-btn" id="open-targets-dialog" aria-label="Edit Targets">${svgIcon("target", { size: 16 })}</button>
+          <button type="button" class="target-edit-btn" id="open-targets-dialog" aria-label="Edit Targets">${svgIcon("edit", { size: 13 })}Edit</button>
         </div>
         <div class="card-value tabular-nums">${total}${target != null ? ` / ${target}` : ""} kcal</div>
         ${

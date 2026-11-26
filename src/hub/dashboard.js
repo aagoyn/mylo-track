@@ -19,7 +19,7 @@ const MINI_APPS = [
 function miniAppsGridHtml() {
   const tiles = MINI_APPS.map(
     (app) => `<a class="card glass-card mini-app-tile" href="${app.href}">
-      <span class="mini-app-icon">${svgIcon(app.icon, { size: 19 })}</span>
+      <span class="mini-app-icon">${svgIcon(app.icon, { size: 18 })}</span>
       <span class="mini-app-label">${escapeHtml(app.label)}</span>
     </a>`
   ).join("");
@@ -118,20 +118,20 @@ const HUB_PAGE_CSS = `
     to { opacity: 1; transform: translate(-50%, 0); }
   }
 
-  /* Grid app launcher "Mini Apps & Tools" - 3 kolom simetris, ganti dari 2 kolom .hub-nav-links
-     lama (yang nyisain ruang kosong janggal di kanan kalau jumlah item ganjil). */
-  .mini-apps-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+  /* Grid app launcher "Mini Apps & Tools" - 2 kolom compact horizontal (icon kiri + label kanan
+     sejajar presisi di 1 baris), ganti dari 3 kolom kotak besar icon-on-top sebelumnya. */
+  .mini-apps-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
   .mini-app-tile {
-    padding: 14px 8px; display: flex; flex-direction: column; align-items: center; justify-content: center;
-    gap: 8px; text-align: center; text-decoration: none; color: var(--text);
+    min-height: unset; padding: 12px 14px; display: flex; flex-direction: row; align-items: center;
+    justify-content: flex-start; gap: 10px; text-align: left; text-decoration: none; color: var(--text);
   }
   .mini-app-tile:active { transform: scale(0.96); transition: transform 0.1s ease; }
   .mini-app-icon {
     display: flex; align-items: center; justify-content: center; flex-shrink: 0;
-    width: 38px; height: 38px; border-radius: 50%; background: var(--accent-deep); color: var(--accent-light);
+    width: 34px; height: 34px; border-radius: 10px; background: var(--accent-deep); color: var(--accent-light);
   }
   .mini-app-icon .svg-icon { margin: 0; }
-  .mini-app-label { font-size: 12.5px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+  .mini-app-label { flex: 1; min-width: 0; font-size: 13.5px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 `;
 
 // Dialog Quick Expense + wiring-nya: FAB buka dialog (autofocus input), chip 1-tap langsung

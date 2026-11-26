@@ -928,8 +928,8 @@ export function iconBadgeHtml(innerHtml) {
 const BOTTOM_NAV_ITEMS = [
   { href: "/hub", label: "Home", icon: "layoutGrid", match: (p) => p === "/hub" },
   { href: "/hub/grind", label: "Grind", icon: "activity", match: (p) => p.startsWith("/hub/grind") && !p.startsWith("/hub/grind/gym") },
-  { href: "/hub/grind/gym", label: "Gym", icon: "dumbbell", match: (p) => p.startsWith("/hub/grind/gym") },
   { href: "/dashboard/spending", label: "Spend", icon: "wallet", match: (p) => p.startsWith("/dashboard/spending") },
+  { href: "/hub/grind/gym", label: "Gym", icon: "dumbbell", match: (p) => p.startsWith("/hub/grind/gym") },
 ];
 
 export function bottomNavHtml(currentPath) {

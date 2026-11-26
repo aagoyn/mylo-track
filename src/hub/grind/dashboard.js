@@ -294,22 +294,26 @@ const GRIND_PAGE_CSS = `
   .schedule-done-badge { display: inline-flex; align-items: center; margin-left: 6px; }
   .schedule-done-text { display: inline-flex; align-items: center; gap: 4px; color: var(--success); font-weight: 600; }
 
-  /* Pill "Tentative" - jam default DEFAULT_GYM_SCHEDULE itu saran perencanaan, bukan jadwal
-     pasti, jadi style-nya sengaja lembut/muted (beda dari badge Completed yang aksen warna). */
-  .schedule-tentative-pill {
-    display: inline-block; padding: 1px 6px; border-radius: 999px;
-    font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .03em;
-    color: var(--text-dim); background: var(--surface-hover); flex-shrink: 0;
+  /* Header baris Schedule This Week (fitur Gym "Tentative") - SATU BARIS flat sama persis kayak
+     item lain (Run/Rest/dst, lihat .log-item summary shared di dashboard-layout.js: flex +
+     align-items:center bikin panah ▸ otomatis sejajar vertikal sama teks) - teks judul di kiri
+     (flex:1, boleh wrap), pill jam ringkas di kanan (flex-shrink:0), BUKAN stack 2-baris kayak
+     versi sebelumnya (bikin panah ngambang sendirian di atas teks & collapsed jadi lebih tinggi
+     dari kartu Rest/Easy di sebelahnya). */
+  .schedule-main-text { flex: 1; min-width: 0; overflow-wrap: break-word; font-size: 14.5px; font-weight: 500; color: var(--text); }
+  .schedule-time-pill {
+    flex-shrink: 0; font-size: 11px; font-weight: 600; color: var(--text-muted);
+    padding: 3px 8px; border-radius: 999px; background: rgba(255, 255, 255, .06);
   }
+  .schedule-tentative-dot { color: var(--text-dim); font-weight: 500; margin-left: 2px; }
 
-  /* Header baris Schedule This Week - 2 baris stack (tanggal+judul, lalu jam+Tentative) di DALAM
-     1 <summary> (summary-nya sendiri tetap flex row shared, cuma punya 1 child: wrapper ini) -
-     biar judul panjang kayak "Gym — Posterior Chain" nggak kepotong/ngedesak jam & pill kanan. */
-  .schedule-summary-stacked { display: flex; flex-direction: column; gap: 3px; width: 100%; min-width: 0; }
-  .schedule-row-main { display: flex; align-items: baseline; gap: 6px; flex-wrap: wrap; min-width: 0; }
-  .schedule-date { flex-shrink: 0; font-size: 11px; color: var(--text-dim); white-space: nowrap; }
-  .schedule-row-sub { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
-  .schedule-time-badge { font-size: 11.5px; color: var(--text-muted); font-weight: 600; }
+  /* Area expanded "Edit jam" - indent sejajar sama awal teks judul (bukan nempel ketimpa panah
+     ▸ di summary), padding-left-nya ngikutin lebar arrow(~18px) + gap summary(~10px). */
+  .schedule-detail-indent { padding-left: 42px; }
+  /* Toggle "Edit jam" di dalam kartu yang udah expanded - polos tanpa panah ▸/▾ sendiri (biar
+     nggak keliatan "panah dobel" numpuk sama panah expand utama kartu). */
+  .inline-toggle-plain > summary::before { content: none; }
+  .inline-toggle-plain > summary { padding-left: 0; }
 
   /* Form "Edit Jam" - 2 kolom sejajar Mulai/Selesai, input time di-styling glassmorphism manual
      (browser default input[type=time] selalu putih polos, ga ngikut tema) + color-scheme: dark
@@ -618,33 +622,25 @@ function scheduleDayHtml(plan, todayKey) {
 
   // Plan gym default (jadwal 4-Day Hybrid Split, belum ada plan GYM asli di DB di tanggal itu) -
   // cuma kebagian tombol "Start" langsung ke split terkait, nggak ada Edit/Move/Skip karena nggak
-  // ada plan.id yang bisa di-update (lihat gym-program.js: defaultGymPlanForDate). scheduled_time
-  // (dari DEFAULT_GYM_SCHEDULE, satu-satunya sumber jadwal/jam) ditampilin di baris sub-info
-  // TERPISAH dari judul (bukan di-concat 1 baris) biar judul panjang kayak "Gym — Posterior Chain"
-  // nggak kepotong - status DONE datang dari Auto-Complete Check (markCompletedGymPlans di
-  // router.js), bukan user nge-complete manual, jadi nggak ada tombol apa-apa lagi selain detail.
+  // ada plan.id yang bisa di-update (lihat gym-program.js: defaultGymPlanForDate). Header-nya
+  // SATU BARIS flat (sama persis struktur kayak item lain - panah lalu teks lalu pill kanan),
+  // BUKAN stack 2-baris (versi lama bikin panah ▸ keliatan "ngambang" sendirian di atas teks) -
+  // jam + Tentative dikemas jadi 1 pill kecil di kanan biar tinggi collapsed tetap ramping kayak
+  // Rest/Easy. Completed TETAP cuma dari log GYM beneran (markCompletedGymPlans), jam lewat TIDAK
+  // pernah bikin auto-done.
   if (plan.virtual) {
     const isDone = plan.status === "DONE";
-    // "Tentative" (fitur baru) - jam default DEFAULT_GYM_SCHEDULE itu cuma SARAN, bukan jadwal
-    // pasti, jadi dikasih pill muted selama belum ada override jam kustom user di tanggal itu
-    // (lihat gym-program.js: defaultGymPlanForDate `tentative` flag). Completed TETAP cuma dari
-    // log GYM beneran (markCompletedGymPlans) - jam terjadwal lewat TIDAK pernah bikin auto-done.
-    const tentativePill = plan.tentative ? `<span class="schedule-tentative-pill">Tentative</span>` : "";
+    const tentativeDot = plan.tentative ? `<span class="schedule-tentative-dot">· Tentative</span>` : "";
+    const timePill = plan.scheduled_time
+      ? `<span class="schedule-time-pill tabular-nums">${plan.scheduled_time}${tentativeDot}</span>`
+      : "";
 
     return `<details class="log-item">
       <summary>
-        <div class="schedule-summary-stacked">
-          <div class="schedule-row-main">
-            <span class="schedule-date">${dateLabel(plan.plan_date)}</span>
-            <span class="log-name">— ${svgIcon("dumbbell", { size: 16 })} ${escapeHtml(plan.title || badge)}${isDone ? `<span class="schedule-done-badge">${scheduleDoneIconHtml()}</span>` : ""}</span>
-          </div>
-          <div class="schedule-row-sub">
-            ${plan.scheduled_time ? `<span class="schedule-time-badge tabular-nums">${plan.scheduled_time}</span>` : ""}
-            ${tentativePill}
-          </div>
-        </div>
+        <span class="schedule-main-text">${dateLabel(plan.plan_date)} — ${svgIcon("dumbbell", { size: 16 })} ${escapeHtml(plan.title || badge)}${isDone ? `<span class="schedule-done-badge">${scheduleDoneIconHtml()}</span>` : ""}</span>
+        ${timePill}
       </summary>
-      <div class="log-detail-body">
+      <div class="log-detail-body schedule-detail-indent">
         ${plan.instructions ? `<div class="card-sub">${escapeHtml(plan.instructions)}</div>` : ""}
         ${
           isDone
@@ -653,7 +649,7 @@ function scheduleDayHtml(plan, todayKey) {
           <a class="btn-primary btn-sm" href="/hub/grind/gym?split=${encodeURIComponent(plan.sub_type)}">${svgIconLabel("dumbbell", "Start", { size: 14 })}</a>
         </div>`
         }
-        <details class="inline-toggle" style="margin-top:8px;">
+        <details class="inline-toggle inline-toggle-plain" style="margin-top:8px;">
           <summary>Edit jam${plan.tentative ? " (Tentative)" : ""}</summary>
           <div class="inline-toggle-body">
             <form method="POST" action="/hub/grind/gym-schedule/override">

@@ -222,29 +222,42 @@ export function defaultGymPlanForDate(dateKey, override) {
 export function injectDefaultGymPlans(plans, startKey, endKey, overrides) {
   const gymDates = new Set(plans.filter((p) => p.session_type === "GYM").map((p) => p.plan_date));
   const overrideByDate = new Map((overrides || []).map((o) => [o.plan_date, o]));
+  // Dilacak terpisah dari gymDates (yang cuma plan GYM ASLI) - dipakai buat nyaring Rest default
+  // di bawah, soalnya plan GYM VIRTUAL yang baru disisipin di loop ini juga harus ikut diitung
+  // "hari itu udah ada latihan", bukan cuma plan GYM asli dari DB.
+  const allGymDates = new Set(gymDates);
   const merged = [...plans];
   let cursor = startKey;
   let guard = 0;
   while (guard < 31) {
     if (!gymDates.has(cursor)) {
       const virtualPlan = defaultGymPlanForDate(cursor, overrideByDate.get(cursor));
-      if (virtualPlan) merged.push(virtualPlan);
+      if (virtualPlan) {
+        merged.push(virtualPlan);
+        allGymDates.add(cursor);
+      }
     }
     if (cursor === endKey) break;
     cursor = addDaysToKey(cursor, 1);
     guard++;
   }
+  // grind_plans punya unique(phone, plan_date) - jadi REST asli & GYM asli nggak pernah bentrok
+  // tanggal yang sama di DB. Satu-satunya cara REST & GYM bisa "numpuk" di tanggal yang sama
+  // adalah REST asli (dari import plan) + GYM VIRTUAL yang baru disisipin di atas - itu yang
+  // mau dihindarin di sini (lihat spec: "jangan tampilkan Rest default kalau udah ada jadwal
+  // Gym/Run di hari yang sama"), biar nggak kesannya kontradiktif ("Rest" tapi ada "Start Gym").
+  const filtered = merged.filter((p) => !(p.session_type === "REST" && allGymDates.has(p.plan_date)));
   // Kronologis: tanggal dulu, baru jam mulai (scheduled_time/start_time) dalam hari yang sama -
   // item tanpa jam spesifik (plan asli lama belum punya kolom waktu) ditaruh duluan sebelum item
   // yang punya jam pasti, biar nggak nebak-nebak urutannya.
-  merged.sort((a, b) => {
+  filtered.sort((a, b) => {
     if (a.plan_date !== b.plan_date) return a.plan_date < b.plan_date ? -1 : 1;
     if (a.start_time && b.start_time) return a.start_time < b.start_time ? -1 : a.start_time > b.start_time ? 1 : 0;
     if (a.start_time && !b.start_time) return 1;
     if (!a.start_time && b.start_time) return -1;
     return 0;
   });
-  return merged;
+  return filtered;
 }
 
 // Auto-Complete Check: kalau di tanggal plan Gym virtual itu udah ada log sesi GYM beneran

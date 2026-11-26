@@ -96,6 +96,9 @@ const GYM_PAGE_CSS = `
     width: 28px; height: 28px; border-radius: 6px; border: 1px solid var(--border); background: var(--bg);
     color: var(--text-dim); display: flex; align-items: center; justify-content: center; flex-shrink: 0; cursor: pointer;
   }
+  /* Tanpa ini, [hidden] native browser ke-overrides sama display:flex di atas - tombol stopwatch
+     jadi kelihatan & bisa diklik di gerakan NON-duration juga (reps ikut keitung mundur). */
+  .sec-timer-btn[hidden] { display: none; }
   .sec-timer-btn.running { background: var(--accent); color: #fff; border-color: var(--accent); }
   .sec-timer-btn .svg-icon { margin: 0; }
   .set-check-btn {

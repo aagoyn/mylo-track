@@ -356,10 +356,44 @@ function gymPageScript(runFatigue) {
           startFinishBtn.textContent = "Finish Workout";
           startFinishBtn.dataset.state = "finish";
         }
+        if (cancelBtn) cancelBtn.hidden = false;
         tickDuration();
         if (tickInterval) clearInterval(tickInterval);
         tickInterval = setInterval(tickDuration, 1000);
         saveDraft();
+      }
+
+      // Cancel Workout - buat kalau "Start Workout" kepencet nggak sengaja. Reset timer & status
+      // selesai semua set (TANPA menghapus gerakan/input kg-reps yang udah diisi), balik ke
+      // "Start Workout" lagi. Minta konfirmasi dulu karena nge-reset progress centang set.
+      var cancelBtn = document.getElementById("gym-cancel-btn");
+      function cancelWorkout() {
+        started = false;
+        startTime = null;
+        if (tickInterval) { clearInterval(tickInterval); tickInterval = null; }
+        timerDisplay.textContent = "00:00";
+        if (durationHidden) durationHidden.value = 1;
+        if (startFinishBtn) {
+          startFinishBtn.textContent = "Start Workout";
+          startFinishBtn.dataset.state = "start";
+        }
+        if (cancelBtn) cancelBtn.hidden = true;
+        if (restInterval) { clearInterval(restInterval); restInterval = null; }
+        if (restBar) restBar.hidden = true;
+        container.querySelectorAll(".set-row").forEach(function (row) {
+          row.classList.remove("set-row-done");
+          var checkBtn = row.querySelector(".set-check-btn");
+          if (checkBtn) checkBtn.classList.remove("checked");
+        });
+        saveDraft();
+      }
+
+      if (cancelBtn) {
+        cancelBtn.addEventListener("click", function () {
+          if (window.confirm("Batalkan workout ini? Timer & centang set direset, gerakan & beban yang udah diisi tetap ada.")) {
+            cancelWorkout();
+          }
+        });
       }
 
       if (startFinishBtn) {
@@ -1032,6 +1066,7 @@ ${faviconLink("/icons/grind-icon.png")}
         </div>
         <div class="gym-header-right">
           <div class="gym-timer tabular-nums" id="gym-duration">00:00</div>
+          <button type="button" class="btn-secondary btn-sm" id="gym-cancel-btn" hidden>Cancel</button>
           <button type="button" class="btn-primary btn-sm" id="gym-start-finish-btn" data-state="start">Start Workout</button>
         </div>
       </div>

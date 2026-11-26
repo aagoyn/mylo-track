@@ -287,18 +287,53 @@ const GRIND_PAGE_CSS = `
     color: #fff; font-size: 15px; font-weight: 700; cursor: pointer; font-family: inherit;
   }
 
-  /* Badge/teks "Completed" otomatis (Auto-Complete Check) di item Schedule This Week - aksen
-     warm amber (var(--accent) di tema ini emang udah warna coklat-amber hangat). */
-  .schedule-done-badge { color: var(--accent); font-weight: 700; margin-left: 6px; }
-  .schedule-done-text { color: var(--accent); font-weight: 600; }
+  /* Ikon check "Completed" otomatis (Auto-Complete Check) di item Schedule This Week - ganti
+     emoji ✅ lama, warna var(--success) (warm sage, konsisten sama state "done" lain di app mis.
+     set-row-done di gym-page.js) bukan var(--accent) biar beda jelas sama pill Tentative. */
+  .schedule-done-icon { display: inline-flex; vertical-align: middle; color: var(--success); }
+  .schedule-done-badge { display: inline-flex; align-items: center; margin-left: 6px; }
+  .schedule-done-text { display: inline-flex; align-items: center; gap: 4px; color: var(--success); font-weight: 600; }
 
   /* Pill "Tentative" - jam default DEFAULT_GYM_SCHEDULE itu saran perencanaan, bukan jadwal
      pasti, jadi style-nya sengaja lembut/muted (beda dari badge Completed yang aksen warna). */
   .schedule-tentative-pill {
-    display: inline-block; margin-left: 6px; padding: 1px 6px; border-radius: 999px;
-    font-size: 9.5px; font-weight: 600; text-transform: uppercase; letter-spacing: .03em;
-    color: var(--text-dim); background: var(--surface-hover);
+    display: inline-block; padding: 1px 6px; border-radius: 999px;
+    font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .03em;
+    color: var(--text-dim); background: var(--surface-hover); flex-shrink: 0;
   }
+
+  /* Header baris Schedule This Week - 2 baris stack (tanggal+judul, lalu jam+Tentative) di DALAM
+     1 <summary> (summary-nya sendiri tetap flex row shared, cuma punya 1 child: wrapper ini) -
+     biar judul panjang kayak "Gym — Posterior Chain" nggak kepotong/ngedesak jam & pill kanan. */
+  .schedule-summary-stacked { display: flex; flex-direction: column; gap: 3px; width: 100%; min-width: 0; }
+  .schedule-row-main { display: flex; align-items: baseline; gap: 6px; flex-wrap: wrap; min-width: 0; }
+  .schedule-date { flex-shrink: 0; font-size: 11px; color: var(--text-dim); white-space: nowrap; }
+  .schedule-row-sub { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+  .schedule-time-badge { font-size: 11.5px; color: var(--text-muted); font-weight: 600; }
+
+  /* Form "Edit Jam" - 2 kolom sejajar Mulai/Selesai, input time di-styling glassmorphism manual
+     (browser default input[type=time] selalu putih polos, ga ngikut tema) + color-scheme: dark
+     biar ikon jam bawaan browser nggak item/ilang pas dark mode. */
+  .schedule-time-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
+  .schedule-time-grid label { display: block; font-size: 11px; color: var(--text-dim); margin-bottom: 4px; }
+  .schedule-time-grid input[type="time"] {
+    width: 100%; box-sizing: border-box; background: rgba(255, 255, 255, .06);
+    border: 1px solid rgba(255, 255, 255, .14); border-radius: 10px; color: inherit;
+    padding: 10px 12px; font-size: 14px; font-variant-numeric: tabular-nums; font-family: inherit;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) .schedule-time-grid input[type="time"] { color-scheme: dark; }
+  }
+  :root[data-theme="dark"] .schedule-time-grid input[type="time"] { color-scheme: dark; }
+
+  /* .inline-toggle-body button (shared, dashboard-layout.js) nge-paksa semua <button> di dalamnya
+     jadi aksen (var(--accent)) - override biar tombol "Reset" (btn-secondary) di form Edit Jam
+     tetap keliatan sekunder/muted, beda jelas dari "Simpan Jam" (btn-primary, aksen warm brown). */
+  .inline-toggle-body .btn-secondary {
+    background: var(--surface); color: var(--text); border: 1px solid var(--border);
+  }
+  .inline-toggle-body .btn-secondary:hover { background: var(--surface-hover); }
+  .inline-toggle-body .btn-sm { padding: 6px 10px; font-size: 12px; }
 
   /* ---------- Personal Bests (PB lari & PR gym) ---------- */
   .pb-card { margin-bottom: 4px; }
@@ -569,21 +604,26 @@ function weeklyProgressHtml({ weekPlans, weekSessions, weekTargetKm }) {
 
 // ---------- Schedule & Plan Viewer ----------
 
+// Ikon check inline (ganti emoji ✅) - dipakai di item jadwal yang udah Completed, warna
+// var(--success) biar konsisten sama state "done" di tempat lain (mis. set-row-done di gym-page.js).
+function scheduleDoneIconHtml() {
+  return `<span class="schedule-done-icon">${svgIcon("check", { size: 12 })}</span>`;
+}
+
 function scheduleDayHtml(plan, todayKey) {
   const badge = SESSION_TYPE_BADGE[plan.session_type] || plan.session_type;
   const statusBadge =
-    plan.status === "DONE" ? " ✅" : plan.status === "SKIPPED" ? " ⏭" : "";
+    plan.status === "DONE" ? scheduleDoneIconHtml() : plan.status === "SKIPPED" ? " ⏭" : "";
   const summary = planSummaryLine(plan);
 
   // Plan gym default (jadwal 4-Day Hybrid Split, belum ada plan GYM asli di DB di tanggal itu) -
   // cuma kebagian tombol "Start" langsung ke split terkait, nggak ada Edit/Move/Skip karena nggak
   // ada plan.id yang bisa di-update (lihat gym-program.js: defaultGymPlanForDate). scheduled_time
-  // (dari DEFAULT_GYM_SCHEDULE, satu-satunya sumber jadwal/jam) ditampilin berdampingan sama
-  // judul - status DONE datang dari Auto-Complete Check (markCompletedGymPlans di router.js),
-  // bukan user nge-complete manual, jadi nggak ada tombol apa-apa lagi selain lihat detail.
+  // (dari DEFAULT_GYM_SCHEDULE, satu-satunya sumber jadwal/jam) ditampilin di baris sub-info
+  // TERPISAH dari judul (bukan di-concat 1 baris) biar judul panjang kayak "Gym — Posterior Chain"
+  // nggak kepotong - status DONE datang dari Auto-Complete Check (markCompletedGymPlans di
+  // router.js), bukan user nge-complete manual, jadi nggak ada tombol apa-apa lagi selain detail.
   if (plan.virtual) {
-    const dayAbbrev = WEEKDAYS[new Date(`${plan.plan_date}T00:00:00Z`).getUTCDay()];
-    const timeLabel = plan.scheduled_time ? `${dayAbbrev} · ${plan.scheduled_time}` : dayAbbrev;
     const isDone = plan.status === "DONE";
     // "Tentative" (fitur baru) - jam default DEFAULT_GYM_SCHEDULE itu cuma SARAN, bukan jadwal
     // pasti, jadi dikasih pill muted selama belum ada override jam kustom user di tanggal itu
@@ -593,14 +633,22 @@ function scheduleDayHtml(plan, todayKey) {
 
     return `<details class="log-item">
       <summary>
-        <span class="log-time tabular-nums">${timeLabel}${tentativePill}</span>
-        <span class="log-name">${svgIcon("dumbbell", { size: 16 })} ${escapeHtml(plan.title || `${badge}`)}${isDone ? '<span class="schedule-done-badge">✓</span>' : ""}</span>
+        <div class="schedule-summary-stacked">
+          <div class="schedule-row-main">
+            <span class="schedule-date">${dateLabel(plan.plan_date)}</span>
+            <span class="log-name">— ${svgIcon("dumbbell", { size: 16 })} ${escapeHtml(plan.title || badge)}${isDone ? `<span class="schedule-done-badge">${scheduleDoneIconHtml()}</span>` : ""}</span>
+          </div>
+          <div class="schedule-row-sub">
+            ${plan.scheduled_time ? `<span class="schedule-time-badge tabular-nums">${plan.scheduled_time}</span>` : ""}
+            ${tentativePill}
+          </div>
+        </div>
       </summary>
       <div class="log-detail-body">
         ${plan.instructions ? `<div class="card-sub">${escapeHtml(plan.instructions)}</div>` : ""}
         ${
           isDone
-            ? `<div class="card-sub schedule-done-text" style="margin-top:8px;">✓ Completed</div>`
+            ? `<div class="card-sub schedule-done-text" style="margin-top:8px;">${scheduleDoneIconHtml()} Completed</div>`
             : `<div class="button-row" style="margin-top:8px;">
           <a class="btn-primary btn-sm" href="/hub/grind/gym?split=${encodeURIComponent(plan.sub_type)}">${svgIconLabel("dumbbell", "Start", { size: 14 })}</a>
         </div>`
@@ -610,18 +658,30 @@ function scheduleDayHtml(plan, todayKey) {
           <div class="inline-toggle-body">
             <form method="POST" action="/hub/grind/gym-schedule/override">
               <input type="hidden" name="plan_date" value="${plan.plan_date}">
-              <label>Mulai</label>
-              <input type="time" name="start_time" value="${escapeHtml(plan.start_time || "")}" required>
-              <label>Selesai</label>
-              <input type="time" name="end_time" value="${escapeHtml(plan.end_time || "")}" required>
-              <button type="submit">Simpan Jam</button>
+              <div class="schedule-time-grid">
+                <div>
+                  <label>Mulai</label>
+                  <input type="time" name="start_time" value="${escapeHtml(plan.start_time || "")}" required>
+                </div>
+                <div>
+                  <label>Selesai</label>
+                  <input type="time" name="end_time" value="${escapeHtml(plan.end_time || "")}" required>
+                </div>
+              </div>
+              <div class="button-row">
+                <button type="submit" class="btn-primary btn-sm flex-3">Simpan Jam</button>
+                ${
+                  plan.tentative
+                    ? ""
+                    : `<button type="submit" form="schedule-reset-${plan.plan_date}" class="btn-secondary btn-sm flex-1">Reset</button>`
+                }
+              </div>
             </form>
             ${
               plan.tentative
                 ? ""
-                : `<form method="POST" action="/hub/grind/gym-schedule/reset" style="margin-top:6px;">
+                : `<form id="schedule-reset-${plan.plan_date}" method="POST" action="/hub/grind/gym-schedule/reset" style="display:none;">
                      <input type="hidden" name="plan_date" value="${plan.plan_date}">
-                     <button type="submit" class="btn-secondary btn-sm">Reset to Tentative</button>
                    </form>`
             }
           </div>

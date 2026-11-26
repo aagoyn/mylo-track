@@ -455,6 +455,38 @@ export const GENERIC_GUIDE = {
   diagram: diagram("generic"),
 };
 
+// Quick Swap Exercise - alat/variasi setara yang bisa saling gantiin kalau gym lagi penuh, key
+// pakai nama gerakan lowercase (cocok sama exerciseName persis yang ada di gym-program.js).
+// Nggak lengkap buat semua 28 gerakan (yang nggak ada map-nya cukup pakai opsi custom di popover).
+export const EXERCISE_ALTERNATIVES = {
+  "barbell bench press": ["Dumbbell Bench Press", "Machine Chest Press"],
+  "dumbbell bench press": ["Barbell Bench Press", "Machine Chest Press"],
+  "incline dumbbell press": ["Incline Barbell Press", "Incline Smith Press"],
+  "cable lateral raise": ["Dumbbell Lateral Raise", "Machine Lateral Raise"],
+  "pull-up / assisted pull-up": ["Lat Pulldown"],
+  "lat pulldown": ["Pull-up / Assisted Pull-up"],
+  "chest supported row": ["Seated Cable Row", "Single-Arm Dumbbell Row"],
+  "seated cable row": ["Chest Supported Row", "Single-Arm Dumbbell Row"],
+  "barbell back squat": ["Hack Squat", "Goblet Squat"],
+  "leg press": ["Bulgarian Split Squat"],
+  "bulgarian split squat": ["Leg Press"],
+  "conventional deadlift": ["Trap Bar Deadlift", "Romanian Deadlift"],
+};
+
+// window.getExerciseAlternatives(name) dipanggil dari popover Swap tiap kartu gerakan (lihat
+// gym-page.js) - data lookup doang, UI popover-nya sendiri di-render di sana (punya akses
+// langsung ke card/nameInput).
+export function exerciseAlternativesScript() {
+  return `<script>
+    (function () {
+      var ALTS = ${JSON.stringify(EXERCISE_ALTERNATIVES)};
+      window.getExerciseAlternatives = function (name) {
+        return ALTS[(name || "").toLowerCase().trim()] || [];
+      };
+    })();
+  </script>`;
+}
+
 // Serialisasi guide (SVG diagram sudah jadi string) ke <script> halaman + logic matching & buka
 // dialog di client. window.openExerciseGuide(name) dipanggil dari tombol "?" tiap kartu gerakan.
 export function exerciseGuideScript() {

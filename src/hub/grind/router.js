@@ -67,6 +67,16 @@ function buildRecoveryHint(recentSessions) {
   return null;
 }
 
+// Dynamic Hybrid Training Guardrails (fitur #1 Dynamic Coach Notice) - "beban lari tinggi" dalam
+// 3-4 hari terakhir dianggap kalau ada Long Run berat (>=8km) ATAU Run cukup sering (>=3x), lebih
+// ketat daripada buildRecoveryHint (24 jam, cuma >=5km) karena ini nge-trigger prioritas tertinggi
+// di banner Gym (nyaranin kurangi volume gym, bukan cuma ganti fokus split).
+function hasHighRunFatigue(recentSessions) {
+  const runs = recentSessions.filter((s) => s.type === "RUN");
+  if (runs.length >= 3) return true;
+  return runs.some((s) => Number(s.distance_km) >= 8);
+}
+
 export const router = express.Router();
 
 router.get("/hub/grind", requireAuth, async (req, res) => {
@@ -404,6 +414,12 @@ router.get("/hub/grind/gym", requireAuth, async (req, res) => {
     const sinceISO = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
     const recentSessions = await getSessionsSince(phone, sinceISO);
 
+    // Running Fatigue Check (fitur #1 Dynamic Coach Notice) - dicek terpisah dari recoveryHint
+    // 24 jam di atas, soalnya window-nya lebih panjang (3-4 hari) & jadi prioritas tertinggi di
+    // banner, bukan cuma saran ganti fokus split.
+    const since4dISO = new Date(Date.now() - 4 * 24 * 60 * 60 * 1000).toISOString();
+    const recentSessions4d = await getSessionsSince(phone, since4dISO);
+
     // Prioritas split yang dibuka: ?split= dari query (mis. tombol "Start Gym" di jadwal mingguan)
     // > default hari ini (Senin=Push dst, lihat gym-program.js) > tab pertama (Push).
     const defaultSplit = VALID_GYM_SPLITS.includes(req.query.split)
@@ -415,6 +431,7 @@ router.get("/hub/grind/gym", requireAuth, async (req, res) => {
         defaultTime: defaultSessionTimeWib(),
         defaultSplit,
         recoveryHint: buildRecoveryHint(recentSessions),
+        runFatigue: hasHighRunFatigue(recentSessions4d),
       })
     );
   } catch (err) {

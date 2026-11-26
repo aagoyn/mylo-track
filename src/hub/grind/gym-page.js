@@ -214,6 +214,42 @@ const GYM_PAGE_CSS = `
     flex-shrink: 0; padding: 2px 8px; border-radius: 999px; font-size: 10px; font-weight: 700; letter-spacing: .03em;
     background: linear-gradient(135deg, #D9A441, #C97368); color: #fff;
   }
+
+  /* Dynamic Coach Notice - gantiin Quick Tip Banner statis, isi/prioritas berubah tergantung
+     riwayat lari 3-4 hari terakhir & split/hari aktif (lihat gymPageScript buildCoachNotice()). */
+  .gym-coach-notice {
+    display: flex; align-items: flex-start; gap: 10px; padding: 12px 14px; margin-bottom: 14px;
+    font-size: 12.5px; line-height: 1.5; color: var(--text);
+    border: 1px solid rgba(201, 115, 104, .35);
+    background: linear-gradient(135deg, rgba(217, 164, 65, .08), rgba(201, 115, 104, .08));
+  }
+  .gym-coach-notice[hidden] { display: none; }
+  .gym-coach-notice-icon { flex-shrink: 0; margin-top: 1px; color: #C97368; }
+  .gym-coach-notice-text { flex: 1; }
+  .gym-coach-reduce-btn {
+    flex-shrink: 0; padding: 6px 10px; border-radius: 8px; border: 1px solid rgba(201, 115, 104, .5);
+    background: transparent; color: #8a3b31; font-size: 11.5px; font-weight: 700; cursor: pointer; font-family: inherit;
+  }
+  .gym-coach-reduce-btn:hover { background: rgba(201, 115, 104, .12); }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) .gym-coach-notice-icon { color: #e8a79e; }
+    :root:not([data-theme="light"]) .gym-coach-reduce-btn { color: #e8a79e; border-color: rgba(232, 167, 158, .5); }
+  }
+  :root[data-theme="dark"] .gym-coach-notice-icon { color: #e8a79e; }
+  :root[data-theme="dark"] .gym-coach-reduce-btn { color: #e8a79e; border-color: rgba(232, 167, 158, .5); }
+
+  /* Micro-alert inline di kartu gerakan (fitur #2) - non-blocking, cuma visual, muncul live
+     begitu input KG/REPS/tipe set/RPE masuk kondisi guardrail (Deadlift PR-chasing / Legs failure). */
+  .exercise-guardrail-alert {
+    display: flex; align-items: flex-start; gap: 6px; margin-top: 8px; padding: 8px 10px;
+    border-radius: 8px; background: rgba(217, 164, 65, .12); color: #8a5a10; font-size: 11.5px; line-height: 1.45;
+  }
+  .exercise-guardrail-alert[hidden] { display: none; }
+  .exercise-guardrail-alert .svg-icon { flex-shrink: 0; margin-top: 1px; }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) .exercise-guardrail-alert { color: #f0c987; }
+  }
+  :root[data-theme="dark"] .exercise-guardrail-alert { color: #f0c987; }
 `;
 // Style konten dialog Exercise Form Guide (muscle badge, diagram animasi, steps, avoid/note box)
 // di-export dari exercise-guides.js sendiri (exerciseGuideStyles) - dipakai di renderGymPage,
@@ -234,10 +270,11 @@ function ampmToggleHtml(defaultTime) {
   </div>`;
 }
 
-function gymPageScript() {
+function gymPageScript(runFatigue) {
   return `<script>
     (function () {
       var DRAFT_KEY = ${JSON.stringify(DRAFT_KEY)};
+      var RUN_FATIGUE = ${runFatigue ? "true" : "false"};
       var container = document.getElementById("gym-exercises-container");
       var splitPillsEl = document.getElementById("gym-split-pills");
       var addExerciseBtn = document.getElementById("gym-add-exercise");
@@ -249,22 +286,44 @@ function gymPageScript() {
       var restTimeEl = document.getElementById("rest-timer-time");
       if (!container || !splitPillsEl || !form) return;
 
-      // Quick Tip Banner - tampil 1x doang (cek localStorage), ditutup via tombol ✕ dengan
-      // animasi fade+collapse (CSS transition di .gym-tip-dismissing), baru hidden setelah selesai.
-      var TIP_DISMISSED_KEY = "grind_gym_tip_dismissed";
-      var tipBanner = document.getElementById("gym-tip-banner");
-      var tipCloseBtn = document.getElementById("gym-tip-close");
-      if (tipBanner) {
-        try {
-          if (localStorage.getItem(TIP_DISMISSED_KEY) !== "true") tipBanner.hidden = false;
-        } catch (e) { tipBanner.hidden = false; }
-        if (tipCloseBtn) {
-          tipCloseBtn.addEventListener("click", function () {
-            try { localStorage.setItem(TIP_DISMISSED_KEY, "true"); } catch (e) {}
-            tipBanner.classList.add("gym-tip-dismissing");
-            setTimeout(function () { tipBanner.hidden = true; }, 260);
-          });
+      // Dynamic Hybrid Training Guardrails & Contextual Hints - Dynamic Coach Notice (fitur #1).
+      // Prioritas: (1) beban lari 3-4 hari terakhir tinggi (RUN_FATIGUE dari server, lihat
+      // buildCoachNotice di grind/router.js) > (2) split Posterior Chain/Sabtu > (3) split Legs/
+      // Kamis > (4) default Push/Pull. Dipanggil ulang tiap pindah split pill (bukan cuma sekali
+      // di awal), supaya notice-nya ikut nyesuain splitnya.
+      var coachNoticeEl = document.getElementById("gym-coach-notice");
+      var coachNoticeText = document.getElementById("gym-coach-notice-text");
+      var coachReduceBtn = document.getElementById("gym-coach-reduce-btn");
+
+      function updateCoachNotice(split) {
+        if (!coachNoticeEl || !coachNoticeText) return;
+        var showReduceBtn = false;
+        var text;
+        if (RUN_FATIGUE) {
+          text = "Running Performance Priority: Beban lari beberapa hari terakhir cukup tinggi. Kalau easy run mulai terasa berat, kurangi volume gym dulu daripada memaksakan semua.";
+          showReduceBtn = true;
+        } else if (split === "Posterior Chain") {
+          text = "Saturday Deadlift Rule: Jaga Deadlift di RPE 6–7 (sisakan 3–4 reps). Jangan kejar PR setiap minggu—pertimbangkan recovery untuk Badminton & Long Run Minggu.";
+        } else if (split === "Legs") {
+          text = "Thursday Legs Guardrail: Fokus kualitas gerak dan kontrol tempo (RPE 7–8). Jangan buat kaki terlalu hancur menjelang Long Run Minggu.";
+        } else {
+          text = "Hybrid Focus: Jaga teknik bersih di RPE 7–8, catat beban & reps untuk progressive overload bertahap.";
         }
+        coachNoticeText.textContent = text;
+        if (coachReduceBtn) coachReduceBtn.hidden = !showReduceBtn;
+      }
+
+      // "Kurangi 1 Set" (fitur #1) - hapus 1 working set terakhir di tiap gerakan hari ini,
+      // minimal nyisain 1-2 set (nggak sampai kosong), biar user nggak perlu hapus manual satu-satu.
+      if (coachReduceBtn) {
+        coachReduceBtn.addEventListener("click", function () {
+          container.querySelectorAll(".exercise-card").forEach(function (card) {
+            var rows = card.querySelectorAll(".set-row");
+            if (rows.length > 2) rows[rows.length - 1].remove();
+            renumber(card);
+          });
+          saveDraft();
+        });
       }
 
       // Timer nggak auto-jalan pas halaman dibuka (beda dari versi sebelumnya) - baru mulai pas
@@ -360,6 +419,49 @@ function gymPageScript() {
         });
       }
 
+      // Real-Time Inline Guardrail (fitur #2 Dynamic Hybrid Guardrails) - micro-alert non-blocking
+      // di kartu gerakan, dicek ulang tiap kali KG/REPS/tipe set/RPE berubah. Dua aturan: Deadlift
+      // PR-chasing di hari Posterior Chain/Sabtu, dan failure training kaki di hari Legs/Kamis.
+      var LEGS_GUARDRAIL_EXERCISES = ["barbell back squat", "bulgarian split squat", "leg press"];
+      function updateGuardrailAlert(card) {
+        var alertEl = card.querySelector(".exercise-guardrail-alert");
+        var alertText = card.querySelector(".exercise-guardrail-text");
+        if (!alertEl || !alertText) return;
+        var name = (card.querySelector(".exercise-name-input").value || "").trim().toLowerCase();
+        var split = getActiveSplit();
+        var rpe = parseFloat(card.dataset.rpe) || 0;
+        var trigger = false;
+        var msg = "";
+
+        if (split === "Posterior Chain" && name === "conventional deadlift") {
+          var chasingPr = false;
+          card.querySelectorAll(".set-row").forEach(function (row) {
+            var setType = row.dataset.setType || "working";
+            var kg = parseFloat(row.querySelector(".set-kg-input").value) || 0;
+            var reps = parseInt(row.querySelector(".set-reps-input").value, 10) || 0;
+            var prevEst = parsePreviousEst(row.querySelector(".set-previous").textContent);
+            var currentEst = kg ? kg * (1 + reps / 30) : 0;
+            if (setType === "failure" || (prevEst > 0 && currentEst > prevEst)) chasingPr = true;
+          });
+          if (rpe >= 8 || chasingPr) {
+            trigger = true;
+            msg = "Pengingat Sabtu: Hindari kejar PR Deadlift tiap minggu & jaga di RPE 6–7 agar kaki tetap siap untuk Badminton dan Long Run besok.";
+          }
+        } else if (split === "Legs" && LEGS_GUARDRAIL_EXERCISES.indexOf(name) !== -1) {
+          var hasFailure = false;
+          card.querySelectorAll(".set-row").forEach(function (row) {
+            if ((row.dataset.setType || "working") === "failure") hasFailure = true;
+          });
+          if (hasFailure || rpe >= 9) {
+            trigger = true;
+            msg = "Jaga recovery kaki menjelang Long Run — cukup berhenti 2–3 reps sebelum failure (RPE 7–8).";
+          }
+        }
+
+        alertText.textContent = msg;
+        alertEl.hidden = !trigger;
+      }
+
       function playBeep() {
         try {
           var Ctx = window.AudioContext || window.webkitAudioContext;
@@ -404,8 +506,13 @@ function gymPageScript() {
         kgInput.value = weight || "";
         repsInput.value = reps || "";
 
-        kgInput.addEventListener("input", saveDraft);
-        repsInput.addEventListener("input", saveDraft);
+        function checkGuardrail() {
+          var card = row.closest(".exercise-card");
+          if (card) updateGuardrailAlert(card);
+        }
+
+        kgInput.addEventListener("input", function () { saveDraft(); checkGuardrail(); });
+        repsInput.addEventListener("input", function () { saveDraft(); checkGuardrail(); });
 
         typeBtn.addEventListener("click", function () {
           var order = ["working", "warmup", "failure"];
@@ -413,6 +520,7 @@ function gymPageScript() {
           row.dataset.setType = order[(idx + 1) % order.length];
           applySetTypeBadge(row);
           saveDraft();
+          checkGuardrail();
         });
 
         if (hasFillablePrevious) {
@@ -422,6 +530,7 @@ function gymPageScript() {
             kgInput.value = m[1];
             repsInput.value = m[2];
             saveDraft();
+            checkGuardrail();
           });
         }
 
@@ -541,7 +650,8 @@ function gymPageScript() {
           '</div>' +
           '<div class="set-table-header"><span>Set</span><span>Previous</span><span>Kg</span><span>Reps</span><span></span></div>' +
           '<div class="set-rows"></div>' +
-          '<button type="button" class="add-set-btn">+ Add Set</button>';
+          '<button type="button" class="add-set-btn">+ Add Set</button>' +
+          '<div class="exercise-guardrail-alert" hidden><span class="exercise-guardrail-icon">${svgIcon("alertCircle", { size: 13 })}</span><span class="exercise-guardrail-text"></span></div>';
 
         var nameInput = card.querySelector(".exercise-name-input");
         var rowsContainer = card.querySelector(".set-rows");
@@ -552,9 +662,11 @@ function gymPageScript() {
         });
         renumber(card);
         updateDurationMode(card);
+        updateGuardrailAlert(card);
 
         nameInput.addEventListener("input", function () {
           updateDurationMode(card);
+          updateGuardrailAlert(card);
           saveDraft();
         });
         card.querySelector(".exercise-guide-btn").addEventListener("click", function () {
@@ -572,6 +684,7 @@ function gymPageScript() {
           rowsContainer.appendChild(makeSetRow(null, lastWeight, lastReps, false));
           renumber(card);
           updateDurationMode(card);
+          updateGuardrailAlert(card);
           saveDraft();
         });
 
@@ -590,6 +703,7 @@ function gymPageScript() {
             rpePill.textContent = "RPE " + opt.dataset.rpe;
             rpePill.classList.add("rpe-set");
             rpePopover.hidden = true;
+            updateGuardrailAlert(card);
             saveDraft();
           });
         });
@@ -608,6 +722,7 @@ function gymPageScript() {
               opt.addEventListener("click", function () {
                 nameInput.value = opt.dataset.name;
                 updateDurationMode(card);
+                updateGuardrailAlert(card);
                 swapPopover.hidden = true;
                 saveDraft();
               });
@@ -618,6 +733,7 @@ function gymPageScript() {
               if (!val) return;
               nameInput.value = val;
               updateDurationMode(card);
+              updateGuardrailAlert(card);
               swapPopover.hidden = true;
               saveDraft();
             });
@@ -712,6 +828,7 @@ function gymPageScript() {
         });
         var hidden = document.getElementById("gym-sub-type-hidden");
         if (hidden) hidden.value = split;
+        updateCoachNotice(split);
       }
       function getActiveAmPm() {
         var checked = document.querySelector('input[name="gym_session_time"]:checked');
@@ -882,13 +999,14 @@ function gymPageScript() {
         // diam di 00:00/"Start Workout", sesuai niat "jangan auto-start pas halaman dibuka".
         if (draft.started && draft.startTime) startWorkout(draft.startTime);
       } else {
+        updateCoachNotice(getActiveSplit());
         loadTemplate(getActiveSplit());
       }
     })();
   </script>`;
 }
 
-export function renderGymPage({ defaultTime, defaultSplit, recoveryHint }) {
+export function renderGymPage({ defaultTime, defaultSplit, recoveryHint, runFatigue }) {
   const activeSplit = GYM_SPLITS.includes(defaultSplit) ? defaultSplit : GYM_SPLITS[0];
   return `<!doctype html>
 <html lang="en">
@@ -921,10 +1039,10 @@ ${faviconLink("/icons/grind-icon.png")}
 
     ${recoveryHint ? `<div class="recovery-banner recovery-banner-gym">${escapeHtml(recoveryHint)}</div>` : ""}
 
-    <div class="card glass-card gym-tip-banner" id="gym-tip-banner" hidden>
-      ${svgIcon("helpCircle", { size: 16 })}
-      <span class="gym-tip-text">Isi beban (kg) & reps → tap <strong>✓</strong> untuk mulai rest timer otomatis → tap <strong>Finish Workout</strong> setelah selesai.</span>
-      <button type="button" class="gym-tip-close" id="gym-tip-close" aria-label="Tutup tip">✕</button>
+    <div class="card glass-card gym-coach-notice" id="gym-coach-notice">
+      <div class="gym-coach-notice-icon" id="gym-coach-notice-icon">${svgIcon("activity", { size: 16 })}</div>
+      <span class="gym-coach-notice-text" id="gym-coach-notice-text"></span>
+      <button type="button" class="gym-coach-reduce-btn" id="gym-coach-reduce-btn" hidden>Kurangi 1 Set</button>
     </div>
 
     <form method="POST" action="/hub/grind/sessions/gym" id="gym-page-form">
@@ -964,7 +1082,7 @@ ${faviconLink("/icons/grind-icon.png")}
     </div>
   </dialog>
 
-  ${gymPageScript()}
+  ${gymPageScript(!!runFatigue)}
   ${exerciseGuideScript()}
   ${exerciseAlternativesScript()}
 </body>

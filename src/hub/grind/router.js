@@ -40,6 +40,7 @@ import {
   defaultSplitForDay,
   injectDefaultGymPlans,
   defaultGymPlanForDate,
+  defaultBadmintonPlanForDate,
   markCompletedGymPlans,
   validateGymScheduleOverride,
 } from "./gym-program.js";
@@ -126,13 +127,13 @@ router.get("/hub/grind", requireAuth, async (req, res) => {
       gym: computeGymPRs(allGymSessions),
     };
 
-    // Jadwal gym default 4-Day Hybrid Split (Push/Pull/Legs/Posterior Chain) - selalu digabung
-    // (BUKAN cuma nongol kalau tabel plan kosong) sama plan asli minggu ini, kecuali tanggal itu
-    // udah ada plan GYM asli sendiri; sesi lain yang beda tanggal yang sama (mis. Badminton Sabtu)
-    // tetap tampil terpisah berdampingan. Auto-Complete: ditandain DONE otomatis kalau udah ada log
-    // GYM beneran di tanggal itu minggu ini (lihat gym-program.js markCompletedGymPlans) - nggak
-    // pernah ditulis ke DB, semuanya tetap `virtual: true`.
-    const todayPlan = rawTodayPlan || defaultGymPlanForDate(todayKey);
+    // Jadwal gym default 4-Day Gym Split (Push/Posterior Chain/Pull/Legs) + Badminton default
+    // Sabtu pagi - selalu digabung (BUKAN cuma nongol kalau tabel plan kosong) sama plan asli
+    // minggu ini, kecuali tanggal itu udah ada plan GYM/BADMINTON asli sendiri; sesi lain yang
+    // beda tanggal yang sama tetap tampil terpisah berdampingan. Auto-Complete: ditandain DONE
+    // otomatis kalau udah ada log beneran di tanggal itu minggu ini (lihat gym-program.js
+    // markCompletedGymPlans) - nggak pernah ditulis ke DB, semuanya tetap `virtual: true`.
+    const todayPlan = rawTodayPlan || defaultGymPlanForDate(todayKey) || defaultBadmintonPlanForDate(todayKey);
     const weekPlans = markCompletedGymPlans(
       injectDefaultGymPlans(rawWeekPlans, weekStart, weekEnd, weekGymScheduleOverrides),
       weekSessions
@@ -486,6 +487,7 @@ router.get("/hub/grind/gym", requireAuth, async (req, res) => {
 
     // Prioritas split yang dibuka: ?split= dari query (mis. tombol "Start Gym" di jadwal mingguan)
     // > default hari ini (Senin=Push dst, lihat gym-program.js) > tab pertama (Push).
+    // Senin=Push, Rabu=Posterior Chain, Kamis=Pull, Jumat=Legs (lihat gym-program.js DEFAULT_GYM_SCHEDULE).
     const defaultSplit = VALID_GYM_SPLITS.includes(req.query.split)
       ? req.query.split
       : defaultSplitForDay(dayOfWeekWib()) || GYM_SPLITS[0];

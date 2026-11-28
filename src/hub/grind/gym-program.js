@@ -1,4 +1,4 @@
-// Program 4-Day Hybrid Split (Push/Pull/Legs/Posterior Chain) - satu-satunya sumber data buat:
+// Program 4-Day Gym Split (Push/Posterior Chain/Pull/Legs, Senin-Rabu-Kamis-Jumat) - satu-satunya sumber data buat:
 // (1) starter preset template di getGymTemplate (grind/supabase.js) kalau user belum ada riwayat
 // sesi di split itu, (2) auto-pilih split pills sesuai hari di GET /hub/grind/gym & default rest
 // timer per gerakan (gym-page.js), (3) jadwal gym default mingguan /hub/grind kalau user belum
@@ -7,41 +7,55 @@ export const GYM_SPLITS = ["Push", "Pull", "Legs", "Posterior Chain", "Custom"];
 
 // ---------- Gym Schedule & Time Configuration (terpusat, bukan hardcoded di dashboard.js) ----------
 // Senin=1 ... Minggu=7, konsisten sama convention dayOfWeekWib di modul lain. Jam latihan sengaja
-// SELALU di luar jam kerja Senin-Jumat (09:00-18:00): pagi sebelum kerja (Push) atau malam setelah
-// kerja selesai, >=18:15 (Pull/Legs) - KECUALI Sabtu (Posterior Chain) yang ringkas (45 menit) &
-// ditaruh sore terpisah dari jadwal Badminton, biar recovery tetap kejaga buat Long Run Minggu.
+// SELALU di luar jam kerja Senin-Jumat (09:00-18:00): pagi sebelum kerja (Push/Posterior Chain/Legs
+// - Rabu & Jumat WFH jadi bisa mulai lebih siang dikit, 06:30) atau malam setelah kerja selesai,
+// >=18:45 (Pull). Selasa (Interval Run), Sabtu (Badminton), Minggu (Long Run) di luar jadwal Gym
+// ini - dicatat manual lewat form Run/Badminton, bukan default plan GYM.
 export const DEFAULT_GYM_SCHEDULE = [
   {
     dayOfWeek: 1,
     split: "Push",
     title: "Gym — Push",
-    subtitle: "Chest, Shoulders, Triceps (7 exercises)",
+    subtitle: "Chest, Shoulders, Triceps (5 exercises)",
     startTime: "06:00",
     endTime: "07:15",
   },
   {
-    dayOfWeek: 2,
-    split: "Pull",
-    title: "Gym — Pull",
-    subtitle: "Back, Rear Delts, Biceps (7 exercises)",
-    startTime: "18:45",
-    endTime: "20:00",
+    dayOfWeek: 3,
+    split: "Posterior Chain",
+    title: "Gym — Posterior Chain",
+    subtitle: "Conventional Deadlift & Posterior Chain · RPE 6–7 (5 exercises)",
+    startTime: "06:30",
+    endTime: "07:45",
   },
   {
     dayOfWeek: 4,
-    split: "Legs",
-    title: "Gym — Legs",
-    subtitle: "Quads, Glutes, Hamstrings, Calves (7 exercises)",
+    split: "Pull",
+    title: "Gym — Pull",
+    subtitle: "Back, Rear Delts, Biceps (6 exercises)",
     startTime: "18:45",
     endTime: "20:00",
   },
   {
+    dayOfWeek: 5,
+    split: "Legs",
+    title: "Gym — Legs",
+    subtitle: "Quads, Glutes, Hamstrings, Core (6 exercises)",
+    startTime: "06:30",
+    endTime: "07:45",
+  },
+];
+
+// Jadwal default non-gym (Badminton Sabtu pagi) - sama konsepnya kayak DEFAULT_GYM_SCHEDULE: cuma
+// saran tampilan (virtual, nggak pernah ditulis ke grind_plans), bukan plan asli. Nggak ada
+// mekanisme override jam kayak Gym (lihat grind_gym_schedule_overrides) karena belum diminta.
+export const DEFAULT_BADMINTON_SCHEDULE = [
+  {
     dayOfWeek: 6,
-    split: "Posterior Chain",
-    title: "Gym — Posterior Chain",
-    subtitle: "Deadlift & Posterior Chain · RPE 6–7 (7 exercises)",
-    startTime: "15:00",
-    endTime: "15:45",
+    title: "Badminton",
+    subtitle: "Default Sabtu Pagi",
+    startTime: "08:00",
+    endTime: "10:00",
   },
 ];
 
@@ -61,54 +75,48 @@ function formatScheduledTime(startTime, endTime) {
 export const GYM_PROGRAM = {
   Push: {
     muscleFocus: "Chest · Shoulders · Triceps",
-    note: null,
+    note: "Target RIR 2–3 di tiap gerakan - jangan sampai technical failure.",
     exercises: [
-      { name: "Barbell Bench Press", sets: 3, repsLabel: "6–8", restSec: 150 },
-      { name: "Incline Dumbbell Press", sets: 3, repsLabel: "8–10", restSec: 120 },
-      { name: "Seated Shoulder Press", sets: 3, repsLabel: "8–10", restSec: 120 },
-      { name: "Cable Lateral Raise", sets: 3, repsLabel: "12–15", restSec: 75 },
-      { name: "Pec Deck Fly", sets: 2, repsLabel: "12–15", restSec: 75 },
-      { name: "Triceps Rope Pushdown", sets: 3, repsLabel: "10–12", restSec: 75 },
-      { name: "Overhead Triceps Extension", sets: 2, repsLabel: "12", restSec: 75 },
+      { name: "Bench Press / Chest Press", sets: 3, repsLabel: "8–10", restSec: 120 },
+      { name: "Incline Dumbbell Press", sets: 3, repsLabel: "10–12", restSec: 90 },
+      { name: "Seated Shoulder Press", sets: 3, repsLabel: "8–10", restSec: 90 },
+      { name: "Dumbbell Lateral Raise", sets: 3, repsLabel: "12–15", restSec: 60 },
+      { name: "Cable Triceps Pushdown", sets: 3, repsLabel: "10–12", restSec: 60 },
     ],
   },
   Pull: {
     muscleFocus: "Back · Rear Delts · Biceps",
-    note: null,
+    note: "Target RIR 2–3 di tiap gerakan - jangan sampai technical failure.",
     exercises: [
-      { name: "Pull-up / Assisted Pull-up", sets: 3, repsLabel: "6–8", restSec: 150 },
       { name: "Lat Pulldown", sets: 3, repsLabel: "8–12", restSec: 90 },
-      { name: "Chest Supported Row", sets: 3, repsLabel: "8–10", restSec: 120 },
-      { name: "Seated Cable Row", sets: 2, repsLabel: "10–12", restSec: 90 },
-      { name: "Reverse Pec Deck", sets: 3, repsLabel: "12–15", restSec: 75 },
-      { name: "EZ Bar Bicep Curl", sets: 3, repsLabel: "10–12", restSec: 75 },
-      { name: "Hammer Curl", sets: 2, repsLabel: "10–12", restSec: 75 },
+      { name: "Chest-Supported Row", sets: 3, repsLabel: "8–12", restSec: 90 },
+      { name: "Seated Cable Row", sets: 2, repsLabel: "10–12", restSec: 75 },
+      { name: "Reverse Pec Deck / Rear Delt Fly", sets: 3, repsLabel: "12–15", restSec: 60 },
+      { name: "Dumbbell Biceps Curl", sets: 3, repsLabel: "10–12", restSec: 60 },
+      { name: "Hammer Curl", sets: 2, repsLabel: "10–12", restSec: 60 },
     ],
   },
   Legs: {
-    muscleFocus: "Quads · Glutes · Hamstrings · Calves",
-    note: null,
+    muscleFocus: "Quads · Glutes · Hamstrings · Core",
+    note: "Jumat: jaga 3 RIR, jangan sampai gagal - ada Badminton Sabtu & Long Run Minggu.",
     exercises: [
-      { name: "Barbell Back Squat", sets: 3, repsLabel: "6–8", restSec: 150 },
-      { name: "Bulgarian Split Squat", sets: 3, repsLabel: "8 / leg", restSec: 120 },
-      { name: "Leg Press", sets: 2, repsLabel: "10–12", restSec: 120 },
-      { name: "Seated Leg Curl", sets: 3, repsLabel: "10–12", restSec: 75 },
-      { name: "Hip Thrust", sets: 3, repsLabel: "8–12", restSec: 120 },
-      { name: "Standing Calf Raise", sets: 3, repsLabel: "12–15", restSec: 60 },
-      { name: "Tibialis Raise", sets: 2, repsLabel: "15–20", restSec: 60 },
+      { name: "Squat / Hack Squat", sets: 3, repsLabel: "8–10", restSec: 120 },
+      { name: "Leg Press", sets: 2, repsLabel: "10–12", restSec: 90 },
+      { name: "Bulgarian Split Squat", sets: 2, repsLabel: "8–10 / leg", restSec: 90 },
+      { name: "Leg Extension", sets: 2, repsLabel: "12–15", restSec: 60 },
+      { name: "Standing Calf Raise", sets: 2, repsLabel: "12–15", restSec: 60 },
+      { name: "Plank", sets: 3, repsLabel: "30–45s", restSec: 60 },
     ],
   },
   "Posterior Chain": {
-    muscleFocus: "Deadlift · Glutes · Core",
-    note: "RPE 6–7 - jaga recovery buat Long Run hari Minggu, jangan all-out.",
+    muscleFocus: "Deadlift · Glutes · Hamstrings",
+    note: "Deadlift RPE 6–7 (rest 2–3 menit) - jaga recovery buat Badminton Sabtu & Long Run Minggu, jangan all-out.",
     exercises: [
-      { name: "Conventional Deadlift", sets: 3, repsLabel: "3–5", restSec: 180 },
-      { name: "Barbell Hip Thrust", sets: 2, repsLabel: "8–10", restSec: 120 },
-      { name: "Back Extension", sets: 2, repsLabel: "10–12", restSec: 75 },
-      { name: "Chest Supported Row", sets: 2, repsLabel: "10–12", restSec: 90 },
-      { name: "Cable Pull Through", sets: 2, repsLabel: "12", restSec: 75 },
-      { name: "Pallof Press", sets: 3, repsLabel: "12 / side", restSec: 60 },
-      { name: "Plank", sets: 3, repsLabel: "30–45s", restSec: 60 },
+      { name: "Conventional Deadlift", sets: 3, repsLabel: "5", restSec: 165 },
+      { name: "Hip Thrust", sets: 3, repsLabel: "8–10", restSec: 120 },
+      { name: "Seated Leg Curl", sets: 3, repsLabel: "10–12", restSec: 75 },
+      { name: "Cable Glute Kickback", sets: 2, repsLabel: "12–15", restSec: 60 },
+      { name: "Back Extension", sets: 2, repsLabel: "10–12", restSec: 60 },
     ],
   },
   Custom: { muscleFocus: null, note: null, exercises: [] },
@@ -213,14 +221,40 @@ export function defaultGymPlanForDate(dateKey, override) {
   };
 }
 
-// Sisipkan plan gym default ke daftar plan 1 minggu (dari DB) buat tanggal-tanggal yang belum
-// punya plan GYM sama sekali - dipakai weekPlans/nextWeekPlans di GET /hub/grind (Schedule
-// viewer). BEDA dari versi lama: cuma dicek session_type === "GYM" (bukan "ada plan APAPUN di
-// tanggal itu"), jadi sesi lain yang udah dijadwalin di tanggal yang sama (mis. Badminton Sabtu)
-// tetap tampil BERDAMPINGAN sebagai item terpisah, bukan nimpa/nyembunyiin jadwal Gym default.
+// Plan virtual Badminton (default Sabtu 08:00-10:00) - sama aturannya kayak defaultGymPlanForDate:
+// id: null, virtual: true, nggak pernah disimpan ke grind_plans. Selalu `tentative: true` (belum
+// ada mekanisme override jam buat Badminton).
+export function defaultBadmintonPlanForDate(dateKey) {
+  const entry = DEFAULT_BADMINTON_SCHEDULE.find((e) => e.dayOfWeek === dayOfWeekForDateKey(dateKey));
+  if (!entry) return null;
+  return {
+    id: null,
+    plan_date: dateKey,
+    session_type: "BADMINTON",
+    sub_type: null,
+    status: "PENDING",
+    target_distance_km: null,
+    target_pace: null,
+    target_hr: null,
+    instructions: null,
+    title: entry.title,
+    start_time: entry.startTime,
+    end_time: entry.endTime,
+    scheduled_time: formatScheduledTime(entry.startTime, entry.endTime),
+    tentative: true,
+    virtual: true,
+  };
+}
+
+// Sisipkan plan gym & Badminton default ke daftar plan 1 minggu (dari DB) buat tanggal-tanggal
+// yang belum punya plan GYM/BADMINTON sama sekali - dipakai weekPlans/nextWeekPlans di GET
+// /hub/grind (Schedule viewer). BEDA dari versi lama: cuma dicek session_type === "GYM"/"BADMINTON"
+// (bukan "ada plan APAPUN di tanggal itu"), jadi sesi lain yang udah dijadwalin di tanggal yang
+// sama tetap tampil BERDAMPINGAN sebagai item terpisah, bukan nimpa/nyembunyiin jadwal default.
 // `overrides` (opsional): array hasil getGymScheduleOverrides, dipetakan per plan_date di sini.
 export function injectDefaultGymPlans(plans, startKey, endKey, overrides) {
   const gymDates = new Set(plans.filter((p) => p.session_type === "GYM").map((p) => p.plan_date));
+  const badmintonDates = new Set(plans.filter((p) => p.session_type === "BADMINTON").map((p) => p.plan_date));
   const overrideByDate = new Map((overrides || []).map((o) => [o.plan_date, o]));
   // Dilacak terpisah dari gymDates (yang cuma plan GYM ASLI) - dipakai buat nyaring Rest default
   // di bawah, soalnya plan GYM VIRTUAL yang baru disisipin di loop ini juga harus ikut diitung
@@ -237,16 +271,25 @@ export function injectDefaultGymPlans(plans, startKey, endKey, overrides) {
         allGymDates.add(cursor);
       }
     }
+    if (!badmintonDates.has(cursor)) {
+      const virtualBadminton = defaultBadmintonPlanForDate(cursor);
+      if (virtualBadminton) {
+        merged.push(virtualBadminton);
+        badmintonDates.add(cursor);
+      }
+    }
     if (cursor === endKey) break;
     cursor = addDaysToKey(cursor, 1);
     guard++;
   }
-  // grind_plans punya unique(phone, plan_date) - jadi REST asli & GYM asli nggak pernah bentrok
-  // tanggal yang sama di DB. Satu-satunya cara REST & GYM bisa "numpuk" di tanggal yang sama
-  // adalah REST asli (dari import plan) + GYM VIRTUAL yang baru disisipin di atas - itu yang
-  // mau dihindarin di sini (lihat spec: "jangan tampilkan Rest default kalau udah ada jadwal
-  // Gym/Run di hari yang sama"), biar nggak kesannya kontradiktif ("Rest" tapi ada "Start Gym").
-  const filtered = merged.filter((p) => !(p.session_type === "REST" && allGymDates.has(p.plan_date)));
+  // grind_plans punya unique(phone, plan_date) - jadi REST asli & GYM/BADMINTON asli nggak pernah
+  // bentrok tanggal yang sama di DB. Satu-satunya cara REST bisa "numpuk" di tanggal yang sama
+  // adalah REST asli (dari import plan) + GYM/BADMINTON VIRTUAL yang baru disisipin di atas - itu
+  // yang mau dihindarin di sini (lihat spec: "jangan tampilkan Rest default kalau udah ada jadwal
+  // Gym/Badminton di hari yang sama"), biar nggak kesannya kontradiktif ("Rest" tapi ada "Start Gym").
+  const filtered = merged.filter(
+    (p) => !(p.session_type === "REST" && (allGymDates.has(p.plan_date) || badmintonDates.has(p.plan_date)))
+  );
   // Kronologis: tanggal dulu, baru jam mulai (scheduled_time/start_time) dalam hari yang sama -
   // item tanpa jam spesifik (plan asli lama belum punya kolom waktu) ditaruh duluan sebelum item
   // yang punya jam pasti, biar nggak nebak-nebak urutannya.
@@ -260,12 +303,18 @@ export function injectDefaultGymPlans(plans, startKey, endKey, overrides) {
   return filtered;
 }
 
-// Auto-Complete Check: kalau di tanggal plan Gym virtual itu udah ada log sesi GYM beneran
-// (dari grind_sessions, APAPUN split-nya - orang bisa aja ganti split pas latihan), tandain
-// status-nya "DONE" tanpa user perlu nge-complete manual (plan virtual kan nggak pernah ada
-// tombol Complete sungguhan karena nggak ada plan.id). Dipakai di router.js buat weekPlans
+// Auto-Complete Check: kalau di tanggal plan Gym/Badminton virtual itu udah ada log sesi beneran
+// (dari grind_sessions - buat Gym, APAPUN split-nya, orang bisa aja ganti split pas latihan),
+// tandain status-nya "DONE" tanpa user perlu nge-complete manual (plan virtual kan nggak pernah
+// ada tombol Complete sungguhan karena nggak ada plan.id). Dipakai di router.js buat weekPlans
 // (weekSessions-nya emang cuma ada buat minggu berjalan, minggu depan nggak mungkin ada log).
 export function markCompletedGymPlans(plans, sessions) {
   const loggedGymDates = new Set((sessions || []).filter((s) => s.type === "GYM").map((s) => s.session_date));
-  return plans.map((p) => (p.virtual && p.session_type === "GYM" && loggedGymDates.has(p.plan_date) ? { ...p, status: "DONE" } : p));
+  const loggedBadmintonDates = new Set((sessions || []).filter((s) => s.type === "BADMINTON").map((s) => s.session_date));
+  return plans.map((p) => {
+    if (!p.virtual) return p;
+    if (p.session_type === "GYM" && loggedGymDates.has(p.plan_date)) return { ...p, status: "DONE" };
+    if (p.session_type === "BADMINTON" && loggedBadmintonDates.has(p.plan_date)) return { ...p, status: "DONE" };
+    return p;
+  });
 }

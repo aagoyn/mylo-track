@@ -238,12 +238,18 @@ export function grindHubCardHtml({ todayPlan, todaySessions, upcomingRace }) {
     planBlock = `${planHeroHtml(todayPlan)}${planFactsGridHtml(todayPlan)}`;
 
     if (todayPlan.status === "PENDING") {
-      if (todayPlan.virtual) {
-        // Plan gym default (jadwal 4-Day Hybrid Split, belum ada di DB) - tombol langsung buka
+      if (todayPlan.virtual && todayPlan.session_type === "GYM") {
+        // Plan gym default (jadwal 4-Day Gym Split, belum ada di DB) - tombol langsung buka
         // halaman Gym dengan split hari itu, bukan flow complete/skip plan asli (lihat
         // gym-program.js: defaultGymPlanForDate).
         planBlock += `<div class="button-row" style="margin-top:8px;">
           <a class="btn-primary btn-sm flex-3" href="/hub/grind/gym?split=${encodeURIComponent(todayPlan.sub_type)}" onclick="event.stopPropagation()">${svgIconLabel("dumbbell", "Start Gym", { size: 14 })}</a>
+        </div>`;
+      } else if (todayPlan.virtual && todayPlan.session_type === "BADMINTON") {
+        // Plan Badminton default (Sabtu pagi, belum ada di DB) - tombol buka form Log Badminton
+        // di /hub/grind (lihat gym-program.js: defaultBadmintonPlanForDate), bukan halaman Gym.
+        planBlock += `<div class="button-row" style="margin-top:8px;">
+          <a class="btn-primary btn-sm flex-3" href="/hub/grind?form=badminton#today-logger" onclick="event.stopPropagation()">${svgIconLabel("racket", "Log Badminton", { size: 14 })}</a>
         </div>`;
       } else {
         const completeBtn =
@@ -524,9 +530,13 @@ function todayPlanAndLoggerHtml({ todayPlan, todaySessions, upcomingRace, openFo
       ${todayPlan.instructions ? `<div class="card-sub" style="margin-top:2px;">${escapeHtml(todayPlan.instructions)}</div>` : ""}`;
 
     if (todayPlan.status === "PENDING") {
-      if (todayPlan.virtual) {
+      if (todayPlan.virtual && todayPlan.session_type === "GYM") {
         body += `<div class="button-row" style="margin-top:10px;">
           <a class="btn-primary btn-sm flex-3" href="/hub/grind/gym?split=${encodeURIComponent(todayPlan.sub_type)}">${svgIconLabel("dumbbell", "Start Gym", { size: 14 })}</a>
+        </div>`;
+      } else if (todayPlan.virtual && todayPlan.session_type === "BADMINTON") {
+        body += `<div class="button-row" style="margin-top:10px;">
+          <a class="btn-primary btn-sm flex-3" href="#form-badminton" onclick="document.getElementById('form-badminton').open=true;event.preventDefault();document.getElementById('form-badminton').scrollIntoView({behavior:'smooth'});">${svgIconLabel("racket", "Log Badminton", { size: 14 })}</a>
         </div>`;
       } else {
         const completeBtn =
@@ -628,7 +638,7 @@ function scheduleDayHtml(plan, todayKey) {
   // jam + Tentative dikemas jadi 1 pill kecil di kanan biar tinggi collapsed tetap ramping kayak
   // Rest/Easy. Completed TETAP cuma dari log GYM beneran (markCompletedGymPlans), jam lewat TIDAK
   // pernah bikin auto-done.
-  if (plan.virtual) {
+  if (plan.virtual && plan.session_type === "GYM") {
     const isDone = plan.status === "DONE";
     const tentativeDot = plan.tentative ? `<span class="schedule-tentative-dot">· Tentative</span>` : "";
     const timePill = plan.scheduled_time
@@ -682,6 +692,33 @@ function scheduleDayHtml(plan, todayKey) {
             }
           </div>
         </details>
+      </div>
+    </details>`;
+  }
+
+  // Plan Badminton default (Sabtu pagi, belum ada plan BADMINTON asli di DB di tanggal itu) -
+  // versi ringkas dari blok Gym di atas: cuma tombol "Log" ke form Badminton di /hub/grind, nggak
+  // ada Edit jam karena belum ada mekanisme override buat Badminton (lihat gym-program.js:
+  // defaultBadmintonPlanForDate).
+  if (plan.virtual && plan.session_type === "BADMINTON") {
+    const isDone = plan.status === "DONE";
+    const timePill = plan.scheduled_time
+      ? `<span class="schedule-time-pill tabular-nums">${plan.scheduled_time}<span class="schedule-tentative-dot">· Tentative</span></span>`
+      : "";
+
+    return `<details class="log-item">
+      <summary>
+        <span class="schedule-main-text">${dateLabel(plan.plan_date)} — ${svgIcon("racket", { size: 16 })} ${escapeHtml(plan.title || badge)}${isDone ? `<span class="schedule-done-badge">${scheduleDoneIconHtml()}</span>` : ""}</span>
+        ${timePill}
+      </summary>
+      <div class="log-detail-body schedule-detail-indent">
+        ${
+          isDone
+            ? `<div class="card-sub schedule-done-text" style="margin-top:8px;">${scheduleDoneIconHtml()} Completed</div>`
+            : `<div class="button-row" style="margin-top:8px;">
+          <a class="btn-primary btn-sm" href="/hub/grind?form=badminton#today-logger">${svgIconLabel("racket", "Log", { size: 14 })}</a>
+        </div>`
+        }
       </div>
     </details>`;
   }

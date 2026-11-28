@@ -316,10 +316,12 @@ function gymPageScript(runFatigue) {
       if (!container || !splitPillsEl || !form) return;
 
       // Dynamic Hybrid Training Guardrails & Contextual Hints - Dynamic Coach Notice (fitur #1).
-      // Prioritas: (1) beban lari 3-4 hari terakhir tinggi (RUN_FATIGUE dari server, lihat
-      // buildCoachNotice di grind/router.js) > (2) split Posterior Chain/Sabtu > (3) split Legs/
-      // Kamis > (4) default Push/Pull. Dipanggil ulang tiap pindah split pill (bukan cuma sekali
-      // di awal), supaya notice-nya ikut nyesuain splitnya.
+      // Prioritas: (1) beban lari 3-4 hari terakhir tinggi + split Legs/Jumat (paling kritis,
+      // Sabtu Badminton & Minggu Long Run tinggal 1-2 hari lagi) > (2) beban lari tinggi di split
+      // lain (RUN_FATIGUE dari server, lihat hasHighRunFatigue di grind/router.js) > (3) split
+      // Posterior Chain/Rabu (jaga Deadlift RPE 6-7) > (4) split Legs/Jumat (jaga 3 RIR) > (5)
+      // default Push/Pull. Dipanggil ulang tiap pindah split pill (bukan cuma sekali di awal),
+      // supaya notice-nya ikut nyesuain splitnya.
       var coachNoticeEl = document.getElementById("gym-coach-notice");
       var coachNoticeText = document.getElementById("gym-coach-notice-text");
       var coachReduceBtn = document.getElementById("gym-coach-reduce-btn");
@@ -332,15 +334,18 @@ function gymPageScript(runFatigue) {
         if (!coachNoticeEl || !coachNoticeText) return;
         var showReduceBtn = false;
         var text;
-        if (RUN_FATIGUE) {
+        if (RUN_FATIGUE && split === "Legs") {
+          text = "Friday Legs Priority: Lari beberapa hari terakhir berat & kaki mulai terasa capek. Kurangi volume Legs dulu hari ini (jangan sampai gagal) daripada memaksakan semua set sebelum Badminton Sabtu & Long Run Minggu.";
+          showReduceBtn = true;
+        } else if (RUN_FATIGUE) {
           text = "Running Performance Priority: Beban lari beberapa hari terakhir cukup tinggi. Kalau easy run mulai terasa berat, kurangi volume gym dulu daripada memaksakan semua.";
           showReduceBtn = true;
         } else if (split === "Posterior Chain") {
-          text = "Saturday Deadlift Rule: Jaga Deadlift di RPE 6–7 (sisakan 3–4 reps). Jangan kejar PR setiap minggu—pertimbangkan recovery untuk Badminton & Long Run Minggu.";
+          text = "Wednesday Deadlift Rule: Jaga Deadlift di RPE 6–7 (sisakan 3–4 reps, rest 2–3 menit). Jangan kejar PR setiap minggu—pertimbangkan recovery untuk Badminton Sabtu & Long Run Minggu.";
         } else if (split === "Legs") {
-          text = "Thursday Legs Guardrail: Fokus kualitas gerak dan kontrol tempo (RPE 7–8). Jangan buat kaki terlalu hancur menjelang Long Run Minggu.";
+          text = "Friday Legs Guardrail: Jaga 3 RIR, jangan sampai gagal (sisakan 3 reps). Sabtu ada Badminton & Minggu Long Run, kaki harus tetap segar.";
         } else {
-          text = "Hybrid Focus: Jaga teknik bersih di RPE 7–8, catat beban & reps untuk progressive overload bertahap.";
+          text = "Hybrid Focus: Jaga teknik bersih di RIR 2–3, catat beban & reps untuk progressive overload bertahap.";
         }
         coachNoticeText.textContent = text;
         if (coachReduceBtn) coachReduceBtn.hidden = !showReduceBtn;
@@ -498,8 +503,8 @@ function gymPageScript(runFatigue) {
 
       // Real-Time Inline Guardrail (fitur #2 Dynamic Hybrid Guardrails) - micro-alert non-blocking
       // di kartu gerakan, dicek ulang tiap kali KG/REPS/tipe set/RPE berubah. Dua aturan: Deadlift
-      // PR-chasing di hari Posterior Chain/Sabtu, dan failure training kaki di hari Legs/Kamis.
-      var LEGS_GUARDRAIL_EXERCISES = ["barbell back squat", "bulgarian split squat", "leg press"];
+      // PR-chasing di hari Posterior Chain/Rabu, dan failure training kaki di hari Legs/Jumat.
+      var LEGS_GUARDRAIL_EXERCISES = ["squat / hack squat", "bulgarian split squat", "leg press"];
       function updateGuardrailAlert(card) {
         var alertEl = card.querySelector(".exercise-guardrail-alert");
         var alertText = card.querySelector(".exercise-guardrail-text");
@@ -522,7 +527,7 @@ function gymPageScript(runFatigue) {
           });
           if (rpe >= 8 || chasingPr) {
             trigger = true;
-            msg = "Pengingat Sabtu: Hindari kejar PR Deadlift tiap minggu & jaga di RPE 6–7 agar kaki tetap siap untuk Badminton dan Long Run besok.";
+            msg = "Pengingat Rabu: Hindari kejar PR Deadlift tiap minggu & jaga di RPE 6–7 (rest 2–3 menit) agar recovery tetap kejaga untuk Badminton Sabtu dan Long Run Minggu.";
           }
         } else if (split === "Legs" && LEGS_GUARDRAIL_EXERCISES.indexOf(name) !== -1) {
           var hasFailure = false;
@@ -531,7 +536,7 @@ function gymPageScript(runFatigue) {
           });
           if (hasFailure || rpe >= 9) {
             trigger = true;
-            msg = "Jaga recovery kaki menjelang Long Run — cukup berhenti 2–3 reps sebelum failure (RPE 7–8).";
+            msg = "Jaga 3 RIR di Legs Jumat — cukup berhenti 3 reps sebelum failure, Sabtu ada Badminton & Minggu Long Run.";
           }
         }
 

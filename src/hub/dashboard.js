@@ -143,7 +143,7 @@ const HUB_PAGE_CSS = `
   }
 
   /* ---------- This Week strip (full-width, below the 2x2 bento grid, directly above GRIND) ---------- */
-  .week-strip { display: flex; flex-direction: column; gap: 8px; margin-bottom: 14px; }
+  .week-strip { display: flex; flex-direction: column; gap: 8px; margin-top: 20px; margin-bottom: 14px; }
   .week-strip-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
   .week-strip-label { font-size: 11px; font-weight: 700; letter-spacing: .04em; color: var(--text-dim); }
   .week-day-dots { display: flex; gap: 6px; }

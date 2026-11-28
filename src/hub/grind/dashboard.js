@@ -282,10 +282,18 @@ export function grindHubCardHtml({ todayPlan, todaySessions, upcomingRace }) {
 // ke halaman lain yang nggak butuh FAB ini sama sekali (lihat juga hub/dashboard.js buat FAB
 // Quick Expense, pola yang sama tapi terpisah).
 const GRIND_PAGE_CSS = `
-  /* Ruang kosong ekstra di bawah biar konten terakhir (History dst) nggak ketutupan bottom-nav
-     mengambang. Nggak perlu sebesar dulu lagi - FAB "+ Plan" yang fixed di pojok udah dipindah
-     jadi tombol inline di header section Schedule (lihat scheduleViewerHtml). */
-  .container { padding-bottom: calc(96px + env(safe-area-inset-bottom)); }
+  /* Ruang kosong ekstra di bawah biar konten terakhir (History dst) nggak ketutupan FAB "+ Plan"
+     yang posisinya fixed melayang di pojok kanan bawah, di atas bottom-nav (lihat .grind-fab). */
+  .container { padding-bottom: calc(144px + env(safe-area-inset-bottom)); }
+
+  /* Warna/blur FAB (gradasi + kaca) datang dari .fab-btn (shared) - di sini cuma posisi/ukuran.
+     Ditaruh di atas bottom-nav (bottom: 84px, bottom-nav sendiri di ~12px) biar nggak numpuk. */
+  .grind-fab {
+    position: fixed; bottom: calc(84px + env(safe-area-inset-bottom)); right: 20px; z-index: 40;
+    display: inline-flex; align-items: center; justify-content: center;
+    padding: 14px 22px; border-radius: 999px;
+    color: #fff; font-size: 15px; font-weight: 700; cursor: pointer; font-family: inherit;
+  }
 
   /* Ikon check "Completed" otomatis (Auto-Complete Check) di item Schedule - warna var(--success)
      (warm sage, konsisten sama state "done" lain di app mis. set-row-done di gym-page.js). */
@@ -296,11 +304,11 @@ const GRIND_PAGE_CSS = `
 
   /* ---------- Day-Grouped Schedule Cards (1 Day = 1 Card) ---------- */
   /* Kartu per-tanggal: kolom kiri fixed-width (hari pendek + angka tanggal, stacked), kolom kanan
-     stack sesi hari itu. "Today" (WIB) dikasih aksen hangat biar langsung keliatan tanpa baca
-     tanggal satu-satu. Tombol "+" kecil di pojok kanan atas buka Add Plan dialog ter-prefill
-     tanggal kartu itu (lihat addPlanScript: data-add-date). */
+     stack sesi hari itu full-width (nggak ada tombol "+" nemplok di pojok lagi - Add Plan sekarang
+     cuma lewat FAB "+ Plan" global, lihat .grind-fab). "Today" (WIB) dikasih aksen hangat biar
+     langsung keliatan tanpa baca tanggal satu-satu. */
   .schedule-day-card {
-    position: relative; display: flex; gap: 12px; padding: 12px 40px 12px 14px;
+    display: flex; gap: 12px; padding: 12px 14px;
     border-radius: 14px; margin-bottom: 8px; border: 1px solid transparent;
   }
   .schedule-day-card-today {
@@ -314,23 +322,23 @@ const GRIND_PAGE_CSS = `
   .schedule-day-card-today .schedule-day-short { color: var(--accent); }
   .schedule-day-num { font-size: 18px; font-weight: 700; color: var(--text); line-height: 1.2; }
   .schedule-day-card-today .schedule-day-num { color: var(--accent); }
-  .schedule-day-right { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 8px; }
+  .schedule-day-right { flex: 1; min-width: 0; display: flex; flex-direction: column; }
   .schedule-day-empty { font-size: 12.5px; color: var(--text-dim); padding: 4px 0; }
-  .schedule-day-add-btn {
-    position: absolute; top: 8px; right: 8px; width: 26px; height: 26px; border-radius: 999px;
-    display: inline-flex; align-items: center; justify-content: center;
-    background: rgba(255, 255, 255, .06); border: 1px solid var(--border); color: var(--text-muted);
-    cursor: pointer; padding: 0;
-  }
-  .schedule-day-add-btn:hover { background: rgba(255, 255, 255, .12); color: var(--text); }
 
   /* Satu baris sesi di dalam kartu - ikon sport + judul di baris atas (nggak keputus wrap aneh
      buat judul panjang), badge jam + status di baris bawah, BUKAN 1 baris flat lagi kayak versi
-     lama (judul panjang + pill jam bentrok jadi wrap aneh). */
+     lama (judul panjang + pill jam bentrok jadi wrap aneh). Sengaja TANPA background/border
+     sendiri (override .log-item shared) - biar nggak keliatan "kartu di dalam kartu"; kalau 1 hari
+     ada >1 sesi, dipisahin garis tipis (bukan kartu terpisah-pisah numpuk).  */
+  .schedule-session-row { background: none; border: none; border-radius: 0; margin-bottom: 0; }
+  .schedule-session-row:not(:first-child) { border-top: 1px solid var(--border); margin-top: 6px; padding-top: 6px; }
   .schedule-session-row summary { padding: 0; }
   .schedule-session-row summary::before { top: 3px; }
   .schedule-session-title-row { display: flex; align-items: center; gap: 6px; font-size: 14px; font-weight: 600; color: var(--text); overflow-wrap: break-word; }
-  .schedule-session-meta-row { display: flex; align-items: center; gap: 6px; margin-top: 3px; }
+  .schedule-session-meta-row { display: flex; align-items: center; gap: 6px; margin-top: 3px; min-width: 0; }
+  /* Catatan/summary panjang (jarak/pace/HR) di-clamp 1 baris di tampilan ringkas - teks lengkapnya
+     tetap utuh (nggak di-truncate) di dalam .log-detail-body pas kartu sesinya di-expand. */
+  .schedule-session-note { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
 
   /* Badge jam compact dashed-border (ganti pill solid lama) - ikon jam/hourglass buat sesi
      tentative (jadwal default, BUKAN jadwal pasti - bisa berubah ngikutin jadwal aktual), ikon
@@ -375,12 +383,6 @@ const GRIND_PAGE_CSS = `
   .inline-toggle-body .btn-secondary:hover { background: var(--surface-hover); }
   .inline-toggle-body .btn-sm { padding: 6px 10px; font-size: 12px; }
 
-  /* Tombol "+ Plan" inline di header section Schedule (ganti FAB fixed bottom-right lama - biar
-     nggak numpuk sama bottom-nav). Buka Add Plan dialog (addPlanModalHtml) tanpa prefill tanggal
-     (default hari ini) - beda dari tombol "+" kecil per-kartu hari yang prefill tanggal spesifik. */
-  .schedule-section-header { display: flex; align-items: center; justify-content: space-between; }
-  .schedule-add-plan-btn { display: inline-flex; align-items: center; gap: 4px; }
-
   /* ---------- Add Plan Dialog - Quick-Add Chips ---------- */
   /* 1-tap chip buat ngisi Jenis Sesi + Judul/Catatan otomatis (nyoba sinkron sama default split
      mingguan di gym-program.js - lihat QUICK_ADD_PLAN_PRESETS) - tetep cuma prefill, semua field
@@ -423,9 +425,9 @@ const GRIND_PAGE_CSS = `
   :root[data-theme="dark"] .log-item-info-pr { background: rgba(232, 167, 158, .14); }
 `;
 
-// Dulu dipicu FAB fixed bottom-right sendiri ("+ Plan") - sekarang dipicu dari dalam Add Plan
-// dialog (link "Atau paste Training Plan (TSV)", lihat addPlanModalHtml/addPlanScript) biar nggak
-// ada 2 entry point "+" yang norak/numpuk sama bottom-nav.
+// Triggered from the "+ Plan" FAB (grindFabHtml opens the Add Plan dialog first; the link inside
+// it, "Paste Training Plan (TSV)", opens this bulk-import dialog) - kept as a separate dialog so
+// pasting many rows at once doesn't clutter the single-plan Quick-Add form.
 function importModalHtml() {
   return `<dialog class="modal-dialog glass-card" id="import-plan-modal">
     <div class="modal-dialog-body">
@@ -433,10 +435,10 @@ function importModalHtml() {
         <h3>📋 Import / Paste Training Plan</h3>
         <button type="button" class="modal-close-btn" id="import-plan-close">✕</button>
       </div>
-      <p class="modal-dialog-caption">Tempel baris tab-separated dari Google Sheets/Excel, urutan kolom:</p>
-      <p class="modal-dialog-caption-cols">Tanggal · Hari · Minggu Ke- · Fase · Jenis Sesi · Jarak Target (km) · Target Pace · Target HR · Deskripsi/Instruksi · Status · Jarak Aktual (km) · Avg Pace Aktual</p>
+      <p class="modal-dialog-caption">Paste tab-separated rows from Google Sheets/Excel, column order:</p>
+      <p class="modal-dialog-caption-cols">Date · Day · Week # · Phase · Session Type · Target Distance (km) · Target Pace · Target HR · Description/Instructions · Status · Actual Distance (km) · Actual Avg Pace</p>
       <form method="POST" action="/hub/grind/import">
-        <textarea name="tsv" rows="8" placeholder="Tempel data di sini..." required></textarea>
+        <textarea name="tsv" rows="8" placeholder="Paste data here..." required></textarea>
         <button type="submit">Import</button>
       </form>
     </div>
@@ -494,18 +496,18 @@ function distanceSportFormHtml({ key, iconSvg, label, action, subtypes, open, pr
     <form method="POST" action="${action}">
       ${hiddenPlanId(prefill)}
       ${sessionTimeRadios("session_time", defaultTime)}
-      ${subtypes?.length ? `<label>Jenis</label><select name="sub_type">${subtypeOptions(subtypes, prefill?.subType)}</select>` : ""}
-      <label>Jarak (${isSwim ? "meter" : "km"})</label>
+      ${subtypes?.length ? `<label>Type</label><select name="sub_type">${subtypeOptions(subtypes, prefill?.subType)}</select>` : ""}
+      <label>Distance (${isSwim ? "meters" : "km"})</label>
       <input type="number" step="${isSwim ? "1" : "0.01"}" name="distance_km" id="${key}-distance" value="${distanceVal}">
-      <label>Durasi (menit)</label>
+      <label>Duration (min)</label>
       <input type="number" name="duration_min" id="${key}-duration">
       <label>Avg Pace (MM:SS/${isSwim ? "100m" : "km"})</label>
-      <input type="text" name="avg_pace" id="${key}-pace" placeholder="auto dari jarak & durasi, atau isi manual">
+      <input type="text" name="avg_pace" id="${key}-pace" placeholder="auto from distance & duration, or enter manually">
       <label>Avg HR (bpm)</label>
       <input type="number" name="avg_hr">
-      <label>Catatan</label>
+      <label>Notes</label>
       <textarea name="notes" rows="2"></textarea>
-      <button type="submit">Simpan</button>
+      <button type="submit">Save</button>
     </form>
   </details>`;
 }
@@ -531,20 +533,20 @@ function durationSportFormHtml({ key, iconSvg, label, action, subtypes, open, pr
     <form method="POST" action="${action}">
       ${hiddenPlanId(prefill)}
       ${sessionTimeRadios("session_time", defaultTime)}
-      <label>Jenis</label>
+      <label>Type</label>
       <select name="sub_type">${subtypeOptions(subtypes, prefill?.subType)}</select>
-      <label>Durasi (menit)</label>
+      <label>Duration (min)</label>
       <div class="button-row" style="margin-bottom:8px;">
         <button type="button" class="btn-secondary btn-sm" onclick="document.getElementById('${key}-duration').value=60">60</button>
         <button type="button" class="btn-secondary btn-sm" onclick="document.getElementById('${key}-duration').value=90">90</button>
         <button type="button" class="btn-secondary btn-sm" onclick="document.getElementById('${key}-duration').value=120">120</button>
       </div>
       <input type="number" name="duration_min" id="${key}-duration">
-      <label>Avg HR (bpm, opsional)</label>
+      <label>Avg HR (bpm, optional)</label>
       <input type="number" name="avg_hr">
-      <label>Catatan</label>
+      <label>Notes</label>
       <textarea name="notes" rows="2"></textarea>
-      <button type="submit">Simpan</button>
+      <button type="submit">Save</button>
     </form>
   </details>`;
 }
@@ -649,14 +651,14 @@ function weeklyProgressHtml({ weekPlans, weekSessions, weekTargetKm }) {
   <div class="card glass-card">
     <div class="card-label">Target ${weekTargetKm.toFixed(1)}km · Actual ${actualKm.toFixed(1)}km</div>
     <div class="stat-bar"><div class="stat-bar-fill ${pct >= 100 ? "tier-high" : pct >= 50 ? "tier-mid" : "tier-low"}" style="width:${Math.min(100, pct)}%"></div></div>
-    <div class="card-sub">${activeDays} hari aktif minggu ini · ${weekPlans.length} sesi terjadwal</div>
+    <div class="card-sub">${activeDays} active day${activeDays === 1 ? "" : "s"} this week · ${weekPlans.length} session${weekPlans.length === 1 ? "" : "s"} scheduled</div>
     <details class="inline-toggle">
-      <summary>Ubah target mingguan</summary>
+      <summary>Change weekly target</summary>
       <div class="inline-toggle-body">
         <form method="POST" action="/hub/grind/settings/weekly-target">
-          <label>Target lari per minggu (km)</label>
+          <label>Weekly run target (km)</label>
           <input type="number" step="0.1" name="weekly_run_target_km" value="${weekTargetKm}">
-          <button type="submit">Simpan</button>
+          <button type="submit">Save</button>
         </form>
       </div>
     </details>
@@ -746,22 +748,22 @@ function scheduleSessionRowHtml(plan, todayKey) {
         </div>`
         }
         <details class="inline-toggle inline-toggle-plain" style="margin-top:8px;">
-          <summary>Edit jam</summary>
+          <summary>Edit time</summary>
           <div class="inline-toggle-body">
             <form method="POST" action="/hub/grind/gym-schedule/override">
               <input type="hidden" name="plan_date" value="${plan.plan_date}">
               <div class="schedule-time-grid">
                 <div>
-                  <label>Mulai</label>
+                  <label>Start</label>
                   <input type="time" name="start_time" value="${escapeHtml(plan.start_time || "")}" required>
                 </div>
                 <div>
-                  <label>Selesai</label>
+                  <label>End</label>
                   <input type="time" name="end_time" value="${escapeHtml(plan.end_time || "")}" required>
                 </div>
               </div>
               <div class="button-row">
-                <button type="submit" class="btn-primary btn-sm flex-3">Simpan Jam</button>
+                <button type="submit" class="btn-primary btn-sm flex-3">Save Time</button>
                 ${
                   plan.tentative
                     ? ""
@@ -810,7 +812,7 @@ function scheduleSessionRowHtml(plan, todayKey) {
     plan.status === "DONE" ? scheduleDoneIconHtml() : plan.status === "SKIPPED" ? scheduleSkipIconHtml() : "";
   const metaParts = [
     scheduleTimeBadgeHtml(plan),
-    summary ? `<span class="card-sub" style="margin:0;">${escapeHtml(summary)}</span>` : "",
+    summary ? `<span class="card-sub schedule-session-note" style="margin:0;">${escapeHtml(summary)}</span>` : "",
   ]
     .filter(Boolean)
     .join("");
@@ -849,17 +851,17 @@ function scheduleSessionRowHtml(plan, todayKey) {
         <summary>Edit plan</summary>
         <div class="inline-toggle-body">
           <form method="POST" action="/hub/grind/plan/${plan.id}/update">
-            <label>Jenis Sesi</label>
+            <label>Session Type</label>
             <select name="session_type">${SESSION_TYPE_OPTIONS.map((o) => `<option value="${o.value}" ${o.value === plan.session_type ? "selected" : ""}>${o.label}</option>`).join("")}</select>
-            <label>Jarak Target (km)</label>
+            <label>Target Distance (km)</label>
             <input type="number" step="0.01" name="target_distance_km" value="${plan.target_distance_km ?? ""}">
             <label>Target Pace</label>
             <input type="text" name="target_pace" value="${escapeHtml(plan.target_pace || "")}">
             <label>Target HR</label>
             <input type="text" name="target_hr" value="${escapeHtml(plan.target_hr || "")}">
-            <label>Instruksi</label>
+            <label>Instructions</label>
             <textarea name="instructions" rows="2">${escapeHtml(plan.instructions || "")}</textarea>
-            <button type="submit">Simpan</button>
+            <button type="submit">Save</button>
           </form>
         </div>
       </details>
@@ -883,7 +885,6 @@ function scheduleDayCardHtml(dateKey, plansForDay, todayKey) {
       <div class="schedule-day-num">${dayNumLabel(dateKey)}</div>
     </div>
     <div class="schedule-day-right">${sessionsHtml}</div>
-    <button type="button" class="schedule-day-add-btn" data-add-date="${dateKey}" aria-label="Add plan tanggal ini">${svgIcon("plus", { size: 14 })}</button>
   </div>`;
 }
 
@@ -904,13 +905,9 @@ function scheduleViewerHtml({ weekPlans, nextWeekPlans, weekStart, weekEnd, next
   const thisWeek = scheduleWeekCardsHtml(weekPlans, weekStart, weekEnd, todayKey);
   const nextWeek = scheduleWeekCardsHtml(nextWeekPlans, nextWeekStart, nextWeekEnd, todayKey);
 
-  // "+ Plan" sekarang inline di header section (bukan FAB fixed bottom-right lagi, lihat
-  // addPlanModalHtml/addPlanScript) - buka Add Plan dialog tanpa prefill tanggal spesifik (default
-  // hari ini), beda dari tombol "+" kecil di tiap Day Card yang prefill tanggal kartu itu.
-  return `<div class="section-header schedule-section-header">
-    <h2>Schedule</h2>
-    <button type="button" class="btn-secondary btn-sm schedule-add-plan-btn" id="add-plan-fab">${svgIconLabel("plus", "Plan", { size: 13 })}</button>
-  </div>
+  // "Add Plan" dipicu dari FAB global (.grind-fab, lihat renderGrindPage) - bukan tombol di
+  // header section ini ataupun tombol per-kartu lagi, biar konten Day Card bisa full-width.
+  return `<h2>Schedule</h2>
   <div class="card-sub" style="margin:-4px 0 8px;">This Week</div>
   ${thisWeek}
   <details class="schedule-next-week">
@@ -963,6 +960,14 @@ function buildQuickAddPlanPresets() {
 
 const QUICK_ADD_PLAN_PRESETS = buildQuickAddPlanPresets();
 
+// FAB "+ Plan" - balik melayang fixed di pojok kanan bawah (di atas bottom-nav, lihat .grind-fab),
+// bukan tombol inline di header section Schedule lagi, biar Day Card bisa full-width tanpa tombol
+// "+" nemplok per-kartu. Buka Add Plan dialog yang sama persis (addPlanModalHtml), selalu default
+// ke hari ini (nggak ada lagi prefill tanggal spesifik per-kartu).
+function grindFabHtml() {
+  return `<button type="button" class="grind-fab fab-btn" id="add-plan-fab" aria-label="Add Plan">${svgIconLabel("plus", "Plan", { size: 15 })}</button>`;
+}
+
 function addPlanModalHtml(todayKey) {
   const chips = QUICK_ADD_PLAN_PRESETS.map(
     (p) =>
@@ -975,21 +980,21 @@ function addPlanModalHtml(todayKey) {
         <h3>${svgIconLabel("plus", "Add Plan", { size: 16 })}</h3>
         <button type="button" class="modal-close-btn" id="add-plan-close">✕</button>
       </div>
-      <p class="modal-dialog-caption">1-tap buat ngisi otomatis (jadwal default, tetap bisa diubah) atau isi manual:</p>
+      <p class="modal-dialog-caption">1-tap to auto-fill (default schedule, still fully editable) or fill in manually:</p>
       <div class="quick-add-chip-row" id="add-plan-chips">${chips}</div>
       <form method="POST" action="/hub/grind/plan/add" id="add-plan-form">
-        <label>Tanggal</label>
+        <label>Date</label>
         <input type="date" name="plan_date" id="add-plan-date" value="${todayKey}" required>
-        <label>Jenis Sesi</label>
+        <label>Session Type</label>
         <select name="session_type" id="add-plan-session-type">${SESSION_TYPE_OPTIONS.map((o) => `<option value="${o.value}">${o.label}</option>`).join("")}</select>
-        <label>Judul / Catatan (opsional)</label>
-        <input type="text" name="instructions" id="add-plan-instructions" placeholder="mis. Gym — Push · 06:00–07:15">
-        <label>Jarak Target (km, opsional)</label>
+        <label>Title / Notes (optional)</label>
+        <input type="text" name="instructions" id="add-plan-instructions" placeholder="e.g. Gym — Push · 06:00–07:15">
+        <label>Target Distance (km, optional)</label>
         <input type="number" step="0.01" name="target_distance_km">
-        <button type="submit">Simpan Plan</button>
+        <button type="submit">Save Plan</button>
       </form>
       <p class="modal-dialog-caption" style="margin-top:12px;">
-        Mau import banyak sekaligus? <a href="#" id="open-import-modal-link">Paste Training Plan (TSV)</a>
+        Want to import several at once? <a href="#" id="open-import-modal-link">Paste Training Plan (TSV)</a>
       </p>
     </div>
   </dialog>`;
@@ -1003,20 +1008,17 @@ function addPlanScript(todayKey) {
       var sessionTypeSelect = document.getElementById("add-plan-session-type");
       var instructionsInput = document.getElementById("add-plan-instructions");
       var closeBtn = document.getElementById("add-plan-close");
-      var headerBtn = document.getElementById("add-plan-fab");
+      var fabBtn = document.getElementById("add-plan-fab");
       var openImportLink = document.getElementById("open-import-modal-link");
       var importModal = document.getElementById("import-plan-modal");
       if (!modal || !dateInput) return;
 
-      function openModal(dateKey) {
-        dateInput.value = dateKey || ${JSON.stringify(todayKey)};
+      function openModal() {
+        dateInput.value = ${JSON.stringify(todayKey)};
         modal.showModal();
       }
 
-      if (headerBtn) headerBtn.addEventListener("click", function () { openModal(null); });
-      document.querySelectorAll("[data-add-date]").forEach(function (btn) {
-        btn.addEventListener("click", function () { openModal(btn.dataset.addDate); });
-      });
+      if (fabBtn) fabBtn.addEventListener("click", openModal);
       if (closeBtn) closeBtn.addEventListener("click", function () { modal.close(); });
       modal.addEventListener("click", function (e) { if (e.target === modal) modal.close(); });
 
@@ -1063,17 +1065,17 @@ function sportSummaryHtml(monthSummary) {
   const coreCards = [
     sportSummaryCardHtml(
       "activity", "Run", `${run.totalKm.toFixed(1)}km`,
-      `${run.count} sesi${run.avgPace ? ` · avg ${run.avgPace}/km` : ""}${run.avgHr ? ` · avg ${run.avgHr}bpm` : ""}`
+      `${run.count} session${run.count === 1 ? "" : "s"}${run.avgPace ? ` · avg ${run.avgPace}/km` : ""}${run.avgHr ? ` · avg ${run.avgHr}bpm` : ""}`
     ),
-    sportSummaryCardHtml("racket", "Badminton", `${badminton.count} sesi`, `${badminton.totalHours}h total`),
+    sportSummaryCardHtml("racket", "Badminton", `${badminton.count} session${badminton.count === 1 ? "" : "s"}`, `${badminton.totalHours}h total`),
     sportSummaryCardHtml(
-      "dumbbell", "Gym", `${gym.count} sesi`,
-      gym.topLifts.length ? gym.topLifts.map((l) => `${escapeHtml(l.exerciseName)} ${l.maxWeight}kg`).join(", ") : "Belum ada data beban."
+      "dumbbell", "Gym", `${gym.count} session${gym.count === 1 ? "" : "s"}`,
+      gym.topLifts.length ? gym.topLifts.map((l) => `${escapeHtml(l.exerciseName)} ${l.maxWeight}kg`).join(", ") : "No lift data yet."
     ),
   ];
 
-  const swimCard = sportSummaryCardHtml("waves", "Swim", `${swim.totalKm.toFixed(1)}km`, `${swim.count} sesi`, { hidden: swim.count === 0 });
-  const tennisCard = sportSummaryCardHtml("tennisBall", "Tennis", `${tennis.count} sesi`, `${tennis.totalHours}h total`, { hidden: tennis.count === 0 });
+  const swimCard = sportSummaryCardHtml("waves", "Swim", `${swim.totalKm.toFixed(1)}km`, `${swim.count} session${swim.count === 1 ? "" : "s"}`, { hidden: swim.count === 0 });
+  const tennisCard = sportSummaryCardHtml("tennisBall", "Tennis", `${tennis.count} session${tennis.count === 1 ? "" : "s"}`, `${tennis.totalHours}h total`, { hidden: tennis.count === 0 });
   const hasHiddenSports = swim.count === 0 || tennis.count === 0;
 
   const toggle = hasHiddenSports
@@ -1141,7 +1143,7 @@ function gymPRCardHtml(exerciseName, rec) {
 
 function gymPRsListHtml(gym) {
   const entries = Object.entries(gym.records).filter(([, rec]) => rec.maxWeight);
-  if (!entries.length) return `<div class="empty-state">Belum ada data beban.</div>`;
+  if (!entries.length) return `<div class="empty-state">No lift data yet.</div>`;
 
   const bigLiftEntries = entries.filter(([name]) => BIG_LIFT_EXERCISES.includes(name));
   const otherEntries = entries
@@ -1150,11 +1152,11 @@ function gymPRsListHtml(gym) {
 
   const bigLiftsHtml = bigLiftEntries.length
     ? `<div class="pb-gym-grid">${bigLiftEntries.map(([name, rec]) => gymPRCardHtml(name, rec)).join("")}</div>`
-    : `<div class="empty-state">Belum ada rekor di gerakan utama.</div>`;
+    : `<div class="empty-state">No records yet on the main lifts.</div>`;
 
   const othersHtml = otherEntries.length
     ? `<details class="inline-toggle" style="margin-top:10px;">
-         <summary>Gerakan lainnya (${otherEntries.length})</summary>
+         <summary>Other exercises (${otherEntries.length})</summary>
          <div class="pb-gym-grid" style="margin-top:8px;">${otherEntries.map(([name, rec]) => gymPRCardHtml(name, rec)).join("")}</div>
        </details>`
     : "";
@@ -1252,15 +1254,15 @@ function historyRowHtml(s, personalBests) {
         <div class="inline-toggle-body">
           <form method="POST" action="/hub/grind/sessions/${s.id}/update">
             <input type="hidden" name="type" value="${s.type}">
-            <label>Tanggal</label>
+            <label>Date</label>
             <input type="date" name="session_date" value="${s.session_date}">
             ${
               isDistanceSport
-                ? `<label>Jarak (${isSwim ? "meter" : "km"})</label>
+                ? `<label>Distance (${isSwim ? "meters" : "km"})</label>
             <input type="number" step="${isSwim ? "1" : "0.01"}" name="distance_km" value="${distanceValue}">`
                 : ""
             }
-            <label>Durasi (menit)</label>
+            <label>Duration (min)</label>
             <input type="number" name="duration_min" value="${s.duration_min ?? ""}">
             ${
               isDistanceSport
@@ -1270,13 +1272,13 @@ function historyRowHtml(s, personalBests) {
             }
             <label>Avg HR</label>
             <input type="number" name="avg_hr" value="${s.avg_hr ?? ""}">
-            <label>Catatan</label>
+            <label>Notes</label>
             <textarea name="notes" rows="2">${escapeHtml(s.notes || "")}</textarea>
-            <button type="submit">Simpan</button>
+            <button type="submit">Save</button>
           </form>
         </div>
       </details>
-      <form method="POST" action="/hub/grind/sessions/${s.id}/delete" style="margin-top:8px;" onsubmit="return confirm('Hapus sesi ini?')">
+      <form method="POST" action="/hub/grind/sessions/${s.id}/delete" style="margin-top:8px;" onsubmit="return confirm('Delete this session?')">
         <button type="submit" class="btn-secondary btn-sm">🗑 Delete</button>
       </form>
     </div>
@@ -1286,7 +1288,7 @@ function historyRowHtml(s, personalBests) {
 const HISTORY_VISIBLE_COUNT = 7;
 
 function historyLogHtml(historyLogs, personalBests) {
-  if (!historyLogs.length) return `<h2>History</h2><div class="empty-state">Belum ada histori latihan.</div>`;
+  if (!historyLogs.length) return `<h2>History</h2><div class="empty-state">No training history yet.</div>`;
 
   const visibleRows = historyLogs.slice(0, HISTORY_VISIBLE_COUNT).map((s) => historyRowHtml(s, personalBests)).join("");
   const restLogs = historyLogs.slice(HISTORY_VISIBLE_COUNT);
@@ -1431,6 +1433,7 @@ ${faviconLink("/icons/grind-icon.png")}
     ${historyLogHtml(historyLogs, personalBests)}
   </div>
   ${bottomNavHtml("/hub/grind")}
+  ${grindFabHtml()}
   ${addPlanModalHtml(todayKey)}
   ${importModalHtml()}
   ${pacecalcScript()}

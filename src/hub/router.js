@@ -24,9 +24,17 @@ import {
   getBillTemplates,
 } from "./vault/supabase.js";
 import { getTodayClockLog } from "./clocked/supabase.js";
-import { getPlanByDate, getSessionsByDate, getUpcomingRace, todayDateKeyWib as grindTodayDateKeyWib } from "./grind/supabase.js";
+import {
+  getPlanByDate,
+  getSessionsByDate,
+  getUpcomingRace,
+  getPlanRange,
+  getSessionsInRange,
+  getWeekDateBoundsWib as getGrindWeekDateBoundsWib,
+  todayDateKeyWib as grindTodayDateKeyWib,
+} from "./grind/supabase.js";
 import { grindActivityRow } from "./grind/dashboard.js";
-import { defaultGymPlanForDate } from "./grind/gym-program.js";
+import { defaultGymPlanForDate, injectDefaultGymPlans, markCompletedGymPlans } from "./grind/gym-program.js";
 import { renderHubDashboard } from "./dashboard.js";
 import { svgIcon } from "../shared/dashboard-layout.js";
 
@@ -215,6 +223,65 @@ function formatDateLabelEn(wibDate) {
   return `${WEEKDAYS_EN[wibDate.getUTCDay()]}, ${MONTHS_EN[wibDate.getUTCMonth()]} ${wibDate.getUTCDate()}`;
 }
 
+function addDaysToKey(dateKey, days) {
+  const d = new Date(`${dateKey}T00:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + days);
+  return d.toISOString().slice(0, 10);
+}
+
+function allDateKeysInRange(startKey, endKey) {
+  const dates = [];
+  let cursor = startKey;
+  let guard = 0;
+  while (guard < 31) {
+    dates.push(cursor);
+    if (cursor === endKey) break;
+    cursor = addDaysToKey(cursor, 1);
+    guard++;
+  }
+  return dates;
+}
+
+// "23–29 Nov" - dipakai label header "This Week" strip di /hub.
+function weekRangeLabelEn(startKey, endKey) {
+  const s = new Date(`${startKey}T00:00:00Z`);
+  const e = new Date(`${endKey}T00:00:00Z`);
+  const startMonth = MONTHS_EN[s.getUTCMonth()].slice(0, 3);
+  const endMonth = MONTHS_EN[e.getUTCMonth()].slice(0, 3);
+  return startMonth === endMonth
+    ? `${s.getUTCDate()}–${e.getUTCDate()} ${endMonth}`
+    : `${s.getUTCDate()} ${startMonth}–${e.getUTCDate()} ${endMonth}`;
+}
+
+// Satu dot per tanggal (Senin-Minggu) buat "This Week" strip - "done" kalau ada log sesi ATAU plan
+// virtual yang udah auto-complete di tanggal itu, "planned" kalau masih PENDING (termasuk jadwal
+// default Gym/Badminton), sisanya kosong.
+function buildWeekDayStates(weekPlans, weekSessions, startKey, endKey) {
+  const loggedDates = new Set(weekSessions.map((s) => s.session_date));
+  return allDateKeysInRange(startKey, endKey).map((dateKey) => {
+    const plansForDay = weekPlans.filter((p) => p.plan_date === dateKey);
+    const isDone = loggedDates.has(dateKey) || plansForDay.some((p) => p.status === "DONE");
+    const isPlanned = plansForDay.some((p) => p.status === "PENDING");
+    return { dateKey, state: isDone ? "done" : isPlanned ? "planned" : "empty" };
+  });
+}
+
+// Sesi PENDING paling dekat dari hari ini dan seterusnya (virtual Gym/Badminton default ikutan
+// dihitung) - diurut tanggal dulu, baru jam mulai dalam hari yang sama.
+function findUpNextPlan(weekPlans, todayKey) {
+  return (
+    weekPlans
+      .filter((p) => p.status === "PENDING" && p.plan_date >= todayKey)
+      .sort((a, b) => {
+        if (a.plan_date !== b.plan_date) return a.plan_date < b.plan_date ? -1 : 1;
+        if (a.start_time && b.start_time) return a.start_time < b.start_time ? -1 : a.start_time > b.start_time ? 1 : 0;
+        if (a.start_time && !b.start_time) return 1;
+        if (!a.start_time && b.start_time) return -1;
+        return 0;
+      })[0] || null
+  );
+}
+
 export const router = express.Router();
 
 router.get("/hub", requireAuth, async (req, res) => {
@@ -233,6 +300,7 @@ router.get("/hub", requireAuth, async (req, res) => {
     vaultResult,
     clockedResult,
     grindResult,
+    weekGrindResult,
     frequentExpensesResult,
   ] = await Promise.allSettled([
     (async () => {
@@ -282,6 +350,18 @@ router.get("/hub", requireAuth, async (req, res) => {
       const todayPlan = rawTodayPlan || defaultGymPlanForDate(dateKey);
       return { todayPlan, todaySessions, upcomingRace };
     })(),
+    // "This Week" strip (bento grid /hub) - sumbernya persis sama kayak Schedule This Week di
+    // /hub/grind (weekPlans gabungan plan asli + virtual Gym/Badminton default, lihat
+    // injectDefaultGymPlans), cuma dirender ringkas di sini (7 day-dots + 3 metrik + Up Next).
+    (async () => {
+      const { startKey, endKey } = getGrindWeekDateBoundsWib();
+      const [rawWeekPlans, weekSessions] = await Promise.all([
+        getPlanRange(phone, startKey, endKey),
+        getSessionsInRange(phone, startKey, endKey),
+      ]);
+      const weekPlans = markCompletedGymPlans(injectDefaultGymPlans(rawWeekPlans, startKey, endKey), weekSessions);
+      return { startKey, endKey, weekPlans, weekSessions };
+    })(),
     getFrequentExpenses(phone, 30, 5),
   ]);
 
@@ -314,6 +394,25 @@ router.get("/hub", requireAuth, async (req, res) => {
     grindResult.status === "fulfilled"
       ? grindResult.value
       : { todayPlan: null, todaySessions: [], upcomingRace: null };
+
+  const weekGrind =
+    weekGrindResult.status === "fulfilled"
+      ? weekGrindResult.value
+      : { startKey: todayKey, endKey: todayKey, weekPlans: [], weekSessions: [] };
+  const weekKm = weekGrind.weekSessions
+    .filter((s) => s.type === "RUN")
+    .reduce((sum, s) => sum + (Number(s.distance_km) || 0), 0);
+  const weekActiveDays = new Set(weekGrind.weekSessions.map((s) => s.session_date)).size;
+  const weekSpendTotal = weeklyBudgetResult.status === "fulfilled" ? weeklyBudgetResult.value.spentThisWeek : null;
+
+  const thisWeek = {
+    weekRangeLabel: weekRangeLabelEn(weekGrind.startKey, weekGrind.endKey),
+    dayStates: buildWeekDayStates(weekGrind.weekPlans, weekGrind.weekSessions, weekGrind.startKey, weekGrind.endKey),
+    sessionsLabel: `${weekActiveDays}/7 Sessions`,
+    kmLabel: `${weekKm.toFixed(1)} km`,
+    spendLabel: weekSpendTotal != null ? formatRupiah(weekSpendTotal) : "— spend",
+    upNextPlan: findUpNextPlan(weekGrind.weekPlans, todayKey),
+  };
 
   const recentActivity = [];
   if (recentSpendingResult.status === "fulfilled") {
@@ -377,6 +476,8 @@ router.get("/hub", requireAuth, async (req, res) => {
       vaultSummary,
       clockedToday,
       grindToday,
+      thisWeek,
+      todayKey,
       recentActivity: recentActivity.slice(0, 4).map((a) => ({ ...a, time: toWibTime(a.timestamp) })),
       frequentExpenses,
     })

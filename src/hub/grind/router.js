@@ -189,28 +189,28 @@ router.get("/hub/grind", requireAuth, async (req, res) => {
     );
   } catch (err) {
     console.error(err);
-    res.status(500).send(`Gagal load halaman Grind: ${err.message}`);
+    res.status(500).send(`Failed to load Grind page: ${err.message}`);
   }
 });
 
 router.post("/hub/grind/import", requireAuth, async (req, res) => {
   const tsv = (req.body.tsv || "").trim();
-  if (!tsv) return redirectWithError(res, "Data kosong.");
+  if (!tsv) return redirectWithError(res, "Empty data.");
 
   try {
     const { imported, sessionsCreated } = await importTrainingPlan(req.user.phone, tsv);
-    res.redirect(`/hub/grind?ok=${encodeURIComponent(`${imported} plan di-import, ${sessionsCreated} sesi historis dibuat.`)}`);
+    res.redirect(`/hub/grind?ok=${encodeURIComponent(`${imported} plan(s) imported, ${sessionsCreated} history session(s) created.`)}`);
   } catch (err) {
     console.error(err);
-    redirectWithError(res, `Gagal import plan: ${err.message}`);
+    redirectWithError(res, `Failed to import plan: ${err.message}`);
   }
 });
 
 router.post("/hub/grind/plan/:id/complete-rest", requireAuth, async (req, res) => {
   try {
     const plan = await getPlanById(req.user.phone, req.params.id);
-    if (!plan) return redirectWithError(res, "Plan tidak ditemukan.");
-    if (plan.status !== "PENDING") return redirectWithError(res, "Plan ini sudah diproses.");
+    if (!plan) return redirectWithError(res, "Plan not found.");
+    if (plan.status !== "PENDING") return redirectWithError(res, "This plan has already been processed.");
 
     await createSession(req.user.phone, {
       planId: plan.id,
@@ -221,21 +221,21 @@ router.post("/hub/grind/plan/:id/complete-rest", requireAuth, async (req, res) =
     res.redirect("/hub/grind?ok=1");
   } catch (err) {
     console.error(err);
-    redirectWithError(res, `Gagal complete: ${err.message}`);
+    redirectWithError(res, `Failed to complete: ${err.message}`);
   }
 });
 
 router.post("/hub/grind/plan/:id/skip", requireAuth, async (req, res) => {
   try {
     const plan = await getPlanById(req.user.phone, req.params.id);
-    if (!plan) return redirectWithError(res, "Plan tidak ditemukan.");
-    if (plan.status !== "PENDING") return redirectWithError(res, "Plan ini sudah diproses.");
+    if (!plan) return redirectWithError(res, "Plan not found.");
+    if (plan.status !== "PENDING") return redirectWithError(res, "This plan has already been processed.");
 
     await markPlanStatus(req.user.phone, plan.id, "SKIPPED");
     res.redirect("/hub/grind?ok=1");
   } catch (err) {
     console.error(err);
-    redirectWithError(res, `Gagal skip plan: ${err.message}`);
+    redirectWithError(res, `Failed to skip plan: ${err.message}`);
   }
 });
 
@@ -245,14 +245,14 @@ router.post("/hub/grind/plan/:id/move-to-today", requireAuth, async (req, res) =
     res.redirect("/hub/grind?ok=1");
   } catch (err) {
     console.error(err);
-    redirectWithError(res, `Gagal pindahin plan: ${err.message}`);
+    redirectWithError(res, `Failed to move plan: ${err.message}`);
   }
 });
 
 router.post("/hub/grind/plan/:id/update", requireAuth, async (req, res) => {
   const targetDistanceKmRaw = (req.body.target_distance_km || "").trim();
   if (!VALID_SESSION_TYPES.includes(req.body.session_type)) {
-    return redirectWithError(res, "Jenis sesi tidak valid.");
+    return redirectWithError(res, "Invalid session type.");
   }
 
   try {
@@ -266,7 +266,7 @@ router.post("/hub/grind/plan/:id/update", requireAuth, async (req, res) => {
     res.redirect("/hub/grind?ok=1");
   } catch (err) {
     console.error(err);
-    redirectWithError(res, `Gagal update plan: ${err.message}`);
+    redirectWithError(res, `Failed to update plan: ${err.message}`);
   }
 });
 
@@ -278,10 +278,10 @@ router.post("/hub/grind/plan/add", requireAuth, async (req, res) => {
   const planDate = (req.body.plan_date || "").trim();
   const targetDistanceKmRaw = (req.body.target_distance_km || "").trim();
   if (!/^\d{4}-\d{2}-\d{2}$/.test(planDate)) {
-    return redirectWithError(res, "Tanggal tidak valid.");
+    return redirectWithError(res, "Invalid date.");
   }
   if (!VALID_SESSION_TYPES.includes(req.body.session_type)) {
-    return redirectWithError(res, "Jenis sesi tidak valid.");
+    return redirectWithError(res, "Invalid session type.");
   }
 
   try {
@@ -294,17 +294,17 @@ router.post("/hub/grind/plan/add", requireAuth, async (req, res) => {
     res.redirect("/hub/grind?ok=1");
   } catch (err) {
     if (err.code === "23505") {
-      return redirectWithError(res, "Tanggal itu sudah ada plan - edit lewat Schedule aja.");
+      return redirectWithError(res, "That date already has a plan - edit it from Schedule instead.");
     }
     console.error(err);
-    redirectWithError(res, `Gagal tambah plan: ${err.message}`);
+    redirectWithError(res, `Failed to add plan: ${err.message}`);
   }
 });
 
 router.post("/hub/grind/settings/weekly-target", requireAuth, async (req, res) => {
   const km = parseFloat((req.body.weekly_run_target_km || "").trim());
   if (isNaN(km) || km <= 0) {
-    return redirectWithError(res, "Target mingguan tidak valid.");
+    return redirectWithError(res, "Invalid weekly target.");
   }
 
   try {
@@ -312,7 +312,7 @@ router.post("/hub/grind/settings/weekly-target", requireAuth, async (req, res) =
     res.redirect("/hub/grind?ok=1");
   } catch (err) {
     console.error(err);
-    redirectWithError(res, `Gagal update target mingguan: ${err.message}`);
+    redirectWithError(res, `Failed to update weekly target: ${err.message}`);
   }
 });
 
@@ -324,7 +324,7 @@ router.post("/hub/grind/gym-schedule/override", requireAuth, async (req, res) =>
   const startTime = (req.body.start_time || "").trim();
   const endTime = (req.body.end_time || "").trim();
   if (!/^\d{4}-\d{2}-\d{2}$/.test(planDate)) {
-    return redirectWithError(res, "Tanggal tidak valid.");
+    return redirectWithError(res, "Invalid date.");
   }
 
   const validationError = validateGymScheduleOverride(planDate, startTime, endTime);
@@ -335,14 +335,14 @@ router.post("/hub/grind/gym-schedule/override", requireAuth, async (req, res) =>
     res.redirect("/hub/grind?ok=1");
   } catch (err) {
     console.error(err);
-    redirectWithError(res, `Gagal simpan jam latihan: ${err.message}`);
+    redirectWithError(res, `Failed to save training time: ${err.message}`);
   }
 });
 
 router.post("/hub/grind/gym-schedule/reset", requireAuth, async (req, res) => {
   const planDate = (req.body.plan_date || "").trim();
   if (!/^\d{4}-\d{2}-\d{2}$/.test(planDate)) {
-    return redirectWithError(res, "Tanggal tidak valid.");
+    return redirectWithError(res, "Invalid date.");
   }
 
   try {
@@ -350,7 +350,7 @@ router.post("/hub/grind/gym-schedule/reset", requireAuth, async (req, res) => {
     res.redirect("/hub/grind?ok=1");
   } catch (err) {
     console.error(err);
-    redirectWithError(res, `Gagal reset jam latihan: ${err.message}`);
+    redirectWithError(res, `Failed to reset training time: ${err.message}`);
   }
 });
 
@@ -382,7 +382,7 @@ function registerDistanceSportRoute(path, type) {
       res.redirect("/hub/grind?ok=1");
     } catch (err) {
       console.error(err);
-      redirectWithError(res, `Gagal simpan ${type.toLowerCase()}: ${err.message}`);
+      redirectWithError(res, `Failed to save ${type.toLowerCase()}: ${err.message}`);
     }
   });
 }
@@ -406,7 +406,7 @@ function registerDurationSportRoute(path, type) {
       res.redirect("/hub/grind?ok=1");
     } catch (err) {
       console.error(err);
-      redirectWithError(res, `Gagal simpan ${type.toLowerCase()}: ${err.message}`);
+      redirectWithError(res, `Failed to save ${type.toLowerCase()}: ${err.message}`);
     }
   });
 }
@@ -452,7 +452,7 @@ router.post("/hub/grind/sessions/gym", requireAuth, async (req, res) => {
     res.redirect("/hub/grind?ok=1");
   } catch (err) {
     console.error(err);
-    redirectWithError(res, `Gagal simpan gym: ${err.message}`);
+    redirectWithError(res, `Failed to save gym session: ${err.message}`);
   }
 });
 
@@ -471,7 +471,7 @@ router.post("/hub/grind/sessions/rest", requireAuth, async (req, res) => {
     res.redirect("/hub/grind?ok=1");
   } catch (err) {
     console.error(err);
-    redirectWithError(res, `Gagal simpan rest: ${err.message}`);
+    redirectWithError(res, `Failed to save rest: ${err.message}`);
   }
 });
 
@@ -494,7 +494,7 @@ router.post("/hub/grind/sessions/:id/update", requireAuth, async (req, res) => {
     res.redirect("/hub/grind?ok=1");
   } catch (err) {
     console.error(err);
-    redirectWithError(res, `Gagal update sesi: ${err.message}`);
+    redirectWithError(res, `Failed to update session: ${err.message}`);
   }
 });
 
@@ -504,7 +504,7 @@ router.post("/hub/grind/sessions/:id/delete", requireAuth, async (req, res) => {
     res.redirect("/hub/grind?ok=1");
   } catch (err) {
     console.error(err);
-    redirectWithError(res, `Gagal hapus sesi: ${err.message}`);
+    redirectWithError(res, `Failed to delete session: ${err.message}`);
   }
 });
 
@@ -537,7 +537,7 @@ router.get("/hub/grind/gym", requireAuth, async (req, res) => {
     );
   } catch (err) {
     console.error(err);
-    res.status(500).send(`Gagal load halaman Gym: ${err.message}`);
+    res.status(500).send(`Failed to load Gym page: ${err.message}`);
   }
 });
 
@@ -546,7 +546,7 @@ router.get("/hub/grind/gym", requireAuth, async (req, res) => {
 // getGymTemplate).
 router.get("/hub/grind/gym-template", requireAuth, async (req, res) => {
   if (!VALID_GYM_SPLITS.includes(req.query.split)) {
-    return res.status(400).json({ error: "Split tidak valid." });
+    return res.status(400).json({ error: "Invalid split." });
   }
 
   try {

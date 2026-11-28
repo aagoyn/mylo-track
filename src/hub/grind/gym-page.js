@@ -335,17 +335,17 @@ function gymPageScript(runFatigue) {
         var showReduceBtn = false;
         var text;
         if (RUN_FATIGUE && split === "Legs") {
-          text = "Friday Legs Priority: Lari beberapa hari terakhir berat & kaki mulai terasa capek. Kurangi volume Legs dulu hari ini (jangan sampai gagal) daripada memaksakan semua set sebelum Badminton Sabtu & Long Run Minggu.";
+          text = "Friday Legs Priority: Running load has been heavy the last few days and your legs are starting to feel it. Cut Legs volume today (don't go to failure) instead of pushing every set before Saturday Badminton & Sunday Long Run.";
           showReduceBtn = true;
         } else if (RUN_FATIGUE) {
-          text = "Running Performance Priority: Beban lari beberapa hari terakhir cukup tinggi. Kalau easy run mulai terasa berat, kurangi volume gym dulu daripada memaksakan semua.";
+          text = "Running Performance Priority: Running load has been pretty high the last few days. If easy runs start feeling heavy, cut gym volume first instead of forcing everything.";
           showReduceBtn = true;
         } else if (split === "Posterior Chain") {
-          text = "Wednesday Deadlift Rule: Jaga Deadlift di RPE 6–7 (sisakan 3–4 reps, rest 2–3 menit). Jangan kejar PR setiap minggu—pertimbangkan recovery untuk Badminton Sabtu & Long Run Minggu.";
+          text = "Wednesday Deadlift Rule: Keep Deadlift at RPE 6–7 (leave 3–4 reps, rest 2–3 min). Don't chase a PR every week — think about recovery for Saturday Badminton & Sunday Long Run.";
         } else if (split === "Legs") {
-          text = "Friday Legs Guardrail: Jaga 3 RIR, jangan sampai gagal (sisakan 3 reps). Sabtu ada Badminton & Minggu Long Run, kaki harus tetap segar.";
+          text = "Friday Legs Guardrail: Keep 3 RIR, don't go to failure (leave 3 reps). Saturday has Badminton and Sunday has Long Run, so legs need to stay fresh.";
         } else {
-          text = "Hybrid Focus: Jaga teknik bersih di RIR 2–3, catat beban & reps untuk progressive overload bertahap.";
+          text = "Hybrid Focus: Keep clean technique at RIR 2–3, log weight & reps for gradual progressive overload.";
         }
         coachNoticeText.textContent = text;
         if (coachReduceBtn) coachReduceBtn.hidden = !showReduceBtn;
@@ -527,7 +527,7 @@ function gymPageScript(runFatigue) {
           });
           if (rpe >= 8 || chasingPr) {
             trigger = true;
-            msg = "Pengingat Rabu: Hindari kejar PR Deadlift tiap minggu & jaga di RPE 6–7 (rest 2–3 menit) agar recovery tetap kejaga untuk Badminton Sabtu dan Long Run Minggu.";
+            msg = "Wednesday reminder: Avoid chasing a Deadlift PR every week and keep RPE 6–7 (rest 2–3 min) so recovery holds up for Saturday Badminton and Sunday Long Run.";
           }
         } else if (split === "Legs" && LEGS_GUARDRAIL_EXERCISES.indexOf(name) !== -1) {
           var hasFailure = false;
@@ -536,7 +536,7 @@ function gymPageScript(runFatigue) {
           });
           if (hasFailure || rpe >= 9) {
             trigger = true;
-            msg = "Jaga 3 RIR di Legs Jumat — cukup berhenti 3 reps sebelum failure, Sabtu ada Badminton & Minggu Long Run.";
+            msg = "Keep 3 RIR on Friday Legs — stop 3 reps short of failure, Saturday has Badminton & Sunday Long Run.";
           }
         }
 
@@ -576,10 +576,10 @@ function gymPageScript(runFatigue) {
           '<input type="text" inputmode="decimal" class="set-input set-kg-input" placeholder="kg">' +
           '<div class="sec-cell">' +
             '<input type="text" inputmode="numeric" class="set-input set-reps-input" placeholder="reps">' +
-            '<button type="button" class="sec-timer-btn" aria-label="Mulai hitung mundur" hidden>${svgIcon("play", { size: 13 })}</button>' +
+            '<button type="button" class="sec-timer-btn" aria-label="Start countdown" hidden>${svgIcon("play", { size: 13 })}</button>' +
           '</div>' +
-          '<button type="button" class="set-check-btn' + (done ? " checked" : "") + '" aria-label="Set selesai">${svgIcon("check", { size: 16 })}</button>' +
-          '<button type="button" class="set-remove-btn" aria-label="Hapus set">✕</button>';
+          '<button type="button" class="set-check-btn' + (done ? " checked" : "") + '" aria-label="Mark set done">${svgIcon("check", { size: 16 })}</button>' +
+          '<button type="button" class="set-remove-btn" aria-label="Remove set">✕</button>';
 
         var kgInput = row.querySelector(".set-kg-input");
         var repsInput = row.querySelector(".set-reps-input");
@@ -730,7 +730,7 @@ function gymPageScript(runFatigue) {
         card.dataset.rpe = rpe || "";
         card.innerHTML =
           '<div class="exercise-card-head">' +
-            '<input type="text" class="exercise-name-input" placeholder="Nama gerakan" required>' +
+            '<input type="text" class="exercise-name-input" placeholder="Exercise name" required>' +
             '<div class="exercise-rpe-wrap">' +
               '<button type="button" class="exercise-rpe-pill' + (rpe ? " rpe-set" : "") + '" aria-label="Set target RPE">' + (rpe ? "RPE " + rpe : "RPE") + '</button>' +
               '<div class="rpe-popover" hidden>' +
@@ -738,11 +738,11 @@ function gymPageScript(runFatigue) {
               '</div>' +
             '</div>' +
             '<div class="exercise-swap-wrap">' +
-              '<button type="button" class="exercise-swap-btn" aria-label="Ganti gerakan">${svgIcon("refresh", { size: 15 })}</button>' +
+              '<button type="button" class="exercise-swap-btn" aria-label="Swap exercise">${svgIcon("refresh", { size: 15 })}</button>' +
               '<div class="swap-popover" hidden></div>' +
             '</div>' +
-            '<button type="button" class="exercise-guide-btn" aria-label="Panduan gerakan">${svgIcon("helpCircle", { size: 16 })}</button>' +
-            '<button type="button" class="exercise-remove-btn" aria-label="Hapus gerakan">✕</button>' +
+            '<button type="button" class="exercise-guide-btn" aria-label="Exercise guide">${svgIcon("helpCircle", { size: 16 })}</button>' +
+            '<button type="button" class="exercise-remove-btn" aria-label="Remove exercise">✕</button>' +
           '</div>' +
           '<div class="set-table-header"><span>Set</span><span>Previous</span><span>Kg</span><span>Reps</span><span></span><span></span></div>' +
           '<div class="set-rows"></div>' +
@@ -1140,7 +1140,7 @@ ${faviconLink("/icons/grind-icon.png")}
     <div class="card glass-card gym-coach-notice" id="gym-coach-notice">
       <div class="gym-coach-notice-icon" id="gym-coach-notice-icon">${svgIcon("activity", { size: 16 })}</div>
       <span class="gym-coach-notice-text" id="gym-coach-notice-text"></span>
-      <button type="button" class="gym-coach-reduce-btn" id="gym-coach-reduce-btn" hidden>Kurangi 1 Set</button>
+      <button type="button" class="gym-coach-reduce-btn" id="gym-coach-reduce-btn" hidden>Reduce 1 Set</button>
       <button type="button" class="gym-coach-close-btn" id="gym-coach-close-btn" aria-label="Tutup notice">✕</button>
     </div>
 
@@ -1166,10 +1166,10 @@ ${faviconLink("/icons/grind-icon.png")}
   <dialog class="modal-dialog glass-card" id="workout-summary-dialog">
     <div class="modal-dialog-body">
       <div class="modal-dialog-header">
-        <h3>${svgIconLabel("check", "Workout Selesai!", { size: 16 })}</h3>
+        <h3>${svgIconLabel("check", "Workout Complete!", { size: 16 })}</h3>
       </div>
       <div class="summary-stat-grid">
-        <div><div class="summary-stat-value tabular-nums" id="summary-duration">0 min</div><div class="summary-stat-label">Durasi</div></div>
+        <div><div class="summary-stat-value tabular-nums" id="summary-duration">0 min</div><div class="summary-stat-label">Duration</div></div>
         <div><div class="summary-stat-value tabular-nums" id="summary-volume">0 kg</div><div class="summary-stat-label">Total Volume</div></div>
         <div><div class="summary-stat-value tabular-nums" id="summary-sets">0</div><div class="summary-stat-label">Working Sets</div></div>
       </div>

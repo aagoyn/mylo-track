@@ -133,6 +133,9 @@ export const DASHBOARD_CSS = `
     font-variant-numeric: tabular-nums;
     background-color: var(--bg); background-image: var(--gradient-mesh); background-attachment: fixed;
   }
+  /* Lock background scroll whenever ANY <dialog> is open (Import Plan, Add Plan, Quick Expense,
+     exercise guide, etc.) - applies site-wide since DASHBOARD_CSS is shared across every page. */
+  body:has(dialog[open]) { overflow: hidden; height: 100vh; }
   .container { max-width: 720px; margin: 0 auto; padding-bottom: calc(92px + env(safe-area-inset-bottom)); }
   header { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px 16px; margin-bottom: 24px; }
   h1 { font-size: 20px; margin: 0; display: flex; align-items: center; gap: 8px; }

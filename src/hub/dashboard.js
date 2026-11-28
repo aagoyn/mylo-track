@@ -26,6 +26,67 @@ function miniAppsGridHtml() {
   return `<div class="mini-apps-grid">${tiles}</div>`;
 }
 
+// ---------- This Week strip (full-width, above the 2x2 bento grid) ----------
+// Compact weekly snapshot pulling from the same source as Schedule This Week on /hub/grind
+// (weekPlans = real plans merged with virtual default Gym/Badminton plans, see
+// injectDefaultGymPlans) - rendered here as 7 day-dots + 3 metrics + an "Up Next" row, instead of
+// repeating another 2x2 grid.
+const WEEK_DOT_LETTERS = ["M", "T", "W", "T", "F", "S", "S"];
+
+function weekDayDotsHtml(dayStates, todayKey) {
+  return dayStates
+    .map((d, i) => {
+      const isToday = d.dateKey === todayKey;
+      const cls = ["week-day-dot", `week-day-dot-${d.state}`, isToday ? "week-day-dot-today" : ""]
+        .filter(Boolean)
+        .join(" ");
+      return `<span class="${cls}" title="${WEEK_DOT_LETTERS[i]} · ${d.dateKey}"></span>`;
+    })
+    .join("");
+}
+
+// Quick-action button on the "Up Next" row - virtual Gym/Badminton plans (no plan.id yet) link to
+// their respective page/form, a real REST plan completes in place (POST, redirects to
+// /hub/grind), any other plan type opens the quick-logger on /hub/grind to record the result.
+function upNextActionHtml(plan) {
+  if (plan.virtual && plan.session_type === "GYM") {
+    return `<a class="week-strip-check-btn" href="/hub/grind/gym?split=${encodeURIComponent(plan.sub_type)}" aria-label="Start Gym" onclick="event.stopPropagation()">${svgIcon("arrowRight", { size: 14 })}</a>`;
+  }
+  if (plan.virtual && plan.session_type === "BADMINTON") {
+    return `<a class="week-strip-check-btn" href="/hub/grind?form=badminton#today-logger" aria-label="Log Badminton" onclick="event.stopPropagation()">${svgIcon("arrowRight", { size: 14 })}</a>`;
+  }
+  if (plan.session_type === "REST") {
+    return `<form method="POST" action="/hub/grind/plan/${plan.id}/complete-rest" style="margin:0;" onclick="event.stopPropagation()"><button type="submit" class="week-strip-check-btn" aria-label="Complete">${svgIcon("check", { size: 14 })}</button></form>`;
+  }
+  return `<a class="week-strip-check-btn" href="/hub/grind?complete=${plan.id}#today-logger" aria-label="Complete" onclick="event.stopPropagation()">${svgIcon("check", { size: 14 })}</a>`;
+}
+
+function thisWeekStripHtml(thisWeek, todayKey) {
+  const { weekRangeLabel, dayStates, sessionsLabel, kmLabel, spendLabel, upNextPlan } = thisWeek;
+
+  const upNextRight = upNextPlan
+    ? `<span class="week-strip-upnext-title">${escapeHtml(upNextPlan.title || upNextPlan.session_type)}</span>
+       ${upNextPlan.scheduled_time ? `<span class="week-strip-time-badge">${upNextPlan.scheduled_time}</span>` : ""}
+       ${upNextActionHtml(upNextPlan)}`
+    : `<span class="week-strip-upnext-title" style="color:var(--text-dim); font-weight:500;">All caught up this week 🎉</span>`;
+
+  return `<div class="card glass-card week-strip" onclick="location.href='/hub/grind'" style="cursor:pointer;">
+    <div class="week-strip-top">
+      <span class="week-strip-label">THIS WEEK (${escapeHtml(weekRangeLabel)})</span>
+      <div class="week-day-dots">${weekDayDotsHtml(dayStates, todayKey)}</div>
+    </div>
+    <div class="week-strip-metrics">
+      <span>${escapeHtml(sessionsLabel)}</span>
+      <span>${escapeHtml(kmLabel)}</span>
+      <span>${escapeHtml(spendLabel)}</span>
+    </div>
+    <div class="week-strip-upnext">
+      <span class="week-strip-upnext-label">Up Next</span>
+      ${upNextRight}
+    </div>
+  </div>`;
+}
+
 function formatRupiah(amount) {
   return `Rp${Math.round(amount).toLocaleString("id-ID")}`;
 }
@@ -75,6 +136,40 @@ const HUB_PAGE_CSS = `
     display: inline-flex; align-items: center; justify-content: center;
     padding: 14px 22px; border-radius: 999px;
     color: #fff; font-size: 15px; font-weight: 700; cursor: pointer; font-family: inherit;
+  }
+
+  /* ---------- This Week strip (full-width, above the 2x2 bento grid) ---------- */
+  .week-strip { display: flex; flex-direction: column; gap: 8px; margin-bottom: 14px; }
+  .week-strip-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+  .week-strip-label { font-size: 11px; font-weight: 700; letter-spacing: .04em; color: var(--text-dim); }
+  .week-day-dots { display: flex; gap: 6px; }
+  .week-day-dot {
+    width: 9px; height: 9px; border-radius: 999px; border: 1.5px solid var(--border);
+    background: transparent; box-sizing: border-box;
+  }
+  .week-day-dot-done { background: var(--success); border-color: var(--success); }
+  .week-day-dot-planned { border-style: dashed; border-color: var(--accent); }
+  .week-day-dot-today { box-shadow: 0 0 0 2px rgba(201, 115, 104, .3); }
+  .week-strip-metrics { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; color: var(--text); }
+  .week-strip-metrics span:not(:last-child)::after { content: "·"; margin-left: 8px; color: var(--text-dim); font-weight: 400; }
+  .week-strip-upnext {
+    display: flex; align-items: center; gap: 8px; font-size: 12.5px;
+    padding-top: 8px; border-top: 1px solid var(--border);
+  }
+  .week-strip-upnext-label { flex-shrink: 0; color: var(--text-dim); font-weight: 600; }
+  .week-strip-upnext-title {
+    flex: 1; min-width: 0; font-weight: 600; color: var(--text);
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .week-strip-time-badge {
+    flex-shrink: 0; font-size: 11px; font-weight: 600; color: var(--text-muted);
+    padding: 2px 8px; border-radius: 999px; border: 1px dashed var(--border);
+    font-variant-numeric: tabular-nums;
+  }
+  .week-strip-check-btn {
+    flex-shrink: 0; width: 26px; height: 26px; border-radius: 999px; padding: 0;
+    display: inline-flex; align-items: center; justify-content: center;
+    background: var(--accent-deep); color: var(--accent-light); cursor: pointer; border: none;
   }
 
   dialog.qe-dialog {
@@ -222,7 +317,7 @@ function quickExpenseScript() {
           .then(function (r) { return r.json().then(function (data) { return { httpOk: r.ok, data: data }; }); })
           .then(function (result) {
             if (!result.httpOk || !result.data.ok) {
-              throw new Error((result.data && result.data.error) || "Gagal menyimpan.");
+              throw new Error((result.data && result.data.error) || "Failed to save.");
             }
             dialog.close();
             input.value = "";
@@ -279,6 +374,8 @@ export function renderHubDashboard({
   vaultSummary,
   clockedToday,
   grindToday,
+  thisWeek,
+  todayKey,
   recentActivity,
   frequentExpenses = [],
 }) {
@@ -343,6 +440,8 @@ ${faviconLink("/icons/hub.png")}
       <h1 class="hub-greeting">${greeting}</h1>
       <p class="hub-sub">Here's your day so far, ${escapeHtml(username)}.</p>
     </header>
+
+    ${thisWeekStripHtml(thisWeek, todayKey)}
 
     <section class="grid-2-always">
       <a class="card bento-card" href="/dashboard/calorie">

@@ -124,6 +124,25 @@ export async function updatePlan(phone, id, { sessionType, targetDistanceKm, tar
   if (error) throw error;
 }
 
+// "Add Plan" quick-add (dialog di Schedule, lihat dashboard.js: addPlanModalHtml) - bikin SATU plan
+// baru PENDING di tanggal tertentu. grind_plans punya unique(phone, plan_date), jadi insert
+// (BUKAN upsert kayak importTrainingPlan) - kalau tanggal itu udah ada plan, biarin Postgres
+// nolak (unique_violation, code 23505) & router.js yang kasih pesan error ramah, daripada diam-
+// diam nimpa plan yang udah ada.
+export async function createPlan(phone, { planDate, sessionType, targetDistanceKm, targetPace, targetHr, instructions }) {
+  const { error } = await supabase.from("grind_plans").insert({
+    phone,
+    plan_date: planDate,
+    session_type: sessionType,
+    target_distance_km: targetDistanceKm ?? null,
+    target_pace: targetPace || null,
+    target_hr: targetHr || null,
+    instructions: instructions || null,
+    status: "PENDING",
+  });
+  if (error) throw error;
+}
+
 const DEFAULT_WEEKLY_RUN_TARGET_KM = 21;
 
 export async function getWeeklyRunTargetKm(phone) {
@@ -317,7 +336,7 @@ export async function deleteSession(phone, id) {
 
 const MOVE_PLAN_TEMP_DATE = "9999-12-30";
 
-// "Move to Today" buat plan hari lain yang PENDING/SKIPPED (lihat scheduleDayHtml). Kalau hari
+// "Move to Today" buat plan hari lain yang PENDING/SKIPPED (lihat scheduleSessionRowHtml). Kalau hari
 // ini udah ada plan sendiri yang masih REST/PENDING, dua-duanya ditukar tanggal (bukan ditimpa)
 // lewat tanggal sementara dulu - plan_date punya unique(phone,plan_date), jadi nggak bisa
 // langsung assign dua row ke tanggal yang sama di step yang sama.

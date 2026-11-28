@@ -13,6 +13,7 @@ import {
   getUpcomingRace,
   markPlanStatus,
   updatePlan,
+  createPlan,
   movePlanToToday,
   getSessionsByDate,
   getSessionsInRange,
@@ -170,6 +171,10 @@ router.get("/hub/grind", requireAuth, async (req, res) => {
         upcomingRace,
         weekPlans,
         nextWeekPlans,
+        weekStart,
+        weekEnd,
+        nextWeekStart,
+        nextWeekEnd,
         weekSessions,
         weekTargetKm,
         monthSummary,
@@ -262,6 +267,37 @@ router.post("/hub/grind/plan/:id/update", requireAuth, async (req, res) => {
   } catch (err) {
     console.error(err);
     redirectWithError(res, `Gagal update plan: ${err.message}`);
+  }
+});
+
+// "Add Plan" quick-add dialog (Schedule section, lihat dashboard.js: addPlanModalHtml) - bikin
+// SATU plan custom baru di tanggal manapun (beda dari /hub/grind/import yang nge-upsert banyak
+// baris TSV sekaligus). Quick-Add chips di dialog cuma ngisi instructions/session_type di client,
+// jadi di sini tetep insert row biasa lewat createPlan.
+router.post("/hub/grind/plan/add", requireAuth, async (req, res) => {
+  const planDate = (req.body.plan_date || "").trim();
+  const targetDistanceKmRaw = (req.body.target_distance_km || "").trim();
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(planDate)) {
+    return redirectWithError(res, "Tanggal tidak valid.");
+  }
+  if (!VALID_SESSION_TYPES.includes(req.body.session_type)) {
+    return redirectWithError(res, "Jenis sesi tidak valid.");
+  }
+
+  try {
+    await createPlan(req.user.phone, {
+      planDate,
+      sessionType: req.body.session_type,
+      targetDistanceKm: targetDistanceKmRaw ? parseFloat(targetDistanceKmRaw) : null,
+      instructions: (req.body.instructions || "").trim(),
+    });
+    res.redirect("/hub/grind?ok=1");
+  } catch (err) {
+    if (err.code === "23505") {
+      return redirectWithError(res, "Tanggal itu sudah ada plan - edit lewat Schedule aja.");
+    }
+    console.error(err);
+    redirectWithError(res, `Gagal tambah plan: ${err.message}`);
   }
 });
 

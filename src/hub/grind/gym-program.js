@@ -196,7 +196,7 @@ export function validateGymScheduleOverride(dateKey, startTime, endTime) {
 // `override` ({ start_time, end_time }, opsional) datang dari grind_gym_schedule_overrides (lihat
 // supabase.js: getGymScheduleOverrides) - kalau ADA, jam itu yang dipakai & `tentative: false`;
 // kalau TIDAK ADA, pakai jam default DEFAULT_GYM_SCHEDULE & `tentative: true` (saran perencanaan,
-// bukan jadwal pasti - lihat scheduleDayHtml buat indikator "Tentative"-nya).
+// bukan jadwal pasti - lihat scheduleTimeBadgeHtml buat indikator jam/status-nya).
 export function defaultGymPlanForDate(dateKey, override) {
   const entry = DEFAULT_GYM_SCHEDULE.find((e) => e.dayOfWeek === dayOfWeekForDateKey(dateKey));
   if (!entry) return null;

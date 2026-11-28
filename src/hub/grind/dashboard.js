@@ -1,5 +1,6 @@
 import { DASHBOARD_CSS, escapeHtml, navHeader, faviconLink, svgIcon, svgIconLabel, iconBadgeHtml, bottomNavHtml } from "../../shared/dashboard-layout.js";
 import { BIG_LIFT_EXERCISES, formatDurationSec } from "./personal-best.js";
+import { DEFAULT_GYM_SCHEDULE, DEFAULT_BADMINTON_SCHEDULE } from "./gym-program.js";
 
 const WIB_OFFSET_MS = 7 * 60 * 60 * 1000;
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -76,7 +77,7 @@ function daysUntil(dateKey) {
 // Target Pace/HR yang di-import dari sheet kadang nempel sama catatan panjang dalam kurung
 // (mis. "119-139 bpm (Zona 2 - pakai Metode Run/Walk kalau susah turun)") - di ringkasan plan
 // cuma angka intinya yang relevan, catatan lengkapnya tetep utuh di plan.instructions (lihat
-// todayPlanAndLoggerHtml/scheduleDayHtml yang nampilin instructions terpisah).
+// todayPlanAndLoggerHtml/scheduleSessionRowHtml yang nampilin instructions terpisah).
 function stripParenthetical(str) {
   return str ? str.replace(/\s*\([^)]*\)/g, "").trim() : str;
 }
@@ -281,37 +282,66 @@ export function grindHubCardHtml({ todayPlan, todaySessions, upcomingRace }) {
 // ke halaman lain yang nggak butuh FAB ini sama sekali (lihat juga hub/dashboard.js buat FAB
 // Quick Expense, pola yang sama tapi terpisah).
 const GRIND_PAGE_CSS = `
-  /* Ruang kosong ekstra di bawah biar konten terakhir (History dst) nggak ketutupan FAB
-     "+ Plan" yang posisinya fixed melayang di pojok kanan bawah. */
-  .container { padding-bottom: calc(144px + env(safe-area-inset-bottom)); }
+  /* Ruang kosong ekstra di bawah biar konten terakhir (History dst) nggak ketutupan bottom-nav
+     mengambang. Nggak perlu sebesar dulu lagi - FAB "+ Plan" yang fixed di pojok udah dipindah
+     jadi tombol inline di header section Schedule (lihat scheduleViewerHtml). */
+  .container { padding-bottom: calc(96px + env(safe-area-inset-bottom)); }
 
-  /* Warna/blur FAB (gradasi + kaca) datang dari .fab-btn (shared) - di sini cuma posisi/ukuran. */
-  .grind-fab {
-    position: fixed; bottom: calc(84px + env(safe-area-inset-bottom)); right: 20px; z-index: 40;
-    display: inline-flex; align-items: center; justify-content: center;
-    padding: 14px 22px; border-radius: 999px;
-    color: #fff; font-size: 15px; font-weight: 700; cursor: pointer; font-family: inherit;
-  }
-
-  /* Ikon check "Completed" otomatis (Auto-Complete Check) di item Schedule This Week - ganti
-     emoji ✅ lama, warna var(--success) (warm sage, konsisten sama state "done" lain di app mis.
-     set-row-done di gym-page.js) bukan var(--accent) biar beda jelas sama pill Tentative. */
+  /* Ikon check "Completed" otomatis (Auto-Complete Check) di item Schedule - warna var(--success)
+     (warm sage, konsisten sama state "done" lain di app mis. set-row-done di gym-page.js). */
   .schedule-done-icon { display: inline-flex; vertical-align: middle; color: var(--success); }
   .schedule-done-badge { display: inline-flex; align-items: center; margin-left: 6px; }
   .schedule-done-text { display: inline-flex; align-items: center; gap: 4px; color: var(--success); font-weight: 600; }
+  .schedule-skip-icon { display: inline-flex; vertical-align: middle; color: var(--text-dim); }
 
-  /* Header baris Schedule This Week (fitur Gym "Tentative") - SATU BARIS flat sama persis kayak
-     item lain (Run/Rest/dst, lihat .log-item summary shared di dashboard-layout.js: flex +
-     align-items:center bikin panah ▸ otomatis sejajar vertikal sama teks) - teks judul di kiri
-     (flex:1, boleh wrap), pill jam ringkas di kanan (flex-shrink:0), BUKAN stack 2-baris kayak
-     versi sebelumnya (bikin panah ngambang sendirian di atas teks & collapsed jadi lebih tinggi
-     dari kartu Rest/Easy di sebelahnya). */
-  .schedule-main-text { flex: 1; min-width: 0; overflow-wrap: break-word; font-size: 14.5px; font-weight: 500; color: var(--text); }
-  .schedule-time-pill {
-    flex-shrink: 0; font-size: 11px; font-weight: 600; color: var(--text-muted);
-    padding: 3px 8px; border-radius: 999px; background: rgba(255, 255, 255, .06);
+  /* ---------- Day-Grouped Schedule Cards (1 Day = 1 Card) ---------- */
+  /* Kartu per-tanggal: kolom kiri fixed-width (hari pendek + angka tanggal, stacked), kolom kanan
+     stack sesi hari itu. "Today" (WIB) dikasih aksen hangat biar langsung keliatan tanpa baca
+     tanggal satu-satu. Tombol "+" kecil di pojok kanan atas buka Add Plan dialog ter-prefill
+     tanggal kartu itu (lihat addPlanScript: data-add-date). */
+  .schedule-day-card {
+    position: relative; display: flex; gap: 12px; padding: 12px 40px 12px 14px;
+    border-radius: 14px; margin-bottom: 8px; border: 1px solid transparent;
   }
-  .schedule-tentative-dot { color: var(--text-dim); font-weight: 500; margin-left: 2px; }
+  .schedule-day-card-today {
+    border-color: rgba(201, 115, 104, .35); background: rgba(201, 115, 104, .08);
+  }
+  .schedule-day-left {
+    flex-shrink: 0; width: 38px; display: flex; flex-direction: column; align-items: center;
+    padding-top: 2px;
+  }
+  .schedule-day-short { font-size: 10.5px; font-weight: 700; letter-spacing: .04em; color: var(--text-dim); }
+  .schedule-day-card-today .schedule-day-short { color: var(--accent); }
+  .schedule-day-num { font-size: 18px; font-weight: 700; color: var(--text); line-height: 1.2; }
+  .schedule-day-card-today .schedule-day-num { color: var(--accent); }
+  .schedule-day-right { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 8px; }
+  .schedule-day-empty { font-size: 12.5px; color: var(--text-dim); padding: 4px 0; }
+  .schedule-day-add-btn {
+    position: absolute; top: 8px; right: 8px; width: 26px; height: 26px; border-radius: 999px;
+    display: inline-flex; align-items: center; justify-content: center;
+    background: rgba(255, 255, 255, .06); border: 1px solid var(--border); color: var(--text-muted);
+    cursor: pointer; padding: 0;
+  }
+  .schedule-day-add-btn:hover { background: rgba(255, 255, 255, .12); color: var(--text); }
+
+  /* Satu baris sesi di dalam kartu - ikon sport + judul di baris atas (nggak keputus wrap aneh
+     buat judul panjang), badge jam + status di baris bawah, BUKAN 1 baris flat lagi kayak versi
+     lama (judul panjang + pill jam bentrok jadi wrap aneh). */
+  .schedule-session-row summary { padding: 0; }
+  .schedule-session-row summary::before { top: 3px; }
+  .schedule-session-title-row { display: flex; align-items: center; gap: 6px; font-size: 14px; font-weight: 600; color: var(--text); overflow-wrap: break-word; }
+  .schedule-session-meta-row { display: flex; align-items: center; gap: 6px; margin-top: 3px; }
+
+  /* Badge jam compact dashed-border (ganti pill solid lama) - ikon jam/hourglass buat sesi
+     tentative (jadwal default, BUKAN jadwal pasti - bisa berubah ngikutin jadwal aktual), ikon
+     check/skip buat yang udah diproses. Teks "Tentative" sengaja dihapus (cukup ikon, biar nggak
+     berkesan plan ini kaku/wajib - tinggal "Edit jam" kalau mau nge-pastiin). */
+  .schedule-time-badge {
+    display: inline-flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 600;
+    color: var(--text-muted); padding: 2px 8px; border-radius: 999px;
+    border: 1px dashed var(--border); font-variant-numeric: tabular-nums;
+  }
+  .schedule-time-badge-icon { display: inline-flex; color: var(--text-dim); }
 
   /* Area expanded "Edit jam" - indent sejajar sama awal teks judul (bukan nempel ketimpa panah
      ▸ di summary), padding-left-nya ngikutin lebar arrow(~18px) + gap summary(~10px). */
@@ -345,6 +375,26 @@ const GRIND_PAGE_CSS = `
   .inline-toggle-body .btn-secondary:hover { background: var(--surface-hover); }
   .inline-toggle-body .btn-sm { padding: 6px 10px; font-size: 12px; }
 
+  /* Tombol "+ Plan" inline di header section Schedule (ganti FAB fixed bottom-right lama - biar
+     nggak numpuk sama bottom-nav). Buka Add Plan dialog (addPlanModalHtml) tanpa prefill tanggal
+     (default hari ini) - beda dari tombol "+" kecil per-kartu hari yang prefill tanggal spesifik. */
+  .schedule-section-header { display: flex; align-items: center; justify-content: space-between; }
+  .schedule-add-plan-btn { display: inline-flex; align-items: center; gap: 4px; }
+
+  /* ---------- Add Plan Dialog - Quick-Add Chips ---------- */
+  /* 1-tap chip buat ngisi Jenis Sesi + Judul/Catatan otomatis (nyoba sinkron sama default split
+     mingguan di gym-program.js - lihat QUICK_ADD_PLAN_PRESETS) - tetep cuma prefill, semua field
+     bisa diubah manual sebelum Simpan, nggak ngunci apa-apa. */
+  .quick-add-chip-row { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px; }
+  .quick-add-chip {
+    font: inherit; font-size: 12.5px; font-weight: 600; cursor: pointer;
+    padding: 6px 12px; border-radius: 999px; border: 1px solid var(--border);
+    background: rgba(255, 255, 255, .05); color: var(--text-muted);
+  }
+  .quick-add-chip.active {
+    border-color: var(--accent); color: var(--accent); background: rgba(201, 115, 104, .12);
+  }
+
   /* ---------- Personal Bests (PB lari & PR gym) ---------- */
   .pb-card { margin-bottom: 4px; }
   .pb-tabs { margin-bottom: 14px; }
@@ -373,10 +423,9 @@ const GRIND_PAGE_CSS = `
   :root[data-theme="dark"] .log-item-info-pr { background: rgba(232, 167, 158, .14); }
 `;
 
-function importPlanFabHtml() {
-  return `<button type="button" class="grind-fab fab-btn" id="import-plan-fab" aria-label="Import Training Plan">+ Plan</button>`;
-}
-
+// Dulu dipicu FAB fixed bottom-right sendiri ("+ Plan") - sekarang dipicu dari dalam Add Plan
+// dialog (link "Atau paste Training Plan (TSV)", lihat addPlanModalHtml/addPlanScript) biar nggak
+// ada 2 entry point "+" yang norak/numpuk sama bottom-nav.
 function importModalHtml() {
   return `<dialog class="modal-dialog glass-card" id="import-plan-modal">
     <div class="modal-dialog-body">
@@ -397,11 +446,9 @@ function importModalHtml() {
 function importModalScript() {
   return `<script>
     (function () {
-      var btn = document.getElementById("import-plan-fab");
       var modal = document.getElementById("import-plan-modal");
       var close = document.getElementById("import-plan-close");
-      if (!btn || !modal) return;
-      btn.addEventListener("click", function () { modal.showModal(); });
+      if (!modal) return;
       if (close) close.addEventListener("click", function () { modal.close(); });
       modal.addEventListener("click", function (e) { if (e.target === modal) modal.close(); });
     })();
@@ -624,31 +671,70 @@ function scheduleDoneIconHtml() {
   return `<span class="schedule-done-icon">${svgIcon("check", { size: 12 })}</span>`;
 }
 
-function scheduleDayHtml(plan, todayKey) {
+function scheduleSkipIconHtml() {
+  return `<span class="schedule-skip-icon">${svgIcon("arrowRight", { size: 12 })}</span>`;
+}
+
+function addDaysToKey(dateKey, days) {
+  const d = new Date(`${dateKey}T00:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + days);
+  return d.toISOString().slice(0, 10);
+}
+
+// Semua tanggal dalam 1 rentang minggu (Senin-Minggu, dari getWeekDateBoundsWib/
+// getNextWeekDateBoundsWib di router.js) - dipakai buat bikin 1 Day Card per tanggal walau belum
+// ada plan sama sekali di tanggal itu (spec: "Keep empty days visible... full 7-day week stays
+// scannable", bukan cuma render tanggal yang kebetulan ada plan-nya).
+function allDateKeysInRange(startKey, endKey) {
+  const dates = [];
+  let cursor = startKey;
+  let guard = 0;
+  while (guard < 31) {
+    dates.push(cursor);
+    if (cursor === endKey) break;
+    cursor = addDaysToKey(cursor, 1);
+    guard++;
+  }
+  return dates;
+}
+
+function shortDayLabel(dateKey) {
+  return WEEKDAYS[new Date(`${dateKey}T00:00:00Z`).getUTCDay()].toUpperCase();
+}
+
+function dayNumLabel(dateKey) {
+  return new Date(`${dateKey}T00:00:00Z`).getUTCDate();
+}
+
+// Badge jam compact dashed-border (ganti pill solid + teks "Tentative" lama) - ikon clock buat
+// sesi tentative (jadwal DEFAULT doang, bisa berubah ngikutin jadwal aktual - makanya teks
+// "Tentative"-nya sengaja dihapus, cukup ikon biar nggak berkesan kaku/wajib), ikon check/skip
+// buat yang statusnya udah diproses.
+function scheduleTimeBadgeHtml(plan) {
+  if (!plan.scheduled_time) return "";
+  let icon = "";
+  if (plan.status === "DONE") icon = svgIcon("check", { size: 11 });
+  else if (plan.status === "SKIPPED") icon = svgIcon("arrowRight", { size: 11 });
+  else if (plan.tentative) icon = svgIcon("clock", { size: 11 });
+  return `<span class="schedule-time-badge tabular-nums">${icon ? `<span class="schedule-time-badge-icon">${icon}</span>` : ""}${plan.scheduled_time}</span>`;
+}
+
+// Satu baris sesi di dalam Day Card (dulu scheduleDayHtml - tanggalnya udah dipindah ke kolom kiri
+// kartu/scheduleDayCardHtml, jadi fungsi ini cuma render SATU sesi; 1 hari bisa punya >1 sesi).
+function scheduleSessionRowHtml(plan, todayKey) {
   const badge = SESSION_TYPE_BADGE[plan.session_type] || plan.session_type;
-  const statusBadge =
-    plan.status === "DONE" ? scheduleDoneIconHtml() : plan.status === "SKIPPED" ? " ⏭" : "";
   const summary = planSummaryLine(plan);
 
-  // Plan gym default (jadwal 4-Day Hybrid Split, belum ada plan GYM asli di DB di tanggal itu) -
+  // Plan gym default (jadwal 4-Day Gym Split, belum ada plan GYM asli di DB di tanggal itu) -
   // cuma kebagian tombol "Start" langsung ke split terkait, nggak ada Edit/Move/Skip karena nggak
-  // ada plan.id yang bisa di-update (lihat gym-program.js: defaultGymPlanForDate). Header-nya
-  // SATU BARIS flat (sama persis struktur kayak item lain - panah lalu teks lalu pill kanan),
-  // BUKAN stack 2-baris (versi lama bikin panah ▸ keliatan "ngambang" sendirian di atas teks) -
-  // jam + Tentative dikemas jadi 1 pill kecil di kanan biar tinggi collapsed tetap ramping kayak
-  // Rest/Easy. Completed TETAP cuma dari log GYM beneran (markCompletedGymPlans), jam lewat TIDAK
-  // pernah bikin auto-done.
+  // ada plan.id yang bisa di-update (lihat gym-program.js: defaultGymPlanForDate).
   if (plan.virtual && plan.session_type === "GYM") {
     const isDone = plan.status === "DONE";
-    const tentativeDot = plan.tentative ? `<span class="schedule-tentative-dot">· Tentative</span>` : "";
-    const timePill = plan.scheduled_time
-      ? `<span class="schedule-time-pill tabular-nums">${plan.scheduled_time}${tentativeDot}</span>`
-      : "";
 
-    return `<details class="log-item">
+    return `<details class="log-item schedule-session-row">
       <summary>
-        <span class="schedule-main-text">${dateLabel(plan.plan_date)} — ${svgIcon("dumbbell", { size: 16 })} ${escapeHtml(plan.title || badge)}${isDone ? `<span class="schedule-done-badge">${scheduleDoneIconHtml()}</span>` : ""}</span>
-        ${timePill}
+        <div class="schedule-session-title-row">${svgIcon("dumbbell", { size: 16 })} ${escapeHtml(plan.title || badge)}${isDone ? `<span class="schedule-done-badge">${scheduleDoneIconHtml()}</span>` : ""}</div>
+        <div class="schedule-session-meta-row">${scheduleTimeBadgeHtml(plan)}</div>
       </summary>
       <div class="log-detail-body schedule-detail-indent">
         ${plan.instructions ? `<div class="card-sub">${escapeHtml(plan.instructions)}</div>` : ""}
@@ -660,7 +746,7 @@ function scheduleDayHtml(plan, todayKey) {
         </div>`
         }
         <details class="inline-toggle inline-toggle-plain" style="margin-top:8px;">
-          <summary>Edit jam${plan.tentative ? " (Tentative)" : ""}</summary>
+          <summary>Edit jam</summary>
           <div class="inline-toggle-body">
             <form method="POST" action="/hub/grind/gym-schedule/override">
               <input type="hidden" name="plan_date" value="${plan.plan_date}">
@@ -702,14 +788,11 @@ function scheduleDayHtml(plan, todayKey) {
   // defaultBadmintonPlanForDate).
   if (plan.virtual && plan.session_type === "BADMINTON") {
     const isDone = plan.status === "DONE";
-    const timePill = plan.scheduled_time
-      ? `<span class="schedule-time-pill tabular-nums">${plan.scheduled_time}<span class="schedule-tentative-dot">· Tentative</span></span>`
-      : "";
 
-    return `<details class="log-item">
+    return `<details class="log-item schedule-session-row">
       <summary>
-        <span class="schedule-main-text">${dateLabel(plan.plan_date)} — ${svgIcon("racket", { size: 16 })} ${escapeHtml(plan.title || badge)}${isDone ? `<span class="schedule-done-badge">${scheduleDoneIconHtml()}</span>` : ""}</span>
-        ${timePill}
+        <div class="schedule-session-title-row">${svgIcon("racket", { size: 16 })} ${escapeHtml(plan.title || badge)}${isDone ? `<span class="schedule-done-badge">${scheduleDoneIconHtml()}</span>` : ""}</div>
+        <div class="schedule-session-meta-row">${scheduleTimeBadgeHtml(plan)}</div>
       </summary>
       <div class="log-detail-body schedule-detail-indent">
         ${
@@ -722,6 +805,15 @@ function scheduleDayHtml(plan, todayKey) {
       </div>
     </details>`;
   }
+
+  const statusBadge =
+    plan.status === "DONE" ? scheduleDoneIconHtml() : plan.status === "SKIPPED" ? scheduleSkipIconHtml() : "";
+  const metaParts = [
+    scheduleTimeBadgeHtml(plan),
+    summary ? `<span class="card-sub" style="margin:0;">${escapeHtml(summary)}</span>` : "",
+  ]
+    .filter(Boolean)
+    .join("");
 
   const actions =
     plan.status === "PENDING"
@@ -744,10 +836,12 @@ function scheduleDayHtml(plan, todayKey) {
         </form>`
       : "";
 
-  return `<details class="log-item">
-    <summary><span class="log-name">${dateLabel(plan.plan_date)} — ${badge}${statusBadge}</span></summary>
+  return `<details class="log-item schedule-session-row">
+    <summary>
+      <div class="schedule-session-title-row">${badge}${statusBadge ? `<span class="schedule-done-badge">${statusBadge}</span>` : ""}</div>
+      ${metaParts ? `<div class="schedule-session-meta-row">${metaParts}</div>` : ""}
+    </summary>
     <div class="log-detail-body">
-      ${summary ? `<div class="card-sub">${escapeHtml(summary)}</div>` : ""}
       ${plan.instructions ? `<div class="card-sub" style="margin-top:4px;">${escapeHtml(plan.instructions)}</div>` : ""}
       ${actions}
       ${moveToToday}
@@ -773,21 +867,180 @@ function scheduleDayHtml(plan, todayKey) {
   </details>`;
 }
 
-function scheduleViewerHtml({ weekPlans, nextWeekPlans, todayKey }) {
-  const thisWeek = weekPlans.length
-    ? weekPlans.map((p) => scheduleDayHtml(p, todayKey)).join("")
-    : `<div class="empty-state">Belum ada plan minggu ini.</div>`;
-  const nextWeek = nextWeekPlans.length
-    ? nextWeekPlans.map((p) => scheduleDayHtml(p, todayKey)).join("")
-    : `<div class="empty-state">Belum ada plan minggu depan.</div>`;
+// Satu kartu = satu tanggal (Day-Grouped Schedule Card, spec "1 Day = 1 Card") - kolom kiri hari
+// pendek + angka tanggal stacked, kolom kanan stack semua sesi hari itu (bisa >1, mis. Gym default
+// + Run asli di tanggal sama). "Today" (WIB) dikasih aksen hangat biar langsung keliatan tanpa
+// baca tanggal satu-satu. Hari kosong tetap dirender ("No sessions") biar 1 minggu penuh scannable.
+function scheduleDayCardHtml(dateKey, plansForDay, todayKey) {
+  const isToday = dateKey === todayKey;
+  const sessionsHtml = plansForDay.length
+    ? plansForDay.map((p) => scheduleSessionRowHtml(p, todayKey)).join("")
+    : `<div class="schedule-day-empty">No sessions</div>`;
 
-  return `<h2>Schedule</h2>
+  return `<div class="schedule-day-card glass-card${isToday ? " schedule-day-card-today" : ""}">
+    <div class="schedule-day-left">
+      <div class="schedule-day-short">${shortDayLabel(dateKey)}</div>
+      <div class="schedule-day-num">${dayNumLabel(dateKey)}</div>
+    </div>
+    <div class="schedule-day-right">${sessionsHtml}</div>
+    <button type="button" class="schedule-day-add-btn" data-add-date="${dateKey}" aria-label="Add plan tanggal ini">${svgIcon("plus", { size: 14 })}</button>
+  </div>`;
+}
+
+// Kelompokin plans (campuran virtual Gym/Badminton + plan asli) per plan_date, lalu render 1 kartu
+// per tanggal di SELURUH rentang minggu (bukan cuma tanggal yang kebetulan ada di `plans`).
+function scheduleWeekCardsHtml(plans, startKey, endKey, todayKey) {
+  const byDate = new Map();
+  plans.forEach((p) => {
+    if (!byDate.has(p.plan_date)) byDate.set(p.plan_date, []);
+    byDate.get(p.plan_date).push(p);
+  });
+  return allDateKeysInRange(startKey, endKey)
+    .map((dateKey) => scheduleDayCardHtml(dateKey, byDate.get(dateKey) || [], todayKey))
+    .join("");
+}
+
+function scheduleViewerHtml({ weekPlans, nextWeekPlans, weekStart, weekEnd, nextWeekStart, nextWeekEnd, todayKey }) {
+  const thisWeek = scheduleWeekCardsHtml(weekPlans, weekStart, weekEnd, todayKey);
+  const nextWeek = scheduleWeekCardsHtml(nextWeekPlans, nextWeekStart, nextWeekEnd, todayKey);
+
+  // "+ Plan" sekarang inline di header section (bukan FAB fixed bottom-right lagi, lihat
+  // addPlanModalHtml/addPlanScript) - buka Add Plan dialog tanpa prefill tanggal spesifik (default
+  // hari ini), beda dari tombol "+" kecil di tiap Day Card yang prefill tanggal kartu itu.
+  return `<div class="section-header schedule-section-header">
+    <h2>Schedule</h2>
+    <button type="button" class="btn-secondary btn-sm schedule-add-plan-btn" id="add-plan-fab">${svgIconLabel("plus", "Plan", { size: 13 })}</button>
+  </div>
   <div class="card-sub" style="margin:-4px 0 8px;">This Week</div>
   ${thisWeek}
   <details class="schedule-next-week">
     <summary>Next Week (${nextWeekPlans.length})</summary>
     <div class="schedule-next-week-body">${nextWeek}</div>
   </details>`;
+}
+
+// ---------- Add Plan Dialog (Quick-Add chips + form, dipanggil dari tombol header "+ Plan" &
+// tombol "+" tiap Day Card) ----------
+
+// Preset Quick-Add disinkronin ke jadwal default yang beneran dipakai (DEFAULT_GYM_SCHEDULE &
+// DEFAULT_BADMINTON_SCHEDULE di gym-program.js), bukan jam yang di-hardcode ulang di sini - kalau
+// jadwal default berubah lagi nanti, chip-chip ini ikut berubah otomatis. Interval Run/Long Run/
+// Easy Run belum punya "jadwal default" tersendiri di gym-program.js (cuma dicatat manual lewat
+// form Run), jadi jam di bawah ini sekadar saran awal yang gampang diubah user di form - BUKAN
+// jadwal baku (makanya semua field di dialog ini tetap bisa diedit bebas sebelum Simpan).
+function timeRangeLabel(start, end) {
+  return `${start}–${end}`;
+}
+
+function gymScheduleEntry(split) {
+  return DEFAULT_GYM_SCHEDULE.find((e) => e.split === split) || null;
+}
+
+function buildQuickAddPlanPresets() {
+  const push = gymScheduleEntry("Push");
+  const posteriorChain = gymScheduleEntry("Posterior Chain");
+  const pull = gymScheduleEntry("Pull");
+  const legs = gymScheduleEntry("Legs");
+  const badminton = DEFAULT_BADMINTON_SCHEDULE[0] || null;
+
+  return [
+    push && { label: "Push", sessionType: "GYM", title: push.title, time: timeRangeLabel(push.startTime, push.endTime) },
+    { label: "Interval Run", sessionType: "QUALITY", title: "Interval Run", time: "06:00–07:00" },
+    posteriorChain && {
+      label: "Posterior Chain", sessionType: "GYM", title: posteriorChain.title,
+      time: timeRangeLabel(posteriorChain.startTime, posteriorChain.endTime),
+    },
+    pull && { label: "Pull", sessionType: "GYM", title: pull.title, time: timeRangeLabel(pull.startTime, pull.endTime) },
+    legs && { label: "Legs", sessionType: "GYM", title: legs.title, time: timeRangeLabel(legs.startTime, legs.endTime) },
+    badminton && {
+      label: "Badminton", sessionType: "BADMINTON", title: badminton.title,
+      time: timeRangeLabel(badminton.startTime, badminton.endTime),
+    },
+    { label: "Long Run", sessionType: "LONG RUN", title: "Long Run", time: "06:00–08:00" },
+    { label: "Easy Run", sessionType: "EASY", title: "Easy Run", time: null },
+  ].filter(Boolean);
+}
+
+const QUICK_ADD_PLAN_PRESETS = buildQuickAddPlanPresets();
+
+function addPlanModalHtml(todayKey) {
+  const chips = QUICK_ADD_PLAN_PRESETS.map(
+    (p) =>
+      `<button type="button" class="quick-add-chip" data-session-type="${p.sessionType}" data-title="${escapeHtml(p.title)}" data-time="${escapeHtml(p.time || "")}">${escapeHtml(p.label)}</button>`
+  ).join("");
+
+  return `<dialog class="modal-dialog glass-card" id="add-plan-modal">
+    <div class="modal-dialog-body">
+      <div class="modal-dialog-header">
+        <h3>${svgIconLabel("plus", "Add Plan", { size: 16 })}</h3>
+        <button type="button" class="modal-close-btn" id="add-plan-close">✕</button>
+      </div>
+      <p class="modal-dialog-caption">1-tap buat ngisi otomatis (jadwal default, tetap bisa diubah) atau isi manual:</p>
+      <div class="quick-add-chip-row" id="add-plan-chips">${chips}</div>
+      <form method="POST" action="/hub/grind/plan/add" id="add-plan-form">
+        <label>Tanggal</label>
+        <input type="date" name="plan_date" id="add-plan-date" value="${todayKey}" required>
+        <label>Jenis Sesi</label>
+        <select name="session_type" id="add-plan-session-type">${SESSION_TYPE_OPTIONS.map((o) => `<option value="${o.value}">${o.label}</option>`).join("")}</select>
+        <label>Judul / Catatan (opsional)</label>
+        <input type="text" name="instructions" id="add-plan-instructions" placeholder="mis. Gym — Push · 06:00–07:15">
+        <label>Jarak Target (km, opsional)</label>
+        <input type="number" step="0.01" name="target_distance_km">
+        <button type="submit">Simpan Plan</button>
+      </form>
+      <p class="modal-dialog-caption" style="margin-top:12px;">
+        Mau import banyak sekaligus? <a href="#" id="open-import-modal-link">Paste Training Plan (TSV)</a>
+      </p>
+    </div>
+  </dialog>`;
+}
+
+function addPlanScript(todayKey) {
+  return `<script>
+    (function () {
+      var modal = document.getElementById("add-plan-modal");
+      var dateInput = document.getElementById("add-plan-date");
+      var sessionTypeSelect = document.getElementById("add-plan-session-type");
+      var instructionsInput = document.getElementById("add-plan-instructions");
+      var closeBtn = document.getElementById("add-plan-close");
+      var headerBtn = document.getElementById("add-plan-fab");
+      var openImportLink = document.getElementById("open-import-modal-link");
+      var importModal = document.getElementById("import-plan-modal");
+      if (!modal || !dateInput) return;
+
+      function openModal(dateKey) {
+        dateInput.value = dateKey || ${JSON.stringify(todayKey)};
+        modal.showModal();
+      }
+
+      if (headerBtn) headerBtn.addEventListener("click", function () { openModal(null); });
+      document.querySelectorAll("[data-add-date]").forEach(function (btn) {
+        btn.addEventListener("click", function () { openModal(btn.dataset.addDate); });
+      });
+      if (closeBtn) closeBtn.addEventListener("click", function () { modal.close(); });
+      modal.addEventListener("click", function (e) { if (e.target === modal) modal.close(); });
+
+      document.querySelectorAll(".quick-add-chip").forEach(function (chip) {
+        chip.addEventListener("click", function () {
+          document.querySelectorAll(".quick-add-chip").forEach(function (c) { c.classList.toggle("active", c === chip); });
+          if (sessionTypeSelect) sessionTypeSelect.value = chip.dataset.sessionType;
+          if (instructionsInput) {
+            var title = chip.dataset.title || "";
+            var time = chip.dataset.time || "";
+            instructionsInput.value = time ? title + " · " + time : title;
+          }
+        });
+      });
+
+      if (openImportLink && importModal) {
+        openImportLink.addEventListener("click", function (e) {
+          e.preventDefault();
+          modal.close();
+          importModal.showModal();
+        });
+      }
+    })();
+  </script>`;
 }
 
 // ---------- Sport Summary (bulan ini) ----------
@@ -1136,6 +1389,10 @@ export function renderGrindPage({
   upcomingRace,
   weekPlans,
   nextWeekPlans,
+  weekStart,
+  weekEnd,
+  nextWeekStart,
+  nextWeekEnd,
   weekSessions,
   weekTargetKm,
   monthSummary,
@@ -1168,16 +1425,17 @@ ${faviconLink("/icons/grind-icon.png")}
 
     ${todayPlanAndLoggerHtml({ todayPlan, todaySessions, upcomingRace, openForm, prefill, defaultTime })}
     ${weeklyProgressHtml({ weekPlans, weekSessions, weekTargetKm })}
-    ${scheduleViewerHtml({ weekPlans, nextWeekPlans, todayKey })}
+    ${scheduleViewerHtml({ weekPlans, nextWeekPlans, weekStart, weekEnd, nextWeekStart, nextWeekEnd, todayKey })}
     ${sportSummaryHtml(monthSummary)}
     ${personalBestsSectionHtml(personalBests)}
     ${historyLogHtml(historyLogs, personalBests)}
   </div>
   ${bottomNavHtml("/hub/grind")}
-  ${importPlanFabHtml()}
+  ${addPlanModalHtml(todayKey)}
   ${importModalHtml()}
   ${pacecalcScript()}
   ${quickAddScript()}
+  ${addPlanScript(todayKey)}
   ${importModalScript()}
   ${sportSummaryToggleScript()}
   ${historyShowAllScript()}

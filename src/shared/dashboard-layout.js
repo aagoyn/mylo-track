@@ -36,6 +36,26 @@ export const DASHBOARD_CSS = `
     --glass-list-border: rgba(72, 58, 44, 0.09);
     --fab-gradient: linear-gradient(135deg, #8C735B 0%, #6F5944 100%);
     --danger-tint-bg: #fbeae6;
+
+    /* Modal/dialog surface (Add Plan, Import Plan, etc.) - light theme gets a SOLID crisp warm
+       off-white instead of the translucent "glass" look (reads as muddy grey over the warm mesh
+       background in light mode); dark theme keeps the existing frosted-glass surface untouched
+       (see the two dark blocks below, where these all alias back to --glass-bg/--text/etc). */
+    --modal-bg: #FAF8F5;
+    --modal-border: #E6E0D6;
+    --modal-backdrop: rgba(28, 25, 23, 0.4);
+    --modal-title: #1C1917;
+    --modal-label: #57534E;
+    --modal-close-bg: #EFECE6;
+    --modal-input-bg: #FFFFFF;
+    --modal-input-border: #D6CFC4;
+    --modal-link: #7C5E42;
+    --modal-chip-bg: #F2EFE9;
+    --modal-chip-border: #DED8CE;
+    --modal-chip-text: #292524;
+    --modal-chip-active-bg: #6B5744;
+    --modal-chip-active-border: #6B5744;
+    --modal-chip-active-text: #FFFFFF;
   }
   /* Warm Graphite (dark theme) - follows OS preference by default, overridden by the manual toggle */
   @media (prefers-color-scheme: dark) {
@@ -75,6 +95,22 @@ export const DASHBOARD_CSS = `
       --glass-list-border: rgba(255, 255, 255, 0.09);
       --fab-gradient: linear-gradient(135deg, #B59779 0%, #967A5E 100%);
       --danger-tint-bg: var(--surface);
+
+      --modal-bg: var(--glass-bg);
+      --modal-border: var(--glass-border);
+      --modal-backdrop: rgba(41, 37, 36, 0.55);
+      --modal-title: var(--text);
+      --modal-label: var(--text-muted);
+      --modal-close-bg: var(--bg);
+      --modal-input-bg: var(--bg);
+      --modal-input-border: var(--border);
+      --modal-link: var(--accent);
+      --modal-chip-bg: rgba(255, 255, 255, 0.05);
+      --modal-chip-border: var(--border);
+      --modal-chip-text: var(--text-muted);
+      --modal-chip-active-bg: rgba(201, 115, 104, 0.12);
+      --modal-chip-active-border: var(--accent);
+      --modal-chip-active-text: var(--accent);
     }
   }
   :root[data-theme="dark"] {
@@ -113,6 +149,22 @@ export const DASHBOARD_CSS = `
     --glass-list-border: rgba(255, 255, 255, 0.09);
     --fab-gradient: linear-gradient(135deg, #B59779 0%, #967A5E 100%);
     --danger-tint-bg: var(--surface);
+
+    --modal-bg: var(--glass-bg);
+    --modal-border: var(--glass-border);
+    --modal-backdrop: rgba(41, 37, 36, 0.55);
+    --modal-title: var(--text);
+    --modal-label: var(--text-muted);
+    --modal-close-bg: var(--bg);
+    --modal-input-bg: var(--bg);
+    --modal-input-border: var(--border);
+    --modal-link: var(--accent);
+    --modal-chip-bg: rgba(255, 255, 255, 0.05);
+    --modal-chip-border: var(--border);
+    --modal-chip-text: var(--text-muted);
+    --modal-chip-active-bg: rgba(201, 115, 104, 0.12);
+    --modal-chip-active-border: var(--accent);
+    --modal-chip-active-text: var(--accent);
   }
   .theme-toggle { border: none; background: transparent; padding: 0; cursor: pointer; line-height: 0; flex-shrink: 0; }
   .theme-toggle-track {
@@ -697,24 +749,38 @@ export const DASHBOARD_CSS = `
   .schedule-next-week[open] > summary::before { content: "▾ "; }
   .schedule-next-week-body { margin-top: 8px; }
 
+  /* Light theme: solid crisp warm off-white surface + soft border (was translucent "glass" that
+     read as muddy grey over the warm mesh background). Dark theme is unchanged (--modal-* alias
+     back to the existing --glass-bg/--text/etc tokens, see the theme blocks above). */
   dialog.modal-dialog {
-    border: 1px solid var(--glass-border); border-radius: 14px; padding: 0; color: var(--text);
+    border: 1px solid var(--modal-border); border-radius: 14px; padding: 0; color: var(--text);
     max-width: 480px; width: 92vw; box-shadow: var(--glass-shadow);
-    background: var(--glass-bg); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+    background: var(--modal-bg); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
   }
-  dialog.modal-dialog::backdrop { background: rgba(41,37,36,.55); }
+  dialog.modal-dialog::backdrop {
+    background: var(--modal-backdrop); backdrop-filter: blur(2px); -webkit-backdrop-filter: blur(2px);
+  }
   .modal-dialog-body { padding: 18px; }
   .modal-dialog-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
-  .modal-dialog-header h3 { margin: 0; font-size: 15px; display: flex; align-items: center; gap: 8px; }
+  .modal-dialog-header h3 { margin: 0; font-size: 15px; display: flex; align-items: center; gap: 8px; color: var(--modal-title); }
   .modal-close-btn {
-    border: none; background: var(--bg); color: var(--text-muted); font-size: 16px; line-height: 1;
+    border: none; background: var(--modal-close-bg); color: var(--text-muted); font-size: 16px; line-height: 1;
     cursor: pointer; width: 28px; height: 28px; border-radius: 50%; flex-shrink: 0;
   }
   .modal-close-btn:hover { background: var(--surface-hover); color: var(--text); }
-  .modal-dialog-caption { font-size: 12px; color: var(--text-muted); margin: 0 0 10px; line-height: 1.5; }
+  .modal-dialog-caption { font-size: 12px; color: var(--modal-label); margin: 0 0 10px; line-height: 1.5; }
+  .modal-dialog-caption a { color: var(--modal-link); font-weight: 600; }
   .modal-dialog-caption-cols {
     font-size: 11px; color: var(--text-dim); background: var(--bg); border-radius: 8px;
     padding: 8px 10px; margin: 0 0 12px;
+  }
+  .modal-dialog-body label { color: var(--modal-label); }
+  dialog.modal-dialog .modal-dialog-body input[type="text"],
+  dialog.modal-dialog .modal-dialog-body input[type="number"],
+  dialog.modal-dialog .modal-dialog-body input[type="date"],
+  dialog.modal-dialog .modal-dialog-body select,
+  dialog.modal-dialog .modal-dialog-body textarea {
+    background: var(--modal-input-bg); border-color: var(--modal-input-border); color: var(--text);
   }
 
   .routine-block { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; margin-bottom: 12px; }

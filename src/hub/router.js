@@ -253,16 +253,19 @@ function weekRangeLabelEn(startKey, endKey) {
     : `${s.getUTCDate()} ${startMonth}–${e.getUTCDate()} ${endMonth}`;
 }
 
-// Satu dot per tanggal (Senin-Minggu) buat "This Week" strip - "done" kalau ada log sesi ATAU plan
-// virtual yang udah auto-complete di tanggal itu, "planned" kalau masih PENDING (termasuk jadwal
-// default Gym/Badminton), sisanya kosong.
+// Satu dot per tanggal (Senin-Minggu) buat "This Week" strip - priority: "done" (ada log sesi ATAU
+// plan yang udah auto-complete) > "planned" (masih ada plan PENDING, termasuk jadwal default Gym/
+// Badminton - tetap diprioritaskan di atas skipped, karena user masih bisa ngerjain) > "skipped"
+// (plan hari itu di-skip & nggak ada yang PENDING/DONE lagi) > "empty" (nggak ada plan sama sekali).
 function buildWeekDayStates(weekPlans, weekSessions, startKey, endKey) {
   const loggedDates = new Set(weekSessions.map((s) => s.session_date));
   return allDateKeysInRange(startKey, endKey).map((dateKey) => {
     const plansForDay = weekPlans.filter((p) => p.plan_date === dateKey);
     const isDone = loggedDates.has(dateKey) || plansForDay.some((p) => p.status === "DONE");
     const isPlanned = plansForDay.some((p) => p.status === "PENDING");
-    return { dateKey, state: isDone ? "done" : isPlanned ? "planned" : "empty" };
+    const isSkipped = plansForDay.some((p) => p.status === "SKIPPED");
+    const state = isDone ? "done" : isPlanned ? "planned" : isSkipped ? "skipped" : "empty";
+    return { dateKey, state };
   });
 }
 

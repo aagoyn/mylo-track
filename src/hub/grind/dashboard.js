@@ -311,8 +311,11 @@ const GRIND_PAGE_CSS = `
     display: flex; gap: 12px; padding: 12px 14px;
     border-radius: 14px; margin-bottom: 8px; border: 1px solid transparent;
   }
+  /* Highlight "Today" (WIB) - border + surface warm aksen harus kelihatan jelas tanpa baca
+     tanggal satu-satu (dibanding versi pertama yang kurang kontras). */
   .schedule-day-card-today {
-    border-color: rgba(201, 115, 104, .35); background: rgba(201, 115, 104, .08);
+    border-color: rgba(201, 115, 104, .5); background: rgba(201, 115, 104, .1);
+    box-shadow: inset 0 0 0 1px rgba(201, 115, 104, .12);
   }
   .schedule-day-left {
     flex-shrink: 0; width: 38px; display: flex; flex-direction: column; align-items: center;
@@ -325,20 +328,28 @@ const GRIND_PAGE_CSS = `
   .schedule-day-right { flex: 1; min-width: 0; display: flex; flex-direction: column; }
   .schedule-day-empty { font-size: 12.5px; color: var(--text-dim); padding: 4px 0; }
 
-  /* Satu baris sesi di dalam kartu - ikon sport + judul di baris atas (nggak keputus wrap aneh
-     buat judul panjang), badge jam + status di baris bawah, BUKAN 1 baris flat lagi kayak versi
-     lama (judul panjang + pill jam bentrok jadi wrap aneh). Sengaja TANPA background/border
-     sendiri (override .log-item shared) - biar nggak keliatan "kartu di dalam kartu"; kalau 1 hari
-     ada >1 sesi, dipisahin garis tipis (bukan kartu terpisah-pisah numpuk).  */
+  /* Satu baris sesi di dalam kartu - ikon sport + judul di kiri, badge jam SELALU nempel di kanan
+     pada baris yang SAMA (flex justify-between) buat SEMUA sesi (virtual Gym/Badminton maupun plan
+     asli, termasuk sesi ke-2/ke-3 di hari yang sama) - sebelumnya title-row & time-badge jadi 2
+     flex-item terpisah langsung di dalam <summary> (yang sendirinya flex-wrap), jadi posisi badge
+     gampang "loncat" nggak konsisten. Sekarang dibungkus 1 div (.schedule-session-top-row) biar
+     summary cuma punya 2 flex-item: panah ▸ bawaan + wrapper ini (full-width). Sengaja TANPA
+     background/border sendiri (override .log-item shared) - biar nggak keliatan "kartu di dalam
+     kartu"; kalau 1 hari ada >1 sesi, dipisahin garis tipis (bukan kartu terpisah-pisah numpuk). */
   .schedule-session-row { background: none; border: none; border-radius: 0; margin-bottom: 0; }
   .schedule-session-row:not(:first-child) { border-top: 1px solid var(--border); margin-top: 6px; padding-top: 6px; }
   .schedule-session-row summary { padding: 0; }
   .schedule-session-row summary::before { top: 3px; }
-  .schedule-session-title-row { display: flex; align-items: center; gap: 6px; font-size: 14px; font-weight: 600; color: var(--text); overflow-wrap: break-word; }
-  .schedule-session-meta-row { display: flex; align-items: center; gap: 6px; margin-top: 3px; min-width: 0; }
+  .schedule-session-body { flex: 1; min-width: 0; }
+  .schedule-session-top-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  .schedule-session-title-row {
+    display: flex; align-items: center; gap: 6px; font-size: 14px; font-weight: 600; color: var(--text);
+    min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .schedule-session-note-row { margin-top: 3px; min-width: 0; }
   /* Catatan/summary panjang (jarak/pace/HR) di-clamp 1 baris di tampilan ringkas - teks lengkapnya
      tetap utuh (nggak di-truncate) di dalam .log-detail-body pas kartu sesinya di-expand. */
-  .schedule-session-note { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+  .schedule-session-note { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; display: block; }
 
   /* Badge jam compact dashed-border (ganti pill solid lama) - ikon jam/hourglass buat sesi
      tentative (jadwal default, BUKAN jadwal pasti - bisa berubah ngikutin jadwal aktual), ikon
@@ -390,11 +401,12 @@ const GRIND_PAGE_CSS = `
   .quick-add-chip-row { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px; }
   .quick-add-chip {
     font: inherit; font-size: 12.5px; font-weight: 600; cursor: pointer;
-    padding: 6px 12px; border-radius: 999px; border: 1px solid var(--border);
-    background: rgba(255, 255, 255, .05); color: var(--text-muted);
+    padding: 6px 12px; border-radius: 999px; border: 1px solid var(--modal-chip-border);
+    background: var(--modal-chip-bg); color: var(--modal-chip-text);
   }
   .quick-add-chip.active {
-    border-color: var(--accent); color: var(--accent); background: rgba(201, 115, 104, .12);
+    border-color: var(--modal-chip-active-border); color: var(--modal-chip-active-text);
+    background: var(--modal-chip-active-bg);
   }
 
   /* ---------- Personal Bests (PB lari & PR gym) ---------- */
@@ -735,8 +747,12 @@ function scheduleSessionRowHtml(plan, todayKey) {
 
     return `<details class="log-item schedule-session-row">
       <summary>
-        <div class="schedule-session-title-row">${svgIcon("dumbbell", { size: 16 })} ${escapeHtml(plan.title || badge)}${isDone ? `<span class="schedule-done-badge">${scheduleDoneIconHtml()}</span>` : ""}</div>
-        <div class="schedule-session-meta-row">${scheduleTimeBadgeHtml(plan)}</div>
+        <div class="schedule-session-body">
+          <div class="schedule-session-top-row">
+            <div class="schedule-session-title-row">${svgIcon("dumbbell", { size: 16 })} ${escapeHtml(plan.title || badge)}${isDone ? `<span class="schedule-done-badge">${scheduleDoneIconHtml()}</span>` : ""}</div>
+            ${scheduleTimeBadgeHtml(plan)}
+          </div>
+        </div>
       </summary>
       <div class="log-detail-body schedule-detail-indent">
         ${plan.instructions ? `<div class="card-sub">${escapeHtml(plan.instructions)}</div>` : ""}
@@ -793,8 +809,12 @@ function scheduleSessionRowHtml(plan, todayKey) {
 
     return `<details class="log-item schedule-session-row">
       <summary>
-        <div class="schedule-session-title-row">${svgIcon("racket", { size: 16 })} ${escapeHtml(plan.title || badge)}${isDone ? `<span class="schedule-done-badge">${scheduleDoneIconHtml()}</span>` : ""}</div>
-        <div class="schedule-session-meta-row">${scheduleTimeBadgeHtml(plan)}</div>
+        <div class="schedule-session-body">
+          <div class="schedule-session-top-row">
+            <div class="schedule-session-title-row">${svgIcon("racket", { size: 16 })} ${escapeHtml(plan.title || badge)}${isDone ? `<span class="schedule-done-badge">${scheduleDoneIconHtml()}</span>` : ""}</div>
+            ${scheduleTimeBadgeHtml(plan)}
+          </div>
+        </div>
       </summary>
       <div class="log-detail-body schedule-detail-indent">
         ${
@@ -810,12 +830,9 @@ function scheduleSessionRowHtml(plan, todayKey) {
 
   const statusBadge =
     plan.status === "DONE" ? scheduleDoneIconHtml() : plan.status === "SKIPPED" ? scheduleSkipIconHtml() : "";
-  const metaParts = [
-    scheduleTimeBadgeHtml(plan),
-    summary ? `<span class="card-sub schedule-session-note" style="margin:0;">${escapeHtml(summary)}</span>` : "",
-  ]
-    .filter(Boolean)
-    .join("");
+  const noteHtml = summary
+    ? `<div class="schedule-session-note-row"><span class="card-sub schedule-session-note">${escapeHtml(summary)}</span></div>`
+    : "";
 
   const actions =
     plan.status === "PENDING"
@@ -840,8 +857,13 @@ function scheduleSessionRowHtml(plan, todayKey) {
 
   return `<details class="log-item schedule-session-row">
     <summary>
-      <div class="schedule-session-title-row">${badge}${statusBadge ? `<span class="schedule-done-badge">${statusBadge}</span>` : ""}</div>
-      ${metaParts ? `<div class="schedule-session-meta-row">${metaParts}</div>` : ""}
+      <div class="schedule-session-body">
+        <div class="schedule-session-top-row">
+          <div class="schedule-session-title-row">${badge}${statusBadge ? `<span class="schedule-done-badge">${statusBadge}</span>` : ""}</div>
+          ${scheduleTimeBadgeHtml(plan)}
+        </div>
+        ${noteHtml}
+      </div>
     </summary>
     <div class="log-detail-body">
       ${plan.instructions ? `<div class="card-sub" style="margin-top:4px;">${escapeHtml(plan.instructions)}</div>` : ""}

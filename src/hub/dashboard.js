@@ -26,13 +26,15 @@ function miniAppsGridHtml() {
   return `<div class="mini-apps-grid">${tiles}</div>`;
 }
 
-// ---------- This Week strip (full-width, above the 2x2 bento grid) ----------
+// ---------- This Week strip (full-width, below the 2x2 bento grid, directly above GRIND) ----------
 // Compact weekly snapshot pulling from the same source as Schedule This Week on /hub/grind
 // (weekPlans = real plans merged with virtual default Gym/Badminton plans, see
 // injectDefaultGymPlans) - rendered here as 7 day-dots + 3 metrics + an "Up Next" row, instead of
 // repeating another 2x2 grid.
 const WEEK_DOT_LETTERS = ["M", "T", "W", "T", "F", "S", "S"];
 
+// "done" = solid accent fill, "skipped" = muted grey with a small strike mark, "planned" = dashed
+// outline (upcoming), "empty" = bare outline (no plan that day at all).
 function weekDayDotsHtml(dayStates, todayKey) {
   return dayStates
     .map((d, i) => {
@@ -45,20 +47,22 @@ function weekDayDotsHtml(dayStates, todayKey) {
     .join("");
 }
 
-// Quick-action button on the "Up Next" row - virtual Gym/Badminton plans (no plan.id yet) link to
-// their respective page/form, a real REST plan completes in place (POST, redirects to
-// /hub/grind), any other plan type opens the quick-logger on /hub/grind to record the result.
+// Quick-action pill on the "Up Next" row - the plan there is always still PENDING (not completed
+// yet, see findUpNextPlan in hub/router.js), so the button always reads as an action to take
+// ("Log"/"Done"), never a checkmark. Virtual Gym/Badminton plans (no plan.id yet) link to their
+// respective page/form, a real REST plan completes in place (POST, redirects to /hub/grind), any
+// other plan type opens the quick-logger on /hub/grind to record the result.
 function upNextActionHtml(plan) {
   if (plan.virtual && plan.session_type === "GYM") {
-    return `<a class="week-strip-check-btn" href="/hub/grind/gym?split=${encodeURIComponent(plan.sub_type)}" aria-label="Start Gym" onclick="event.stopPropagation()">${svgIcon("arrowRight", { size: 14 })}</a>`;
+    return `<a class="week-strip-action-pill" href="/hub/grind/gym?split=${encodeURIComponent(plan.sub_type)}" onclick="event.stopPropagation()">Log →</a>`;
   }
   if (plan.virtual && plan.session_type === "BADMINTON") {
-    return `<a class="week-strip-check-btn" href="/hub/grind?form=badminton#today-logger" aria-label="Log Badminton" onclick="event.stopPropagation()">${svgIcon("arrowRight", { size: 14 })}</a>`;
+    return `<a class="week-strip-action-pill" href="/hub/grind?form=badminton#today-logger" onclick="event.stopPropagation()">Log →</a>`;
   }
   if (plan.session_type === "REST") {
-    return `<form method="POST" action="/hub/grind/plan/${plan.id}/complete-rest" style="margin:0;" onclick="event.stopPropagation()"><button type="submit" class="week-strip-check-btn" aria-label="Complete">${svgIcon("check", { size: 14 })}</button></form>`;
+    return `<form method="POST" action="/hub/grind/plan/${plan.id}/complete-rest" style="margin:0;" onclick="event.stopPropagation()"><button type="submit" class="week-strip-action-pill">Done →</button></form>`;
   }
-  return `<a class="week-strip-check-btn" href="/hub/grind?complete=${plan.id}#today-logger" aria-label="Complete" onclick="event.stopPropagation()">${svgIcon("check", { size: 14 })}</a>`;
+  return `<a class="week-strip-action-pill" href="/hub/grind?complete=${plan.id}#today-logger" onclick="event.stopPropagation()">Log →</a>`;
 }
 
 function thisWeekStripHtml(thisWeek, todayKey) {
@@ -138,17 +142,24 @@ const HUB_PAGE_CSS = `
     color: #fff; font-size: 15px; font-weight: 700; cursor: pointer; font-family: inherit;
   }
 
-  /* ---------- This Week strip (full-width, above the 2x2 bento grid) ---------- */
+  /* ---------- This Week strip (full-width, below the 2x2 bento grid, directly above GRIND) ---------- */
   .week-strip { display: flex; flex-direction: column; gap: 8px; margin-bottom: 14px; }
   .week-strip-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
   .week-strip-label { font-size: 11px; font-weight: 700; letter-spacing: .04em; color: var(--text-dim); }
   .week-day-dots { display: flex; gap: 6px; }
   .week-day-dot {
-    width: 9px; height: 9px; border-radius: 999px; border: 1.5px solid var(--border);
+    position: relative; width: 9px; height: 9px; border-radius: 999px; border: 1.5px solid var(--border);
     background: transparent; box-sizing: border-box;
   }
   .week-day-dot-done { background: var(--success); border-color: var(--success); }
   .week-day-dot-planned { border-style: dashed; border-color: var(--accent); }
+  /* Skipped - muted grey fill + a small diagonal strike, clearly different from both the solid
+     accent "done" dot and the dashed "planned" outline. */
+  .week-day-dot-skipped { background: var(--text-dim); border-color: var(--text-dim); opacity: .55; }
+  .week-day-dot-skipped::after {
+    content: ""; position: absolute; left: -1px; right: -1px; top: 50%; height: 1px;
+    background: var(--bg); transform: translateY(-50%) rotate(-45deg);
+  }
   .week-day-dot-today { box-shadow: 0 0 0 2px rgba(201, 115, 104, .3); }
   .week-strip-metrics { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; color: var(--text); }
   .week-strip-metrics span:not(:last-child)::after { content: "·"; margin-left: 8px; color: var(--text-dim); font-weight: 400; }
@@ -166,10 +177,11 @@ const HUB_PAGE_CSS = `
     padding: 2px 8px; border-radius: 999px; border: 1px dashed var(--border);
     font-variant-numeric: tabular-nums;
   }
-  .week-strip-check-btn {
-    flex-shrink: 0; width: 26px; height: 26px; border-radius: 999px; padding: 0;
-    display: inline-flex; align-items: center; justify-content: center;
+  .week-strip-action-pill {
+    flex-shrink: 0; display: inline-flex; align-items: center; gap: 3px;
+    padding: 4px 10px; border-radius: 999px; font-size: 11.5px; font-weight: 700;
     background: var(--accent-deep); color: var(--accent-light); cursor: pointer; border: none;
+    text-decoration: none; font-family: inherit;
   }
 
   dialog.qe-dialog {
@@ -441,8 +453,6 @@ ${faviconLink("/icons/hub.png")}
       <p class="hub-sub">Here's your day so far, ${escapeHtml(username)}.</p>
     </header>
 
-    ${thisWeekStripHtml(thisWeek, todayKey)}
-
     <section class="grid-2-always">
       <a class="card bento-card" href="/dashboard/calorie">
         <div class="card-label">${svgIconLabel("flame", "Calories")}</div>
@@ -461,6 +471,8 @@ ${faviconLink("/icons/hub.png")}
         ${vaultCard}
       </a>
     </section>
+
+    ${thisWeekStripHtml(thisWeek, todayKey)}
 
     <h2>${iconLabel("/icons/grind-icon.png", "Grind")}</h2>
     <div class="card bento-card glass-card" onclick="location.href='/hub/grind'" style="cursor:pointer;">${grindCard}</div>
